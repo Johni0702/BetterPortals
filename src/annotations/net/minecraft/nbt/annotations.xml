@@ -1,0 +1,5 @@
+<root>
+    <item name='net.minecraft.nbt.NBTTagCompound net.minecraft.nbt.NBTBase getTag(java.lang.String)'>
+        <annotation name='org.jetbrains.annotations.Nullable'/>
+    </item>
+</root>

@@ -1,0 +1,16 @@
+[
+{
+  "modid": "betterportals",
+  "name": "Better Portals",
+  "description": "Adds see-through portals that can be used without any pesky loading screen.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["johni0702"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]

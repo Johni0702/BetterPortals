@@ -1,0 +1,118 @@
+buildscript {
+    ext.kotlin_version = '1.2.31'
+    repositories {
+        jcenter()
+        maven { url = "http://files.minecraftforge.net/maven" }
+        maven { url = "https://repo.spongepowered.org/maven" }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+apply plugin: 'net.minecraftforge.gradle.forge'
+
+// Source sets need to be created after FG but before kotlin because FG does broken stuff in createSourceCopyTasks
+sourceSets {
+    create 'annotations'
+}
+
+apply plugin: 'kotlin'
+apply plugin: 'org.spongepowered.mixin'
+
+version = "0.1"
+group = "de.johni0702.minecraft"
+archivesBaseName = "betterportals"
+
+sourceCompatibility = targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+compileJava {
+    sourceCompatibility = targetCompatibility = '1.8'
+}
+
+minecraft {
+    coreMod = "de.johni0702.minecraft.betterportals.MixinLoader"
+    version = "1.12.2-14.23.3.2669"
+    runDir = "run"
+    mappings = "snapshot_20171003"
+}
+
+mixin {
+    add sourceSets.main, "mixins.betterportals.refmap.json"
+}
+
+repositories {
+    maven {
+        name = "SpongePowered Repo"
+        url = "http://repo.spongepowered.org/maven/"
+    }
+    mavenCentral()
+}
+
+sourceSets {
+    annotations {
+        kotlin.srcDirs = [file('src/annotations')]
+        resources.srcDirs = [file('src/annotations')]
+    }
+}
+
+configurations {
+    shade
+    compile.extendsFrom shade
+    compile.extendsFrom annotations
+}
+
+dependencies {
+    compile 'org.spongepowered:mixin:0.7.5-SNAPSHOT'
+    shade "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
+}
+
+processResources {
+    // this will ensure that this task is redone when the versions change.
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+
+    // replace stuff in mcmod.info, nothing else
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+                
+        // replace version and mcversion
+        expand 'version':project.version, 'mcversion':project.minecraft.version
+    }
+        
+    // copy everything else except the mcmod.info
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
+
+jar {
+    from ({files(configurations.compile.findAll {it.name.startsWith 'mixin-'} + configurations.shade)
+            .collect {it.isDirectory() ? it : zipTree(it)}})
+    manifest {
+        attributes 'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
+                'TweakOrder': '0',
+                'FMLCorePluginContainsFMLMod': 'true',
+                'FMLAT': 'betterportals_at.cfg'
+    }
+}
+
+task copySrg(type: Copy, dependsOn: 'genSrgs') {
+    from {project.tasks.genSrgs.mcpToSrg}
+    into 'build'
+}
+
+setupDecompWorkspace.dependsOn copySrg
+setupDevWorkspace.dependsOn copySrg
+project.tasks.idea.dependsOn copySrg
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
