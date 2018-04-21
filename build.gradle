@@ -47,6 +47,10 @@ repositories {
         url = "http://repo.spongepowered.org/maven/"
     }
     mavenCentral()
+    maven {
+        name = "CurseForge"
+        url = "https://minecraft.curseforge.com/api/maven/"
+    }
 }
 
 sourceSets {
@@ -64,6 +68,7 @@ configurations {
 
 dependencies {
     compile 'org.spongepowered:mixin:0.7.5-SNAPSHOT'
+    compile 'the-twilight-forest:twilightforest-1.12.2:3.6.345:universal'
     shade "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
 }
 

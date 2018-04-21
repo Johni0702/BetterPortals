@@ -3,15 +3,18 @@ package de.johni0702.minecraft.betterportals
 import com.google.common.util.concurrent.ListenableFutureTask
 import de.johni0702.minecraft.betterportals.client.renderer.RenderEndPortal
 import de.johni0702.minecraft.betterportals.client.renderer.RenderNetherPortal
+import de.johni0702.minecraft.betterportals.client.renderer.RenderOneWayPortal
 import de.johni0702.minecraft.betterportals.client.view.ClientViewManager
 import de.johni0702.minecraft.betterportals.client.view.ClientViewManagerImpl
 import de.johni0702.minecraft.betterportals.client.view.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterEndPortal
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterNetherPortal
+import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterTFPortal
 import de.johni0702.minecraft.betterportals.common.capability.*
 import de.johni0702.minecraft.betterportals.common.entity.EndEntryPortalEntity
 import de.johni0702.minecraft.betterportals.common.entity.EndExitPortalEntity
 import de.johni0702.minecraft.betterportals.common.entity.NetherPortalEntity
+import de.johni0702.minecraft.betterportals.common.entity.TFPortalEntity
 import de.johni0702.minecraft.betterportals.common.logFailure
 import de.johni0702.minecraft.betterportals.net.Net
 import de.johni0702.minecraft.betterportals.server.view.AttachServerViewManagerCapability
@@ -27,6 +30,7 @@ import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.common.capabilities.CapabilityManager
 import net.minecraftforge.event.RegistryEvent
 import net.minecraftforge.fml.client.registry.RenderingRegistry
+import net.minecraftforge.fml.common.Loader
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.SidedProxy
 import net.minecraftforge.fml.common.event.FMLInitializationEvent
@@ -39,10 +43,14 @@ import org.apache.logging.log4j.Logger
 
 const val MOD_ID = "betterportals"
 
+const val TF_MOD_ID = "twilightforest"
+
 lateinit var LOGGER: Logger
 
 @Mod(modid = MOD_ID, useMetadata = true)
 class BetterPortalsMod {
+
+    internal val hasTwilightForest by lazy { Loader.isModLoaded(TF_MOD_ID) }
 
     @Mod.EventHandler
     fun preInit(event: FMLPreInitializationEvent) {
@@ -58,6 +66,9 @@ class BetterPortalsMod {
         with(event.registry) {
             register(BlockBetterNetherPortal())
             register(BlockBetterEndPortal())
+            if (hasTwilightForest) {
+                register(BlockBetterTFPortal())
+            }
         }
     }
 
@@ -117,6 +128,18 @@ class BetterPortalsMod {
                     Int.MAX_VALUE,
                     false
             )
+            if (mod.hasTwilightForest) {
+                EntityRegistry.registerModEntity(
+                        ResourceLocation(MOD_ID, "tf_portal"),
+                        TFPortalEntity::class.java,
+                        "tf_portal",
+                        3,
+                        mod,
+                        256,
+                        Int.MAX_VALUE,
+                        false
+                )
+            }
         }
 
         override fun sync(world: World?, runnable: () -> Unit) {
@@ -137,6 +160,9 @@ class BetterPortalsMod {
             RenderingRegistry.registerEntityRenderingHandler(NetherPortalEntity::class.java, ::RenderNetherPortal)
             RenderingRegistry.registerEntityRenderingHandler(EndEntryPortalEntity::class.java, ::RenderEndPortal)
             RenderingRegistry.registerEntityRenderingHandler(EndExitPortalEntity::class.java, ::RenderEndPortal)
+            if (mod.hasTwilightForest) {
+                RenderingRegistry.registerEntityRenderingHandler(TFPortalEntity::class.java, { RenderOneWayPortal(it) })
+            }
         }
 
         override fun init(mod: BetterPortalsMod) {
