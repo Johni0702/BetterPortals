@@ -5,7 +5,6 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import de.johni0702.minecraft.betterportals.BetterPortalsMod
 import de.johni0702.minecraft.betterportals.LOGGER
-import io.netty.buffer.Unpooled
 import net.minecraft.block.state.IBlockState
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.entity.Entity
@@ -15,12 +14,15 @@ import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.network.NetHandlerPlayServer
 import net.minecraft.network.PacketBuffer
+import net.minecraft.util.BitArray
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.*
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 import net.minecraft.world.chunk.BlockStateContainer
+import net.minecraft.world.chunk.BlockStatePaletteHashMap
+import net.minecraft.world.chunk.BlockStatePaletteLinear
 import net.minecraftforge.fml.common.eventhandler.EventBus
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 import kotlin.math.max
@@ -167,13 +169,21 @@ fun World.makeChunkwiseBlockCache(forceLoad: Boolean = true): BlockCache =
             }
         }
 
-private val copyBuffer = PacketBuffer(Unpooled.buffer())
 fun BlockStateContainer.copy(): BlockStateContainer {
-    copyBuffer.writerIndex(0)
-    write(copyBuffer)
     val copy = BlockStateContainer()
-    copy.read(copyBuffer)
-    copyBuffer.readerIndex(0)
+    copy.bits = bits
+    copy.palette = when {
+        bits <= 4 -> BlockStatePaletteLinear(bits, this).apply {
+            System.arraycopy((palette as BlockStatePaletteLinear).states, 0, states, 0, states.size)
+        }
+        bits <= 8 -> BlockStatePaletteHashMap(bits, this).apply {
+            val org = (palette as BlockStatePaletteHashMap).statePaletteMap
+            org.forEach { statePaletteMap.put(it, org.getId(it)) }
+        }
+        else -> BlockStateContainer.REGISTRY_BASED_PALETTE
+    }
+    copy.storage = BitArray(bits, 4096)
+    System.arraycopy(storage.backingLongArray, 0, copy.storage.backingLongArray, 0, storage.backingLongArray.size)
     return copy
 }
 
