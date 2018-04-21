@@ -66,6 +66,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
 
         unusedViews.addAll(views)
         views.clear()
+        views.add(mainView)
     }
 
     fun init() {
