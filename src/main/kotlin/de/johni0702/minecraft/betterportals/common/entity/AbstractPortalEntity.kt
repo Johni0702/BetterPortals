@@ -32,6 +32,7 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData
 import net.minecraftforge.fml.relauncher.Side
+import net.minecraftforge.fml.relauncher.SideOnly
 
 abstract class AbstractPortalEntity(
         world: World,
@@ -353,10 +354,13 @@ abstract class AbstractPortalEntity(
     // Client-side
     //
 
+    @SideOnly(Side.CLIENT)
     var view: ClientView? = null
 
+    @SideOnly(Side.CLIENT)
     override fun isInRangeToRenderDist(distance: Double): Boolean = true // MC makes this depend on entityBoundingBox
 
+    @SideOnly(Side.CLIENT)
     protected open fun onClientUpdate() {
         val player = world.getPlayers(EntityPlayerSP::class.java) { true }[0]
         view?.let { view ->
@@ -366,12 +370,15 @@ abstract class AbstractPortalEntity(
         }
     }
 
+    @SideOnly(Side.CLIENT)
     private var portalUser: Entity? = null
 
+    @SideOnly(Side.CLIENT)
     fun beforeUsePortal(entity: Entity) {
         portalUser = entity
     }
 
+    @SideOnly(Side.CLIENT)
     fun afterUsePortal(entityId: Int) {
         val entity = portalUser
         portalUser = null
@@ -413,6 +420,7 @@ abstract class AbstractPortalEntity(
         }
     }
 
+    @SideOnly(Side.CLIENT)
     protected open fun teleportPlayer(player: EntityPlayer, from: EnumFacing): Boolean {
         if (player !is EntityPlayerSP || player.entityId < 0) return false
 
