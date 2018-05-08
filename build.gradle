@@ -70,6 +70,8 @@ dependencies {
     compile 'org.spongepowered:mixin:0.7.5-SNAPSHOT'
     compile 'the-twilight-forest:twilightforest-1.12.2:3.6.345:universal'
     shade "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
+
+    testCompile 'io.kotlintest:kotlintest-runner-junit5:3.0.4'
 }
 
 processResources {
