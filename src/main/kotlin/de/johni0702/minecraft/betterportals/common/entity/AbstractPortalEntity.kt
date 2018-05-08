@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.betterportals.common.entity
 
+import de.johni0702.minecraft.betterportals.BPConfig
 import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.client.UtilsClient
 import de.johni0702.minecraft.betterportals.client.view.ClientView
@@ -270,7 +271,7 @@ abstract class AbstractPortalEntity(
         trackingPlayers.forEach { Transaction.end(it) }
 
         // In case of horizontal portals, be nice and protect the player from fall damage for the next 10 seconds
-        if (plane == EnumFacing.Plane.HORIZONTAL) {
+        if (plane == EnumFacing.Plane.HORIZONTAL && BPConfig.preventFallDamage) {
             PreventNextFallDamage(player)
         }
 

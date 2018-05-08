@@ -50,7 +50,7 @@ lateinit var LOGGER: Logger
 @Mod(modid = MOD_ID, useMetadata = true)
 class BetterPortalsMod {
 
-    internal val hasTwilightForest by lazy { Loader.isModLoaded(TF_MOD_ID) }
+    internal val hasTwilightForest by lazy { BPConfig.enableExperimentalTwilightForestPortals && Loader.isModLoaded(TF_MOD_ID) }
 
     @Mod.EventHandler
     fun preInit(event: FMLPreInitializationEvent) {
@@ -64,8 +64,8 @@ class BetterPortalsMod {
     @SubscribeEvent(priority = EventPriority.LOW)
     fun registerBlocks(event: RegistryEvent.Register<Block>) {
         with(event.registry) {
-            register(BlockBetterNetherPortal())
-            register(BlockBetterEndPortal())
+            if (BPConfig.enableNetherPortals) register(BlockBetterNetherPortal())
+            if (BPConfig.enableEndPortals) register(BlockBetterEndPortal())
             if (hasTwilightForest) {
                 register(BlockBetterTFPortal())
             }
@@ -98,36 +98,40 @@ class BetterPortalsMod {
                 tickets.forEach { ForgeChunkManager.releaseTicket(it) }
             })
 
-            EntityRegistry.registerModEntity(
-                    ResourceLocation(MOD_ID, "nether_portal"),
-                    NetherPortalEntity::class.java,
-                    "nether_portal",
-                    0,
-                    mod,
-                    256,
-                    Int.MAX_VALUE,
-                    false
-            )
-            EntityRegistry.registerModEntity(
-                    ResourceLocation(MOD_ID, "end_entry_portal"),
-                    EndEntryPortalEntity::class.java,
-                    "end_entry_portal",
-                    1,
-                    mod,
-                    256,
-                    Int.MAX_VALUE,
-                    false
-            )
-            EntityRegistry.registerModEntity(
-                    ResourceLocation(MOD_ID, "end_exit_portal"),
-                    EndExitPortalEntity::class.java,
-                    "end_exit_portal",
-                    2,
-                    mod,
-                    256,
-                    Int.MAX_VALUE,
-                    false
-            )
+            if (BPConfig.enableNetherPortals) {
+                EntityRegistry.registerModEntity(
+                        ResourceLocation(MOD_ID, "nether_portal"),
+                        NetherPortalEntity::class.java,
+                        "nether_portal",
+                        0,
+                        mod,
+                        256,
+                        Int.MAX_VALUE,
+                        false
+                )
+            }
+            if (BPConfig.enableEndPortals) {
+                EntityRegistry.registerModEntity(
+                        ResourceLocation(MOD_ID, "end_entry_portal"),
+                        EndEntryPortalEntity::class.java,
+                        "end_entry_portal",
+                        1,
+                        mod,
+                        256,
+                        Int.MAX_VALUE,
+                        false
+                )
+                EntityRegistry.registerModEntity(
+                        ResourceLocation(MOD_ID, "end_exit_portal"),
+                        EndExitPortalEntity::class.java,
+                        "end_exit_portal",
+                        2,
+                        mod,
+                        256,
+                        Int.MAX_VALUE,
+                        false
+                )
+            }
             if (mod.hasTwilightForest) {
                 EntityRegistry.registerModEntity(
                         ResourceLocation(MOD_ID, "tf_portal"),
@@ -157,9 +161,13 @@ class BetterPortalsMod {
     @Suppress("unused")
     internal class ClientProxy : CommonProxy() {
         override fun preInit(mod: BetterPortalsMod) {
-            RenderingRegistry.registerEntityRenderingHandler(NetherPortalEntity::class.java, ::RenderNetherPortal)
-            RenderingRegistry.registerEntityRenderingHandler(EndEntryPortalEntity::class.java, ::RenderEndPortal)
-            RenderingRegistry.registerEntityRenderingHandler(EndExitPortalEntity::class.java, ::RenderEndPortal)
+            if (BPConfig.enableNetherPortals) {
+                RenderingRegistry.registerEntityRenderingHandler(NetherPortalEntity::class.java, ::RenderNetherPortal)
+            }
+            if (BPConfig.enableEndPortals) {
+                RenderingRegistry.registerEntityRenderingHandler(EndEntryPortalEntity::class.java, ::RenderEndPortal)
+                RenderingRegistry.registerEntityRenderingHandler(EndExitPortalEntity::class.java, ::RenderEndPortal)
+            }
             if (mod.hasTwilightForest) {
                 RenderingRegistry.registerEntityRenderingHandler(TFPortalEntity::class.java, { RenderOneWayPortal(it) })
             }
