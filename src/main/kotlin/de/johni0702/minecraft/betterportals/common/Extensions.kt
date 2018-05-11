@@ -16,6 +16,7 @@ import net.minecraft.network.NetHandlerPlayServer
 import net.minecraft.network.PacketBuffer
 import net.minecraft.util.BitArray
 import net.minecraft.util.EnumFacing
+import net.minecraft.util.LazyLoadBase
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.*
 import net.minecraft.world.World
@@ -186,6 +187,8 @@ fun BlockStateContainer.copy(): BlockStateContainer {
     System.arraycopy(storage.backingLongArray, 0, copy.storage.backingLongArray, 0, storage.backingLongArray.size)
     return copy
 }
+
+val <T> LazyLoadBase<T>.maybeValue get() = if (isLoaded) value else null
 
 operator fun <T> EventBus.provideDelegate(thisRef: T, prop: KProperty<*>): ReadWriteProperty<T, Boolean>
         = EventBusRegistration(this)

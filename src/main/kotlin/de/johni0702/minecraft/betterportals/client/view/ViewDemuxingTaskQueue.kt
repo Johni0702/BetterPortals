@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.client.view
 
 import de.johni0702.minecraft.betterportals.BetterPortalsMod
 import de.johni0702.minecraft.betterportals.LOGGER
+import de.johni0702.minecraft.betterportals.common.maybeValue
 import net.minecraft.client.Minecraft
 import net.minecraft.network.NetworkManager
 import java.util.*
@@ -33,9 +34,9 @@ internal class ViewDemuxingTaskQueue(
 
             // Calling from any netty thread? must the the active server main view
             // ("active" at time of task execution because a previous task may have changed the active server main view)
-            NetworkManager.CLIENT_NIO_EVENTLOOP.value.any { it.inEventLoop() }
-                    || NetworkManager.CLIENT_EPOLL_EVENTLOOP.value.any { it.inEventLoop() }
-                    || NetworkManager.CLIENT_LOCAL_EVENTLOOP.value.any { it.inEventLoop() } -> {
+            NetworkManager.CLIENT_NIO_EVENTLOOP.maybeValue?.any { it.inEventLoop() } ?: false
+                    || NetworkManager.CLIENT_EPOLL_EVENTLOOP.maybeValue?.any { it.inEventLoop() } ?: false
+                    || NetworkManager.CLIENT_LOCAL_EVENTLOOP.maybeValue?.any { it.inEventLoop() } ?: false -> {
                 { viewManager.serverMainView }
             }
 
