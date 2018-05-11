@@ -27,4 +27,10 @@ object BPConfig {
     @Config.Name("Enable TwilightForest Portals (Experimental!)")
     @Config.Comment("Whether to replace TwilightForest portals with BetterPortals ones. Experimental feature!")
     var enableExperimentalTwilightForestPortals: Boolean = false
+
+    @JvmField
+    @Config.RequiresMcRestart
+    @Config.Name("Replace Vanilla Chunk Render Dispatcher")
+    @Config.Comment("Whether to replace the vanilla ChunkRenderDispatcher(s) with a view-aware one. For debugging only.")
+    var improvedChunkRenderDispatcher: Boolean = true
 }
