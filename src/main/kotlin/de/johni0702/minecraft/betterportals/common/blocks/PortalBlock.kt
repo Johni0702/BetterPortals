@@ -445,8 +445,13 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
             }
         }
 
+        val minY = portalBlocks.map { it.y }.min() ?: 0
+
         // Make space inside, in front and behind of the portal and its frame
         (frameBlocks + portalBlocks).forEach { pos ->
+            if (axis != EnumFacing.Axis.Y && pos.y < minY) {
+                return@forEach // skip bottom-most layer for standing portals to keep blocks for the player to walk on
+            }
             for (i in if (axis == EnumFacing.Axis.Y) -3..2 else -1..1) {
                 world.setBlockToAir(pos.offset(axis.toFacing(EnumFacing.AxisDirection.POSITIVE), i))
             }
@@ -463,7 +468,11 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
                 // Steps are placed next to every frame block which has a portal block above it
                 if (framePos.offset(EnumFacing.UP) in portalBlocks) {
                     for (direction in EnumFacing.AxisDirection.values()) {
-                        world.setBlockState(framePos.offset(axis.toFacing(direction)), frameStepsBlock.defaultState)
+                        val stepPos = framePos.offset(axis.toFacing(direction))
+                        // Any other (already existing) solid blocks will do as well
+                        if (!world.getBlockState(stepPos).material.isSolid) {
+                            world.setBlockState(stepPos, frameStepsBlock.defaultState)
+                        }
                     }
                 }
             }
