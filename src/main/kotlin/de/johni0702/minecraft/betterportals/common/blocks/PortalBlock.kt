@@ -178,11 +178,19 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
             val existingFrames = mutableListOf<Pair<BlockPos, Rotation>>()
             val checkedPositions = mutableSetOf<BlockPos>()
 
+            // Also find any spots where the portal is placed nicely on the ground (in case we don't find any frames)
+            val nicePositions = mutableListOf<Triple<BlockPos, Rotation, EnumFacing.Axis>>()
+
+            val rotatedPortalBlocks: Map<Rotation, Set<BlockPos>> = Rotation.values().associateBy({ it }) { rot ->
+                portalBlocks.mapTo(mutableSetOf()) { it.rotate(rot) }
+            }
+
             BlockPos.MutableBlockPos.getAllInBoxMutable(
                     remotePos0.add(-searchDist, 0, -searchDist),
                     remotePos0.add(searchDist, maxY, searchDist)
             ).forEach { pos ->
-                if (asyncBlockCache[pos].block == frameBlock) {
+                val block = asyncBlockCache[pos].block
+                if (block == frameBlock) {
                     for (potentialStartDirection in plane.facings()) {
                         val portalPos = pos.offset(potentialStartDirection)
                         if (!checkedPositions.add(portalPos)) continue
@@ -197,10 +205,17 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
                             }
                         }
                     }
+                } else if (block == Blocks.AIR) {
+                    for ((rotation, blocks) in rotatedPortalBlocks) {
+                        val axis = rotation.axis(plane.opposite)
+                        if (considerPlacingPortalAt(asyncBlockCache, blocks, pos, axis)) {
+                            nicePositions.add(Triple(pos.toImmutable(), rotation, axis))
+                        }
+                    }
                 }
             }
-            existingFrames
-        }.thenApplyAsync({ existingFrames ->
+            Pair(existingFrames, nicePositions)
+        }.thenApplyAsync({ (existingFrames, nicePositions) ->
             val currentBlockCache = remoteWorld.makeBlockCache()
             // If any existing frames were found, use the nearest one (also check if it's still valid)
             existingFrames.sortedBy {
@@ -214,7 +229,16 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
                 return@thenApplyAsync Pair(it.first, it.second)
             }
 
-            // TODO check for suitable spot on ground within 16xmaxYx16
+            // Otherwise, place the portal at one of the positions which were determined to be good for that
+            nicePositions.sortedBy {
+                it.first.distanceSq(remotePosition)
+            }.firstOrNull()?.let { (pos, rot, axis) ->
+                val blocks = portalBlocks.mapTo(mutableSetOf()) {
+                    it.rotate(rot).add(pos)
+                }
+                placePortalFrame(remoteWorld, axis, blocks)
+                return@thenApplyAsync Pair(pos, rot)
+            }
 
             // No better place found, place portal directly at target position with random rotation
             val portalRotation = Rotation.NONE// TODO Rotation.values()[Random().nextInt(4)]
@@ -327,6 +351,48 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
 
         // Done
         return portalBlocks
+    }
+
+    /**
+     * Checks if the given portal may be placed at the given position.
+     * The block at the given position will always be [Blocks.AIR].
+     * Unless a perfectly fitting frame is found, the portal will be placed at a position which has been approved
+     * by this method.
+     * If no positions have been approved by this method, the portal will be placed exactly at the corresponding coords.
+     * Note: This function must be thread-safe (i.e. only use [blockCache], not the world).
+     * Also, no blocks further than [maxPortalSize] from [pos] may be accessed.
+     * @param blockCache Cache of blocks in which to check for the portal
+     * @param portalBlocks Set of positions of portal blocks (excluding frame and steps)
+     * @param pos Position at which the portal is to be placed
+     * @param axis The axis of the portal
+     * @return `true` if the portal may be placed, `false` otherwise
+     */
+    fun considerPlacingPortalAt(
+            blockCache: BlockCache,
+            portalBlocks: Set<BlockPos>,
+            pos: BlockPos,
+            axis: EnumFacing.Axis
+    ): Boolean {
+        // Check if this is a block right above ground (or in case of horizontal portals, four above)
+        // i.e. the lowest portal block is at `pos`
+        if (!(if (axis == EnumFacing.Axis.Y) {
+            (1..3).all { blockCache[pos.down(it)].block == Blocks.AIR } && blockCache[pos.down(4)].material.isSolid
+        } else {
+            blockCache[pos.down()].material.isSolid
+        })) {
+            return false
+        }
+        // Check if there's space for the portal and frame (except the bottom row for vertical portals)
+        portalBlocks.map { it.add(pos) }.forEach { portalBlock ->
+            if (blockCache[portalBlock].block != Blocks.AIR) return false
+            axis.parallelFaces.forEach {
+                val offsetPos = portalBlock.offset(it)
+                if (offsetPos !in portalBlocks && offsetPos.y >= pos.y && blockCache[offsetPos].block != Blocks.AIR) {
+                    return false
+                }
+            }
+        }
+        return true
     }
 
     /**
