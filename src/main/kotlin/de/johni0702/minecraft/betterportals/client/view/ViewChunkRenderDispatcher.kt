@@ -22,7 +22,14 @@ import kotlin.concurrent.withLock
  */
 internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
     private val states = ConcurrentHashMap<RenderGlobal, State>()
-    private val activeState get() = Minecraft.getMinecraft().renderGlobal.let { states.getOrPut(it, { State(it) }) }
+    private val activeState get() = Minecraft.getMinecraft().let { mc ->
+        if (!mc.isCallingFromMinecraftThread) {
+            // If we're not calling from the MC main thread, then it's probably one of the render workers
+            threadAssignment.get()
+        } else {
+            null
+        } ?: mc.renderGlobal.let { states.getOrPut(it, { State(it) }) }
+    }
 
     /**
      * Keeps track of the last state a thread has been associated with.
