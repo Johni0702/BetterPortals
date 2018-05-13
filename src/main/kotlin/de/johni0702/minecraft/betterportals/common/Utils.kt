@@ -34,6 +34,11 @@ object Utils {
         e1.prevCameraYaw = e2.prevCameraYaw.also { e2.prevCameraYaw = e1.prevCameraYaw }
         e1.prevCameraPitch = e2.prevCameraPitch.also { e2.prevCameraPitch = e1.prevCameraPitch }
 
+        e1.rotationYawHead = e2.rotationYawHead.also { e2.rotationYawHead = e1.rotationYawHead }
+        e1.prevRotationYawHead = e2.prevRotationYawHead.also { e2.prevRotationYawHead = e1.prevRotationYawHead }
+        e1.renderYawOffset = e2.renderYawOffset.also { e2.renderYawOffset = e1.renderYawOffset }
+        e1.prevRenderYawOffset = e2.prevRenderYawOffset.also { e2.prevRenderYawOffset = e1.prevRenderYawOffset }
+
         e1.setPosition(e1.posX, e1.posY, e1.posZ)
         e2.setPosition(e2.posX, e2.posY, e2.posZ)
 
