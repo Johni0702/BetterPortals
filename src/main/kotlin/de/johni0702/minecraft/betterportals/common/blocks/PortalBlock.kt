@@ -488,6 +488,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
      * @param pos The position of one of the portal blocks which is to be checked.
      */
     fun validatePortalOrDestroy(world: World, pos: BlockPos) {
+        if (world.isRemote) return
         val portalBlocks = findPortalFrame(world.makeBlockCache(), pos, true).first
         if (portalBlocks.isEmpty()) { // Portal shell broken, portal unrecognizable; flood fill with air
             world.getEntitiesWithinAABB(entityType, AxisAlignedBB(pos)).forEach {
@@ -495,10 +496,18 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
             }
             world.setBlockToAir(pos)
         } else { // Portal shell still valid but shape or inners might have changed; needs to be check manually
-            world.getEntitiesWithinAABB(entityType, portalBlocks.toAxisAlignedBB()).forEach {
-                if (it.isDead) return@forEach
-                if (!checkPortal(world.makeBlockCache(), it.localBlocks, it.localAxis, true)) {
-                    it.setDead()
+            val entities = world.getEntitiesWithinAABB(entityType, portalBlocks.toAxisAlignedBB())
+            if (entities.isEmpty()) { // No portals found, this is probably a vanilla portal which needs to be converted
+                // First, empty the frame
+                portalBlocks.forEach { world.setBlockToAir(it) }
+                // Then try to link it to a remote portal as if the user has initiated that linkage
+                tryToLinkPortals(world, pos)
+            } else { // Check if the existing portal(s) are still valid
+                entities.forEach {
+                    if (it.isDead) return@forEach
+                    if (!checkPortal(world.makeBlockCache(), it.localBlocks, it.localAxis, true)) {
+                        it.setDead()
+                    }
                 }
             }
         }

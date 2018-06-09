@@ -15,6 +15,7 @@ import net.minecraft.block.state.pattern.BlockMatcher
 import net.minecraft.block.state.pattern.BlockPattern
 import net.minecraft.block.state.pattern.FactoryBlockPattern
 import net.minecraft.entity.Entity
+import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Blocks
 import net.minecraft.util.EnumBlockRenderType
 import net.minecraft.util.Rotation
@@ -48,7 +49,11 @@ class BlockBetterEndPortal : BlockEndPortal(Material.PORTAL) {
 
     override fun getRenderType(state: IBlockState): EnumBlockRenderType = EnumBlockRenderType.INVISIBLE
     override fun getBoundingBox(state: IBlockState, source: IBlockAccess, pos: BlockPos): AxisAlignedBB = EMPTY_AABB
-    override fun onEntityCollidedWithBlock(worldIn: World, pos: BlockPos, state: IBlockState, entityIn: Entity) {}
+    override fun onEntityCollidedWithBlock(worldIn: World, pos: BlockPos, state: IBlockState, entityIn: Entity) {
+        if (entityIn is EntityPlayer) {
+            onBlockAdded(worldIn, pos, state) // Convert vanilla portals upon touching
+        }
+    }
 
     override fun neighborChanged(state: IBlockState, worldIn: World, pos: BlockPos, blockIn: Block, fromPos: BlockPos) {
         if (BlockEndPortalFrame.getOrCreatePortalShape().match(worldIn, pos) == null

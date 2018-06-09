@@ -137,9 +137,9 @@ class BlockBetterTFPortal : BlockTFPortal(), PortalBlock<TFPortalEntity> {
         if (hasPortal(worldIn, pos)) {
             // Better portal exists for this portal block
             return
-        } else {
-            // Legacy portal, let TF handle it
-            super.onEntityCollidedWithBlock(worldIn, pos, state, entityIn)
+        } else if (worldIn is WorldServer){
+            // Legacy portal, convert to better portal
+            makeBetterPortal(worldIn, pos)
         }
     }
 }
