@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.ListenableFutureTask
 import de.johni0702.minecraft.betterportals.client.renderer.RenderEndPortal
 import de.johni0702.minecraft.betterportals.client.renderer.RenderNetherPortal
 import de.johni0702.minecraft.betterportals.client.renderer.RenderOneWayPortal
+import de.johni0702.minecraft.betterportals.client.tile.renderer.BetterEndPortalTileRenderer
 import de.johni0702.minecraft.betterportals.client.view.ClientViewManager
 import de.johni0702.minecraft.betterportals.client.view.ClientViewManagerImpl
 import de.johni0702.minecraft.betterportals.client.view.ViewDemuxingTaskQueue
@@ -22,6 +23,7 @@ import de.johni0702.minecraft.betterportals.server.view.ServerViewManager
 import net.minecraft.block.Block
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
+import net.minecraft.tileentity.TileEntityEndPortal
 import net.minecraft.util.ResourceLocation
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
@@ -29,6 +31,7 @@ import net.minecraftforge.common.ForgeChunkManager
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.common.capabilities.CapabilityManager
 import net.minecraftforge.event.RegistryEvent
+import net.minecraftforge.fml.client.registry.ClientRegistry
 import net.minecraftforge.fml.client.registry.RenderingRegistry
 import net.minecraftforge.fml.common.Loader
 import net.minecraftforge.fml.common.Mod
@@ -165,6 +168,7 @@ class BetterPortalsMod {
                 RenderingRegistry.registerEntityRenderingHandler(NetherPortalEntity::class.java, ::RenderNetherPortal)
             }
             if (BPConfig.enableEndPortals) {
+                ClientRegistry.bindTileEntitySpecialRenderer(TileEntityEndPortal::class.java, BetterEndPortalTileRenderer())
                 RenderingRegistry.registerEntityRenderingHandler(EndEntryPortalEntity::class.java, ::RenderEndPortal)
                 RenderingRegistry.registerEntityRenderingHandler(EndExitPortalEntity::class.java, ::RenderEndPortal)
             }

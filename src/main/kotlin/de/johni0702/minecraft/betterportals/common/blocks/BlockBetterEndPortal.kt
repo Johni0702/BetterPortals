@@ -16,7 +16,6 @@ import net.minecraft.block.state.pattern.BlockPattern
 import net.minecraft.block.state.pattern.FactoryBlockPattern
 import net.minecraft.entity.Entity
 import net.minecraft.init.Blocks
-import net.minecraft.tileentity.TileEntity
 import net.minecraft.util.EnumBlockRenderType
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
@@ -47,8 +46,6 @@ class BlockBetterEndPortal : BlockEndPortal(Material.PORTAL) {
         setResistance(6000000f)
     }
 
-    override fun hasTileEntity(state: IBlockState): Boolean = false
-    override fun createNewTileEntity(worldIn: World, meta: Int): TileEntity? = null
     override fun getRenderType(state: IBlockState): EnumBlockRenderType = EnumBlockRenderType.INVISIBLE
     override fun getBoundingBox(state: IBlockState, source: IBlockAccess, pos: BlockPos): AxisAlignedBB = EMPTY_AABB
     override fun onEntityCollidedWithBlock(worldIn: World, pos: BlockPos, state: IBlockState, entityIn: Entity) {}
