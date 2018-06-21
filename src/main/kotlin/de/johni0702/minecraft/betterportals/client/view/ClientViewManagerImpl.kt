@@ -113,6 +113,8 @@ internal class ClientViewManagerImpl : ClientViewManager {
                     data.retain()
                     channel.writeInbound(data)
                 }
+            } else {
+                LOGGER.warn("Received data for main view {} via ViewData message", view)
             }
         } catch (t: Throwable) {
             LOGGER.error("Handling view data for view $serverViewId:", t)
