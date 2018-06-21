@@ -22,15 +22,21 @@ internal class ServerViewImpl(
         override var camera: EntityPlayerMP,
         var channel: EmbeddedChannel?
 ) : ServerView, AReferenceCounted {
-    override var refCnt: Int = 0
+    override var refCnt: Int = 1
 
     override fun doRelease() {
         // ServerViewImpls with refCnt 0 are cleaned up once per tick only.
         // That way, the view can be reused by anyone else for one tick even if it's been released already
+        if (isMainView) {
+            LOGGER.warn("Main view of $camera has been released at: ", Throwable())
+        }
     }
 
     override fun makeMainView() {
         if (isMainView) return
+        if (refCnt == 0) {
+            throw IllegalStateException("View has a reference count of 0! Call .retain() before using it.")
+        }
 
         val mainView = manager.mainView
         val player = mainView.camera

@@ -35,7 +35,7 @@ internal class ServerViewManagerImpl(
     override val player: EntityPlayerMP
         get() = connection.player
 
-    override var mainView = ServerViewImpl(this, 0, player, null).apply { retain() }
+    override var mainView = ServerViewImpl(this, 0, player, null)
 
     override val views = mutableListOf(mainView)
 

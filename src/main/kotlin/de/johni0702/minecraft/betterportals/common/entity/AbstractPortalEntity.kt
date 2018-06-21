@@ -301,9 +301,10 @@ abstract class AbstractPortalEntity(
                             .sortedBy { it.second }
                             .firstOrNull()
                             ?.first
+                            ?.also { it.retain() }
                             // Or create a new one
                             ?: viewManager.createView(remoteWorld, remotePosition.to3d())
-                    ).also { it.retain() }.also { views[player] = it }
+                    ).also { views[player] = it }
             view.id
         }
 
