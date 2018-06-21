@@ -46,7 +46,7 @@ internal class ServerViewManagerImpl(
         eventHandler.registered = true
     }
 
-    override fun createView(world: WorldServer, pos: Vec3d): ServerView {
+    override fun createView(world: WorldServer, pos: Vec3d, beforeSendChunks: EntityPlayerMP.() -> Unit): ServerView {
         val id = nextViewId++
         val gameProfile = GameProfile(UUID.randomUUID(), connection.player.name + "[view]")
         val camera = ViewEntity(world, gameProfile, connection)
@@ -69,6 +69,7 @@ internal class ServerViewManagerImpl(
         CreateView(id, camera.dimension, world.difficulty,
                 world.worldInfo.gameType, world.worldType).sendTo(connection.player)
         world.spawnEntity(camera)
+        beforeSendChunks(camera)
         server.playerList.preparePlayer(camera, null)
         server.playerList.updateTimeAndWeatherForPlayer(camera, world)
         camera.connection.setPlayerLocation(camera.posX, camera.posY, camera.posZ, camera.rotationYaw, camera.rotationPitch)

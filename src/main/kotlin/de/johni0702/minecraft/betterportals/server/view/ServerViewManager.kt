@@ -27,9 +27,10 @@ interface ServerViewManager : ViewManager {
      *
      * @param world World of which the view is created
      * @param pos The position where the newly created camera will be placed
+     * @param beforeSendChunks Called on the view camera before any chunks are sent. Can be used to re-position the camera.
      * @return The newly created view
      */
-    fun createView(world: WorldServer, pos: Vec3d): ServerView
+    fun createView(world: WorldServer, pos: Vec3d, beforeSendChunks: EntityPlayerMP.() -> Unit = {}): ServerView
 
     /**
      * Flush all packets from all views.
