@@ -92,6 +92,9 @@ internal class ServerViewImpl(
         player.isDead = false
         camera.isDead = false
 
+        // Make sure all packets which should have been sent by now are actually sent for the correct view
+        manager.flushPackets()
+
         this.camera = mainView.camera.also { mainView.camera = this.camera }
         this.channel = mainView.channel.also { mainView.channel = this.channel }
 
@@ -144,6 +147,7 @@ internal class ServerViewImpl(
             CriteriaTriggers.NETHER_TRAVEL.trigger(player, Vec3d(player.posX, player.posY, player.posZ))
         }
 
+        manager.flushPackets() // Just for good measure, who knows what other mods will do during the event
         FMLCommonHandler.instance().firePlayerChangedDimensionEvent(player, oldDim, newDim)
     }
 }
