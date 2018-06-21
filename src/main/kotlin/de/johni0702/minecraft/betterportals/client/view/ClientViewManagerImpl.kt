@@ -237,10 +237,16 @@ internal class ClientViewManagerImpl : ClientViewManager {
     fun makeMainViewAck(viewId: Int) {
         LOGGER.info("Ack for swap of {}", viewId)
 
-        val expectedId = serverMainViewQueue.removeAtOrNull(0)?.second?.id
+
+        val expectedId = serverMainViewQueue.getOrNull(0)?.second?.id
         if (expectedId != viewId) {
-            LOGGER.warn("Got main view ack for $viewId while expecting one for $expectedId")
+            // We haven't requested this change, someone must have called `PlayerList.transferPlayerToDimension` on the server.
+            // Rewind all view changes which haven't yet been confirmed by the server (it'll ignore them because it decided for us to go elsewhere)
+            rewindMainView()
+            // So, let's act as if we did request it
+            makeClientMainView(views.find { it.id == viewId }!!)
         }
+        serverMainViewQueue.removeAtOrNull(0)
 
         val newMainView = views.find { it.id == viewId }!!
         val oldMainView = serverMainView
