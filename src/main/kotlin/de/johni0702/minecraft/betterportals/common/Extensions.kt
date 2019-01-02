@@ -58,6 +58,7 @@ fun EnumFacing.Axis.toFacing(direction: Double)
 fun EnumFacing.Axis.toFacing(direction: Vec3d) = toFacing(direction[this])
 val EnumFacing.Axis.parallelFaces get() = EnumFacing.values().filter { it.axis != this }
 fun Vec3i.to3d(): Vec3d = Vec3d(this.x.toDouble(), this.y.toDouble(), this.z.toDouble())
+fun Vec3i.to3dMid(): Vec3d = this.to3d() + Vec3d(0.5, 0.5, 0.5)
 operator fun Vec3i.plus(other: Vec3i): Vec3i = Vec3i(x + other.x, y + other.y, z + other.z)
 operator fun Vec3i.times(n: Int): Vec3i = Vec3i(x * n, y * n, z * n)
 operator fun Vec3d.plus(other: Vec3d): Vec3d = add(other)
@@ -75,6 +76,11 @@ operator fun Vec3d.get(axis: EnumFacing.Axis) = when(axis) {
     EnumFacing.Axis.X -> x
     EnumFacing.Axis.Y -> y
     EnumFacing.Axis.Z -> z
+}
+fun Vec3d.with(axis: EnumFacing.Axis, value: Double) = when(axis) {
+    EnumFacing.Axis.X -> Vec3d(value, y, z)
+    EnumFacing.Axis.Y -> Vec3d(x, value, z)
+    EnumFacing.Axis.Z -> Vec3d(x, y, value)
 }
 fun Vec3d.rotate(rot: Rotation): Vec3d = when(rot) {
     Rotation.NONE -> this

@@ -11,6 +11,7 @@ import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.renderer.BufferBuilder
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.Tessellator
+import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.client.renderer.entity.Render
 import net.minecraft.client.renderer.entity.RenderManager
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher.*
@@ -125,6 +126,13 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             if (stencilStack.removeAt(stencilStack.size - 1)) {
                 GL11.glEnable(GL11.GL_STENCIL_TEST)
             }
+        }
+
+        fun createCamera(): Frustum? {
+            if (portalStack.isEmpty()) return null
+            val instance = portalStack.last()
+            if (instance.isPlayerInPortal) return null // lots of edge cases here for little gain, don't even try (for now)
+            return PortalCamera(instance)
         }
     }
 

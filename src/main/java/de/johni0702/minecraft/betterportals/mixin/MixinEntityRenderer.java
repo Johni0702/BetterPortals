@@ -1,10 +1,12 @@
 package de.johni0702.minecraft.betterportals.mixin;
 
 import de.johni0702.minecraft.betterportals.client.PostSetupFogEvent;
+import de.johni0702.minecraft.betterportals.client.renderer.AbstractRenderPortal;
 import de.johni0702.minecraft.betterportals.client.view.ViewEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraftforge.common.MinecraftForge;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,6 +26,16 @@ public abstract class MixinEntityRenderer {
         if (!(mc.player instanceof ViewEntity)) {
             GlStateManager.clear(flags);
         }
+    }
+
+    @Redirect(method = "renderWorldPass",
+            at = @At(value = "NEW", target = "net/minecraft/client/renderer/culling/Frustum"))
+    private Frustum createCamera() {
+        Frustum camera = AbstractRenderPortal.Companion.createCamera();
+        if (camera == null) {
+            camera = new Frustum();
+        }
+        return camera;
     }
 
     @Inject(method = "setupFog", at = @At("RETURN"))
