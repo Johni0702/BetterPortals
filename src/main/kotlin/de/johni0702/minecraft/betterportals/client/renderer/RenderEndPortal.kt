@@ -6,11 +6,11 @@ import net.minecraft.client.renderer.entity.RenderManager
 import net.minecraft.util.EnumFacing
 
 class RenderEndPortal(renderManager: RenderManager) : RenderOneWayPortal<EndPortalEntity>(renderManager) {
-    override fun createInstance(entity: EndPortalEntity, x: Double, y: Double, z: Double, partialTicks: Float): Instance =
-            Instance(entity, x, y, z, partialTicks)
+    override fun createInstance(state: State<EndPortalEntity>, x: Double, y: Double, z: Double, partialTicks: Float): Instance =
+            Instance(state, x, y, z, partialTicks)
 
-    class Instance(entity: EndPortalEntity, x: Double, y: Double, z: Double, partialTicks: Float)
-        : RenderOneWayPortal.Instance<EndPortalEntity>(entity, x, y, z, partialTicks) {
+    class Instance(state: State<EndPortalEntity>, x: Double, y: Double, z: Double, partialTicks: Float)
+        : RenderOneWayPortal.Instance<EndPortalEntity>(state, x, y, z, partialTicks) {
         override fun shouldFaceBeRendered(facing: EnumFacing): Boolean {
             // The end portal frame aren't full blocks, so when viewing from the bottom and when only the top face is
             // drawn (as usually is for one-way-portals), you can look behind the portal between its face and frame.

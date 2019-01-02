@@ -24,8 +24,10 @@ import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.client.ForgeHooksClient
 import org.lwjgl.opengl.GL11
+import org.lwjgl.opengl.GL15
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.*
 import kotlin.math.sign
 
 abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: RenderManager) : Render<T>(renderManager) {
@@ -95,7 +97,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
                 val portalY = it.posY - staticPlayerY
                 val portalZ = it.posZ - staticPlayerZ
                 val renderer = renderManager.getEntityRenderObject<AbstractPortalEntity>(it) as AbstractRenderPortal
-                val planeOffset = renderer.createInstance(it, portalX, portalY, portalZ, partialTicks).playerDir.scale(-0.5)
+                val planeOffset = renderer.createInstance(renderer.getState(it), portalX, portalY, portalZ, partialTicks).playerDir.scale(-0.5)
                 val planePos = Vec3d(portalX, portalY, portalZ) + planeOffset
                 glClipPlane(GL11.GL_CLIP_PLANE4, planeDir, planePos)
                 GL11.glEnable(GL11.GL_CLIP_PLANE4) // FIXME don't hard-code clipping plane id
@@ -137,12 +139,13 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
     }
 
     open class Instance<out T : AbstractPortalEntity>(
-            val entity: T,
+            val state: State<T>,
             val x: Double,
             val y: Double,
             val z: Double,
             val partialTicks: Float
     ) {
+        val entity = state.entity
         val portal = entity
         val player: EntityPlayerSP = mc.player
         val isPlayerInPortal = portal.localBoundingBox.intersects(player.entityBoundingBox)
@@ -204,7 +207,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
 
             GlStateManager.disableTexture2D()
 
-            // Step one, draw portal face onto stencil buffer where visible
+            // Step one, draw portal face onto stencil buffer where visible (and prepare occlusion culling)
             glMask(false, false, false, false, false, 0xff)
             GL11.glEnable(GL11.GL_STENCIL_TEST)
             if (playerFacing == viewFacing || !isPlayerInPortal) {
@@ -213,7 +216,9 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
                 GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT)
                 GL11.glStencilFunc(GL11.GL_ALWAYS, 0xff, 0xff)
                 GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE)
+                GL15.glBeginQuery(GL15.GL_SAMPLES_PASSED, state.allocOcclusionQuery())
                 renderPortalFromInside()
+                GL15.glEndQuery(GL15.GL_SAMPLES_PASSED)
             } else {
                 // If inside a vertical portal, viewing from above but being below, the whole thing is inverted.
                 // So instead of marking where the portal is, we mark the whole screen and then un-mark the portal.
@@ -222,9 +227,18 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
                 GL11.glStencilFunc(GL11.GL_ALWAYS, 0x00, 0xff)
                 GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE)
                 renderPortalFromInside()
+                state.clearOcclusion()
             }
             GL11.glStencilFunc(GL11.GL_EQUAL, 0xff, 0xff)
             GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP)
+
+            // Occlusion culling
+            state.pollQueries()
+            if (state.occluded) {
+                GlStateManager.popAttrib()
+                GlStateManager.popMatrix()
+                return
+            }
 
             val debugBoundingBox = mc.renderManager.isDebugBoundingBox
 
@@ -379,10 +393,53 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
         }
     }
 
-    abstract fun createInstance(entity: T, x: Double, y: Double, z: Double, partialTicks: Float): Instance<T>
+    class State<out T: AbstractPortalEntity>(val entity: T) {
+        companion object {
+            val queries: MutableList<Int> = ArrayList()
+        }
+        val queuedQueries: MutableList<Pair<Int, Boolean?>> = ArrayList()
+        var occluded = false
+
+        fun allocOcclusionQuery(): Int {
+            val query = queries.popOrNull() ?: GL15.glGenQueries()
+            queuedQueries.add(Pair(query, null))
+            return query
+        }
+
+        fun clearOcclusion() {
+            queuedQueries.add(Pair(0, false))
+        }
+
+        fun markOccluded() {
+            queuedQueries.add(Pair(0, true))
+        }
+
+        fun pollQueries() {
+            queuedQueries.firstOrNull()?.let { (id, setOccluded) ->
+                when {
+                    setOccluded != null -> {
+                        occluded = false
+                        queuedQueries.popOrNull()
+                    }
+                    GL15.glGetQueryObjectui(id, GL15.GL_QUERY_RESULT_AVAILABLE) == GL11.GL_TRUE -> {
+                        occluded = GL15.glGetQueryObjectui(id, GL15.GL_QUERY_RESULT) == 0
+                        queuedQueries.popOrNull()
+                        queries.add(id)
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+    private val states: MutableMap<T, State<T>> = WeakHashMap()
+
+    abstract fun createInstance(state: State<T>, x: Double, y: Double, z: Double, partialTicks: Float): Instance<T>
+    open fun createState(entity: T): State<T> = State(entity)
+
+    fun getState(entity: T) = states.getOrPut(entity) { createState(entity) }
 
     override fun doRender(entity: T, x: Double, y: Double, z: Double, entityYaw: Float, partialTicks: Float) {
-        createInstance(entity, x, y, z, partialTicks).render()
+        createInstance(getState(entity), x, y, z, partialTicks).render()
     }
 
     override fun doRenderShadowAndFire(entityIn: Entity, x: Double, y: Double, z: Double, yaw: Float, partialTicks: Float) {}
