@@ -1,0 +1,8 @@
+{
+    "vertex": "betterportals:dimension_transition",
+    "fragment": "betterportals:dimension_transition",
+    "attributes": [ "pos" ],
+    "uniforms": [
+        { "name": "progress", "type": "float", "count": 1, "values": [ 0.0 ] }
+    ]
+}

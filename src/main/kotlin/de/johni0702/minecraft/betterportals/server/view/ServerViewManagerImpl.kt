@@ -73,6 +73,9 @@ internal class ServerViewManagerImpl(
         server.playerList.preparePlayer(camera, null)
         server.playerList.updateTimeAndWeatherForPlayer(camera, world)
         camera.connection.setPlayerLocation(camera.posX, camera.posY, camera.posZ, camera.rotationYaw, camera.rotationPitch)
+
+        // Ensure the view entity position and world is synced to the client
+        flushPackets()
         return view
     }
 

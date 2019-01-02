@@ -9,6 +9,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.common.util.Constants
+import javax.vecmath.Matrix4d
 
 interface Portal {
     val plane: EnumFacing.Plane
@@ -45,6 +46,11 @@ interface Portal {
     fun Vec3d.toLocal(): Vec3d = toSpace(localPosition, localRotation)
     fun Vec3d.fromRemote(): Vec3d = fromSpace(remotePosition, remoteRotation)
     fun Vec3d.fromLocal(): Vec3d = fromSpace(localPosition, localRotation)
+
+    val localToRemoteMatrix: Matrix4d get() =
+        Mat4d.add((remotePosition.to3d() + Vec3d(0.5, 0.0, 0.5)).toJavaX()) *
+                Mat4d.rotYaw((remoteRotation - localRotation).degrees) *
+                Mat4d.sub((localPosition.to3d() + Vec3d(0.5, 0.0, 0.5)).toJavaX())
 
     val localBlocks get() = relativeBlocks.map { it.toLocal() }.toSet()
     val remoteBlocks get() = relativeBlocks.map { it.toRemote() }.toSet()

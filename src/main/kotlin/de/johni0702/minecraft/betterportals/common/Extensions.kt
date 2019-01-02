@@ -26,6 +26,7 @@ import net.minecraft.world.chunk.BlockStatePaletteHashMap
 import net.minecraft.world.chunk.BlockStatePaletteLinear
 import net.minecraftforge.fml.common.eventhandler.EventBus
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
+import javax.vecmath.*
 import kotlin.math.max
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -34,6 +35,10 @@ import kotlin.reflect.KProperty
 fun <T> MutableList<T>.removeAtOrNull(index: Int) = if (isEmpty()) null else removeAt(index)
 fun <T> MutableList<T>.popOrNull() = removeAtOrNull(0)
 fun <T> MutableList<T>.takeLast() = removeAt(lastIndex)
+operator fun Matrix4d.times(other: Matrix4d) = Mat4d.id().also { it.mul(this, other) }
+operator fun Matrix4d.times(other: Vector3d) = Vector3d().also { transform(other, it) }
+operator fun Matrix4d.times(other: Point3d) = Point3d().also { transform(other, it) }
+inline operator fun <reified T : Tuple4d> Matrix4d.times(other: T) = (other.clone() as T).also { transform(other, it) }
 
 // MC
 val EnumFacing.Plane.axes get() = EnumFacing.Axis.values().filter { it.plane == this }
@@ -61,6 +66,11 @@ operator fun Vec3d.times(n: Int): Vec3d = Vec3d(x * n, y * n, z * n)
 operator fun Vec3d.times(d: Double): Vec3d = Vec3d(x * d, y * d, z * d)
 fun Vec3d.withoutY(): Vec3d = Vec3d(x, 0.0, y)
 fun Vec3d.abs(): Vec3d = Vec3d(Math.abs(x), Math.abs(y), Math.abs(z))
+fun Vec3d.toJavaX() = Vector3d(x, y, z)
+fun Vec3d.toJavaXPos() = Vector4d(x, y, z, 1.0)
+fun Vec3d.toJavaXVec() = Vector4d(x, y, z, 0.0)
+fun Vector3d.toMC() = Vec3d(x, y, z)
+fun Vector4d.toMC() = Vec3d(x, y, z)
 operator fun Vec3d.get(axis: EnumFacing.Axis) = when(axis) {
     EnumFacing.Axis.X -> x
     EnumFacing.Axis.Y -> y

@@ -5,10 +5,12 @@ import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
+import javax.vecmath.AxisAngle4d
+import javax.vecmath.Matrix4d
+import javax.vecmath.Point3d
+import javax.vecmath.Vector3d
 
 object Utils {
     val EMPTY_AABB = AxisAlignedBB(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
@@ -47,32 +49,33 @@ object Utils {
         e1.motionZ = e2.motionZ.also { e2.motionZ = e1.motionZ }
     }
 
-    fun transformPosition(from: Entity, to: Entity, portal: Portal): Rotation {
+    fun transformPosition(from: Entity, to: Entity, portal: Portal) {
         val rotation = portal.remoteRotation - portal.localRotation
+        transformPosition(from, to, portal.localToRemoteMatrix, rotation.degrees.toFloat())
+    }
 
-        with(portal) {
-            with(from) { Vec3d(posX, posY, posZ) }.fromLocal().toRemote().let { pos ->
-                to.setPosition(pos.x, pos.y, pos.z)
-            }
-            with(from) { Vec3d(prevPosX, prevPosY, prevPosZ) }.fromLocal().toRemote().let { pos ->
-                to.prevPosX = pos.x
-                to.prevPosY = pos.y
-                to.prevPosZ = pos.z
-            }
-            with(from) { Vec3d(lastTickPosX, lastTickPosY, lastTickPosZ) }.fromLocal().toRemote().let { pos ->
-                to.lastTickPosX = pos.x
-                to.lastTickPosY = pos.y
-                to.lastTickPosZ = pos.z
-            }
-            with(from) { Vec3d(motionX, motionY, motionZ) }.rotate(rotation).let { pos ->
-                to.motionX = pos.x
-                to.motionY = pos.y
-                to.motionZ = pos.z
-            }
+    fun transformPosition(from: Entity, to: Entity, matrix: Matrix4d, yawOffset: Float) {
+        with(from) { matrix * Point3d(posX, posY, posZ) }.let { pos ->
+            to.setPosition(pos.x, pos.y, pos.z)
+        }
+        with(from) { matrix * Point3d(prevPosX, prevPosY, prevPosZ) }.let { pos ->
+            to.prevPosX = pos.x
+            to.prevPosY = pos.y
+            to.prevPosZ = pos.z
+        }
+        with(from) { matrix * Point3d(lastTickPosX, lastTickPosY, lastTickPosZ) }.let { pos ->
+            to.lastTickPosX = pos.x
+            to.lastTickPosY = pos.y
+            to.lastTickPosZ = pos.z
+        }
+        with(from) { matrix * Vector3d(motionX, motionY, motionZ) }.let { pos ->
+            to.motionX = pos.x
+            to.motionY = pos.y
+            to.motionZ = pos.z
         }
 
-        to.rotationYaw = from.rotationYaw + rotation.degrees
-        to.prevRotationYaw = from.prevRotationYaw + rotation.degrees
+        to.rotationYaw = from.rotationYaw + yawOffset
+        to.prevRotationYaw = from.prevRotationYaw + yawOffset
         to.rotationPitch = from.rotationPitch
         to.prevRotationPitch = from.prevRotationPitch
 
@@ -91,18 +94,16 @@ object Utils {
             to.limbSwingAmount = from.limbSwingAmount
             to.prevLimbSwingAmount = from.prevLimbSwingAmount
 
-            to.rotationYawHead = from.rotationYawHead + rotation.degrees
-            to.prevRotationYawHead = from.prevRotationYawHead + rotation.degrees
-            to.renderYawOffset = from.renderYawOffset + rotation.degrees
-            to.prevRenderYawOffset = from.prevRenderYawOffset + rotation.degrees
+            to.rotationYawHead = from.rotationYawHead + yawOffset
+            to.prevRotationYawHead = from.prevRotationYawHead + yawOffset
+            to.renderYawOffset = from.renderYawOffset + yawOffset
+            to.prevRenderYawOffset = from.prevRenderYawOffset + yawOffset
         }
 
         to.distanceWalkedModified = from.distanceWalkedModified
         to.prevDistanceWalkedModified = from.prevDistanceWalkedModified
         to.isSneaking = from.isSneaking
         to.isSprinting = from.isSprinting
-
-        return rotation
     }
 }
 
@@ -140,3 +141,13 @@ class Gettable<in K, out V>(
     operator fun invoke(key: K) = getter(key)
 }
 typealias BlockCache = Gettable<BlockPos, IBlockState>
+
+object Mat4d {
+    fun id() = Matrix4d().apply { setIdentity() }
+    fun add(dx: Double, dy: Double, dz: Double) = add(Vector3d(dx, dy, dz))
+    fun add(vec: Vector3d) = id().apply { setTranslation(vec) }
+    fun sub(dx: Double, dy: Double, dz: Double) = sub(Vector3d(dx, dy, dz))
+    fun sub(vec: Vector3d) = id().apply { setTranslation(Vector3d().also { it.negate(vec) }) }
+    fun rotYaw(angle: Number) = id().apply { setRotation(AxisAngle4d(0.0, -1.0, 0.0, Math.toRadians(angle.toDouble()))) }
+    fun inverse(of: Matrix4d) = id().apply { invert(of) }
+}

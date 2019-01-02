@@ -22,6 +22,8 @@ object Net {
             registerMessage(LinkPortal.Handler(), LinkPortal::class.java, ++nextId, Side.CLIENT)
             registerMessage(EntityUsePortal.Handler(), EntityUsePortal::class.java, ++nextId, Side.CLIENT)
             registerMessage(Transaction.Handler(), Transaction::class.java, ++nextId, Side.CLIENT)
+            registerMessage(TransferToDimension.Handler(), TransferToDimension::class.java, ++nextId, Side.CLIENT)
+            registerMessage(TransferToDimensionDone.Handler(), TransferToDimensionDone::class.java, ++nextId, Side.SERVER)
         }
     }
 

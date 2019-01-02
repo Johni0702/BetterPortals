@@ -1,6 +1,8 @@
 package de.johni0702.minecraft.betterportals.client.renderer
 
 import de.johni0702.minecraft.betterportals.LOGGER
+import de.johni0702.minecraft.betterportals.client.glMask
+import de.johni0702.minecraft.betterportals.client.renderFullScreen
 import de.johni0702.minecraft.betterportals.client.view.ClientViewManagerImpl
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
@@ -44,12 +46,6 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
                     .asDoubleBuffer().put(a).put(b).put(c).put(d)
             buf.flip()
             GL11.glClipPlane(plane, buf)
-        }
-
-        private fun glMask(r: Boolean, g: Boolean, b: Boolean, a: Boolean, depth: Boolean, stencil: Int) {
-            GlStateManager.colorMask(r, g, b, a)
-            GlStateManager.depthMask(depth)
-            GL11.glStencilMask(stencil)
         }
 
         private val stencilStack = mutableListOf<Boolean>()
@@ -319,28 +315,6 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             renderFullScreen()
             GlStateManager.popAttrib()
             glMask(true, true, true, true, true, 0x00)
-        }
-
-        private fun renderFullScreen() {
-            val tessellator = Tessellator.getInstance()
-            with(tessellator.buffer) {
-                setTranslation(0.0, player.getEyeHeight().toDouble(), 0.0)
-                // Drawing a triangular pyramid-ish, because it's the easiest shape to draw which can enclose the camera
-                begin(GL11.GL_TRIANGLE_STRIP, DefaultVertexFormats.POSITION)
-                // Bottom triangle
-                pos(-1.0, -0.5, -1.0).endVertex()
-                pos(1.0, -0.5, -1.0).endVertex()
-                pos(0.0, -0.5, 1.0).endVertex()
-                // Remaining triangles
-                pos(0.0, 0.5, 0.0).endVertex()
-                pos(-1.0, -0.5, -1.0).endVertex()
-                pos(1.0, -0.5, -1.0).endVertex()
-
-                setTranslation(0.0, 0.0, 0.0)
-            }
-            GlStateManager.disableCull()
-            tessellator.draw()
-            GlStateManager.enableCull()
         }
 
         private fun renderPortalInactive() {
