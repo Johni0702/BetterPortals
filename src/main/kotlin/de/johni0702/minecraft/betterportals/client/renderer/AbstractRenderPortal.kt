@@ -63,9 +63,6 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
                 val facing = instance.portalRotation.reverse.rotate(instance.viewFacing)
                 val localFacing = portal.remoteRotation.rotate(facing)
                 val portalPos = portal.remotePosition.to3d().addVector(0.5, 0.5, 0.5)
-                // Except when the player is inside the portal and viewFacing differs from playerFacing because in that
-                // case the player can look past the portal frame.
-                if (instance.isPlayerInPortal && instance.viewFacing != instance.playerFacing) return@let portal
                 // We need to take the top most y of the entity because otherwise when looking throw a horizontal portal
                 // from the below, we might see the head of entities whose feet are below the portal y
                 // Same goes the other way around
@@ -89,7 +86,8 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             )
             // FIXME can't deal with entities which are in more than one portal at the same time
             inPortals.firstOrNull()?.let {
-                val relativePosition = entity.syncPos.subtract(it.localPosition.to3d().addVector(0.5, 0.0, 0.5))
+                val entityPos = entity.syncPos + Vec3d(0.0, entity.eyeHeight.toDouble(), 0.0)
+                val relativePosition = entityPos - it.localPosition.to3d().addVector(0.5, 0.0, 0.5)
                 val portalFacing = it.localRotation.facing
                 val portalDir = portalFacing.directionVec.to3d()
                 val planeDir = portalDir.scale(sign(relativePosition.dotProduct(portalDir)))
@@ -97,7 +95,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
                 val portalY = it.posY - staticPlayerY
                 val portalZ = it.posZ - staticPlayerZ
                 val renderer = renderManager.getEntityRenderObject<AbstractPortalEntity>(it) as AbstractRenderPortal
-                val planeOffset = renderer.createInstance(renderer.getState(it), portalX, portalY, portalZ, partialTicks).playerDir.scale(-0.5)
+                val planeOffset = renderer.createInstance(renderer.getState(it), portalX, portalY, portalZ, partialTicks).viewFacing.directionVec.to3d().scale(-0.5)
                 val planePos = Vec3d(portalX, portalY, portalZ) + planeOffset
                 glClipPlane(GL11.GL_CLIP_PLANE4, planeDir, planePos)
                 GL11.glEnable(GL11.GL_CLIP_PLANE4) // FIXME don't hard-code clipping plane id
@@ -134,7 +132,8 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             if (portalStack.isEmpty()) return null
             val instance = portalStack.last()
             if (instance.isPlayerInPortal) return null // lots of edge cases here for little gain, don't even try (for now)
-            return PortalCamera(instance)
+            val pos = Minecraft.getMinecraft().renderViewEntity!!.getPositionEyes(1.0f)
+            return PortalCamera(instance.portal, pos, Frustum())
         }
     }
 
@@ -157,25 +156,6 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
          * Side of the portal on which the player's eyes are.
          */
         val viewFacing = portalFacing.axis.toFacing(player.getPositionEyes(1f) - entity.pos)
-        /**
-         * Side of the portal on which the player is standing.
-         * If the player is currently passing through this portal, this is the side of the actual portal plane the
-         * player is standing on and also the side that will not be rendered to allow the player to look outside of
-         * the portal into the local world.
-         * If the player is not currently inside the portal, #viewFacing is used instead.
-         *
-         * May differ from viewFacing in case of vertical portals (view above, feet below portal).
-         * Specifically then, when the player has just passed through the portal with their feet but their head is still
-         * above it, mainly viewing the remote side.
-         *
-         * In such cases, the portal blocks are extended upwards to include the player's eyes to allow them to properly
-         * see the remote side and the bottom face of the portal isn't drawn (as usual) to allow them to look into
-         * the local world through that side.
-         * Additionally, no clip plane is used when drawing the remote side, because the player can still look past the
-         * portal framing and would notice.
-         */
-        val playerFacing = portalFacing.axis.toFacing(player.pos - entity.pos)
-        val playerDir = playerFacing.directionVec.to3d()
 
         open fun render() {
             entity.onUpdate() // Update view entity position
@@ -210,25 +190,13 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             // Step one, draw portal face onto stencil buffer where visible (and prepare occlusion culling)
             glMask(false, false, false, false, false, 0xff)
             GL11.glEnable(GL11.GL_STENCIL_TEST)
-            if (playerFacing == viewFacing || !isPlayerInPortal) {
-                // Normally, just draw stencil buffer where the portal is
-                GL11.glClearStencil(0x00)
-                GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT)
-                GL11.glStencilFunc(GL11.GL_ALWAYS, 0xff, 0xff)
-                GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE)
-                GL15.glBeginQuery(GL15.GL_SAMPLES_PASSED, state.allocOcclusionQuery())
-                renderPortalFromInside()
-                GL15.glEndQuery(GL15.GL_SAMPLES_PASSED)
-            } else {
-                // If inside a vertical portal, viewing from above but being below, the whole thing is inverted.
-                // So instead of marking where the portal is, we mark the whole screen and then un-mark the portal.
-                GL11.glClearStencil(0xff)
-                GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT)
-                GL11.glStencilFunc(GL11.GL_ALWAYS, 0x00, 0xff)
-                GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE)
-                renderPortalFromInside()
-                state.clearOcclusion()
-            }
+            GL11.glClearStencil(0x00)
+            GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT)
+            GL11.glStencilFunc(GL11.GL_ALWAYS, 0xff, 0xff)
+            GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE)
+            GL15.glBeginQuery(GL15.GL_SAMPLES_PASSED, state.allocOcclusionQuery())
+            renderPortalFromInside()
+            GL15.glEndQuery(GL15.GL_SAMPLES_PASSED)
             GL11.glStencilFunc(GL11.GL_EQUAL, 0xff, 0xff)
             GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP)
 
@@ -263,12 +231,9 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
 
                 // Step three, draw portal content where stencil buffer is marked
                 glMask(true, true, true, true, true, 0x00)
-                // Only use clipping plane if eyes are on same side as feet (see #playerFacing)
-                if (viewFacing == playerFacing || !isPlayerInPortal) {
-                    val planePos = Vec3d(x, y, z) + viewFacing.directionVec.to3d().scale(0.5)
-                    glClipPlane(GL11.GL_CLIP_PLANE5, viewFacing.directionVec.to3d().scale(-1.0), planePos)
-                    GL11.glEnable(GL11.GL_CLIP_PLANE5) // FIXME don't hard-code clipping plane id
-                }
+                val planePos = Vec3d(x, y, z) + viewFacing.directionVec.to3d().scale(0.5)
+                glClipPlane(GL11.GL_CLIP_PLANE5, viewFacing.directionVec.to3d().scale(-1.0), planePos)
+                GL11.glEnable(GL11.GL_CLIP_PLANE5) // FIXME don't hard-code clipping plane id
 
                 GlStateManager.enableTexture2D()
 

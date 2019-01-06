@@ -23,6 +23,7 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 import net.minecraftforge.common.ForgeHooks
@@ -34,6 +35,7 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
+import java.util.*
 
 abstract class AbstractPortalEntity(
         world: World,
@@ -100,10 +102,12 @@ abstract class AbstractPortalEntity(
         }
     }
 
+    private val lastTickPos = WeakHashMap<Entity, Vec3d>()
     protected open fun checkTeleportee(entity: Entity) {
         val portalPos = pos
-        val entityPos = entity.pos
-        val entityPrevPos = entity.lastTickPos
+        val eyeHeight = entity.eyeHeight.toDouble()
+        val entityPos = entity.pos + Vec3d(0.0, eyeHeight, 0.0)
+        val entityPrevPos = lastTickPos.put(entity, entityPos) ?: return
         val relPos = entityPos - portalPos
         val prevRelPos = entityPrevPos - portalPos
         val from = localAxis.toFacing(relPos)
@@ -115,6 +119,8 @@ abstract class AbstractPortalEntity(
     }
 
     protected open fun teleportEntity(entity: Entity, from: EnumFacing) {
+        lastTickPos.remove(entity)
+
         if (entity is EntityPlayer) {
             if (world.isRemote) teleportPlayer(entity, from)
             return

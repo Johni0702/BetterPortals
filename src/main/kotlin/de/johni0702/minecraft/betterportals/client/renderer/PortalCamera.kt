@@ -1,8 +1,6 @@
 package de.johni0702.minecraft.betterportals.client.renderer
 
 import de.johni0702.minecraft.betterportals.common.*
-import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
-import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.culling.ClippingHelper
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.util.EnumFacing
@@ -11,15 +9,17 @@ import net.minecraft.util.math.Vec3d
 /**
  * Camera which looks at the current world through a portal.
  */
-class PortalCamera<out T: AbstractPortalEntity>(portalRenderer: AbstractRenderPortal.Instance<T>): Frustum() {
-    private val portal = portalRenderer.portal
+class PortalCamera(
+        private val portal: Portal,
+        private val pos: Vec3d,
+        private val inner: Frustum
+): Frustum() {
     private val clippingHelper = ClippingHelper()
 
     override fun setPosition(x: Double, y: Double, z: Double) {
-        super.setPosition(x, y, z)
+        inner.setPosition(x, y, z)
 
-        // Note: cannot use x,y,z because those are player pos, not camera pos (i.e. feet, not eye level)
-        val pos = Minecraft.getMinecraft().renderViewEntity!!.getPositionEyes(1.0f)
+        // Note: cannot use x,y,z for pos because those are player pos, not camera pos (i.e. feet, not eye level)
 
         // The (local) direction from which we're looking into the portal
         // i.e. nothing which is in this direction is visible (because it'd be in the remote world)
@@ -59,7 +59,7 @@ class PortalCamera<out T: AbstractPortalEntity>(portalRenderer: AbstractRenderPo
 
     override fun isBoxInFrustum(minX: Double, minY: Double, minZ: Double, maxX: Double, maxY: Double, maxZ: Double): Boolean {
         return clippingHelper.isBoxInFrustum(minX, minY, minZ, maxX, maxY, maxZ)
-                && super.isBoxInFrustum(minX, minY, minZ, maxX, maxY, maxZ)
+                && inner.isBoxInFrustum(minX, minY, minZ, maxX, maxY, maxZ)
     }
 }
 
