@@ -241,7 +241,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
             }
 
             // No better place found, place portal directly at target position with random rotation
-            val portalRotation = Rotation.values()[(localPos.x + localPos.z) % 4] // semi-random rotation
+            val portalRotation = Rotation.values()[Math.floorMod(localPos.x + localPos.z, 4)] // semi-random rotation
             val blocks = portalBlocks.mapTo(mutableSetOf()) {
                 it.rotate(portalRotation).add(remotePosition)
             }
