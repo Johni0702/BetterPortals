@@ -1,9 +1,6 @@
 package de.johni0702.minecraft.betterportals.client.renderer
 
-import de.johni0702.minecraft.betterportals.LOGGER
-import de.johni0702.minecraft.betterportals.client.glMask
-import de.johni0702.minecraft.betterportals.client.renderFullScreen
-import de.johni0702.minecraft.betterportals.client.view.ClientViewManagerImpl
+import de.johni0702.minecraft.betterportals.client.glClipPlane
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
 import net.minecraft.client.Minecraft
@@ -16,18 +13,13 @@ import net.minecraft.client.renderer.entity.Render
 import net.minecraft.client.renderer.entity.RenderManager
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher.*
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
+import net.minecraft.client.shader.ShaderManager
 import net.minecraft.entity.Entity
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.ResourceLocation
 import net.minecraft.util.math.AxisAlignedBB
-import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
-import net.minecraftforge.client.ForgeHooksClient
 import org.lwjgl.opengl.GL11
-import org.lwjgl.opengl.GL15
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.util.*
 import kotlin.math.sign
 
 abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: RenderManager) : Render<T>(renderManager) {
@@ -38,31 +30,17 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
 
         private var portalStack = mutableListOf<Instance<*>>()
 
-        private fun glClipPlane(plane: Int, normal: Vec3d, pointOnPlane: Vec3d) {
-            // Plane is where: ax + by + cz + d = 0
-            val a = normal.x
-            val b = normal.y
-            val c = normal.z
-            val d = -a * pointOnPlane.x - b * pointOnPlane.y - c * pointOnPlane.z
-            val buf = ByteBuffer.allocateDirect(4 * 8)
-                    .order(ByteOrder.nativeOrder())
-                    .asDoubleBuffer().put(a).put(b).put(c).put(d)
-            buf.flip()
-            GL11.glClipPlane(plane, buf)
-        }
-
         private val stencilStack = mutableListOf<Boolean>()
         private val clippingStack = mutableListOf<Boolean>()
 
         fun beforeRender(renderManager: RenderManager, entity: Entity, partialTicks: Float): Boolean {
             if (entity is Portal) return true
-            val portal = portalStack.lastOrNull()?.let { instance ->
+            val portal = ViewRenderPlan.CURRENT?.let { instance ->
                 // If we're not rendering our own world (i.e. if we're looking through a portal)
                 // then we do not want to render entities on the wrong remote side of said portal
-                val portal = instance.portal
-                val facing = instance.portalRotation.reverse.rotate(instance.viewFacing)
-                val localFacing = portal.remoteRotation.rotate(facing)
-                val portalPos = portal.remotePosition.to3d().addVector(0.5, 0.5, 0.5)
+                val portal = instance.parentPortal ?: return@let null
+                val portalPos = portal.remotePosition.to3dMid()
+                val facing = portal.remoteFacing.axis.toFacing(instance.cameraPos - portalPos)
                 // We need to take the top most y of the entity because otherwise when looking throw a horizontal portal
                 // from the below, we might see the head of entities whose feet are below the portal y
                 // Same goes the other way around
@@ -70,8 +48,8 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
                 val entityTopPos = entityBottomPos + Vec3d(0.0, entity.entityBoundingBox.sizeY, 0.0)
                 val relativeBottomPosition = entityBottomPos.subtract(portalPos)
                 val relativeTopPosition = entityTopPos.subtract(portalPos)
-                if (relativeBottomPosition.dotProduct(localFacing.directionVec.to3d()) > 0
-                    && relativeTopPosition.dotProduct(localFacing.directionVec.to3d()) > 0) return false
+                if (relativeBottomPosition.dotProduct(facing.directionVec.to3d()) > 0
+                    && relativeTopPosition.dotProduct(facing.directionVec.to3d()) > 0) return false
                 return@let portal
             }
 
@@ -88,14 +66,14 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             inPortals.firstOrNull()?.let {
                 val entityPos = entity.syncPos + Vec3d(0.0, entity.eyeHeight.toDouble(), 0.0)
                 val relativePosition = entityPos - it.localPosition.to3d().addVector(0.5, 0.0, 0.5)
-                val portalFacing = it.localRotation.facing
+                val portalFacing = it.localFacing
                 val portalDir = portalFacing.directionVec.to3d()
                 val planeDir = portalDir.scale(sign(relativePosition.dotProduct(portalDir)))
                 val portalX = it.posX - staticPlayerX
                 val portalY = it.posY - staticPlayerY
                 val portalZ = it.posZ - staticPlayerZ
                 val renderer = renderManager.getEntityRenderObject<AbstractPortalEntity>(it) as AbstractRenderPortal
-                val planeOffset = renderer.createInstance(renderer.getState(it), portalX, portalY, portalZ, partialTicks).viewFacing.directionVec.to3d().scale(-0.5)
+                val planeOffset = renderer.createInstance(it, portalX, portalY, portalZ, partialTicks).viewFacing.directionVec.to3d().scale(-0.5)
                 val planePos = Vec3d(portalX, portalY, portalZ) + planeOffset
                 glClipPlane(GL11.GL_CLIP_PLANE4, planeDir, planePos)
                 GL11.glEnable(GL11.GL_CLIP_PLANE4) // FIXME don't hard-code clipping plane id
@@ -128,6 +106,8 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             }
         }
 
+        fun createCamera() = ViewRenderPlan.CURRENT?.camera
+        /*
         fun createCamera(): Frustum? {
             if (portalStack.isEmpty()) return null
             val instance = portalStack.last()
@@ -135,16 +115,20 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             val pos = Minecraft.getMinecraft().renderViewEntity!!.getPositionEyes(1.0f)
             return PortalCamera(instance.portal, pos, Frustum())
         }
+         */
     }
 
     open class Instance<out T : AbstractPortalEntity>(
-            val state: State<T>,
+            val entity: T,
             val x: Double,
             val y: Double,
             val z: Double,
             val partialTicks: Float
     ) {
-        val entity = state.entity
+        companion object {
+            // FIXME get rid of Instance and put this in AbstractRenderPortal
+            private val shader = ShaderManager(mc.resourceManager, "betterportals:render_portal")
+        }
         val portal = entity
         val player: EntityPlayerSP = mc.player
         val isPlayerInPortal = portal.localBoundingBox.intersects(player.entityBoundingBox)
@@ -158,30 +142,37 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
         val viewFacing = portalFacing.axis.toFacing(player.getPositionEyes(1f) - entity.pos)
 
         open fun render() {
-            entity.onUpdate() // Update view entity position
-
             GlStateManager.disableAlpha() // ._. someone forgot to disable this, thanks (happens if chat GUI is opened)
 
             if (entity.isDead) {
                 return
             }
 
-            if (portalStack.size > 5) {
-                LOGGER.warn("Portal depth >5! Aborting recursion!")
-                return
-            }
-
-            if (portalStack.lastOrNull()?.portal?.remotePosition == entity.localPosition) {
+            val parentPortal = ViewRenderPlan.CURRENT?.parentPortal
+            if (parentPortal?.world == portal.view?.camera?.world && parentPortal?.remotePosition == entity.localPosition) {
                 // Skip rendering of portal if it's the remote to the portal we're currently in
                 return
             }
 
-            val view = entity.view
-            if (view == null || view.isMainView) {
+            val occlusionQuery = ViewRenderManager.INSTANCE.getOcclusionQuery(entity)
+            occlusionQuery.begin()
+
+            val framebuffer = ViewRenderPlan.CURRENT?.framebuffers?.get(entity)
+            if (framebuffer == null) {
                 renderPortalInactive()
-                return
+            } else {
+                shader.addSamplerTexture("sampler", framebuffer.framebufferTexture)
+                shader.addSamplerTexture("depthSampler", framebuffer.depthTexture)
+                shader.getShaderUniformOrDefault("screenSize")
+                        .set(framebuffer.framebufferWidth.toFloat(), framebuffer.framebufferHeight.toFloat())
+                shader.useShader()
+                renderPortalFromInside()
+                shader.endShader()
             }
 
+            occlusionQuery.end()
+
+            /*
             GlStateManager.pushMatrix()
             GlStateManager.pushAttrib()
 
@@ -201,7 +192,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP)
 
             // Occlusion culling
-            state.pollQueries()
+            state.update()
             if (state.occluded) {
                 GlStateManager.popAttrib()
                 GlStateManager.popMatrix()
@@ -302,6 +293,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             renderFullScreen()
             GlStateManager.popAttrib()
             glMask(true, true, true, true, true, 0x00)
+            */
         }
 
         private fun renderPortalInactive() {
@@ -358,53 +350,10 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
         }
     }
 
-    class State<out T: AbstractPortalEntity>(val entity: T) {
-        companion object {
-            val queries: MutableList<Int> = ArrayList()
-        }
-        val queuedQueries: MutableList<Pair<Int, Boolean?>> = ArrayList()
-        var occluded = false
-
-        fun allocOcclusionQuery(): Int {
-            val query = queries.popOrNull() ?: GL15.glGenQueries()
-            queuedQueries.add(Pair(query, null))
-            return query
-        }
-
-        fun clearOcclusion() {
-            queuedQueries.add(Pair(0, false))
-        }
-
-        fun markOccluded() {
-            queuedQueries.add(Pair(0, true))
-        }
-
-        fun pollQueries() {
-            queuedQueries.firstOrNull()?.let { (id, setOccluded) ->
-                when {
-                    setOccluded != null -> {
-                        occluded = false
-                        queuedQueries.popOrNull()
-                    }
-                    GL15.glGetQueryObjectui(id, GL15.GL_QUERY_RESULT_AVAILABLE) == GL11.GL_TRUE -> {
-                        occluded = GL15.glGetQueryObjectui(id, GL15.GL_QUERY_RESULT) == 0
-                        queuedQueries.popOrNull()
-                        queries.add(id)
-                    }
-                    else -> {}
-                }
-            }
-        }
-    }
-    private val states: MutableMap<T, State<T>> = WeakHashMap()
-
-    abstract fun createInstance(state: State<T>, x: Double, y: Double, z: Double, partialTicks: Float): Instance<T>
-    open fun createState(entity: T): State<T> = State(entity)
-
-    fun getState(entity: T) = states.getOrPut(entity) { createState(entity) }
+    abstract fun createInstance(entity: T, x: Double, y: Double, z: Double, partialTicks: Float): Instance<T>
 
     override fun doRender(entity: T, x: Double, y: Double, z: Double, entityYaw: Float, partialTicks: Float) {
-        createInstance(getState(entity), x, y, z, partialTicks).render()
+        createInstance(entity, x, y, z, partialTicks).render()
     }
 
     override fun doRenderShadowAndFire(entityIn: Entity, x: Double, y: Double, z: Double, yaw: Float, partialTicks: Float) {}

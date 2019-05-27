@@ -1,7 +1,6 @@
 package de.johni0702.minecraft.betterportals.client.view
 
 import de.johni0702.minecraft.betterportals.LOGGER
-import de.johni0702.minecraft.betterportals.client.PostSetupFogEvent
 import de.johni0702.minecraft.betterportals.client.UtilsClient
 import de.johni0702.minecraft.betterportals.common.popOrNull
 import de.johni0702.minecraft.betterportals.common.pos
@@ -10,14 +9,12 @@ import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.multiplayer.WorldClient
-import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.crash.CrashReport
 import net.minecraft.network.play.client.CPacketPlayer
 import net.minecraft.util.ReportedException
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.EnumDifficulty
-import net.minecraftforge.client.event.EntityViewRenderEvent
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -54,9 +51,6 @@ internal class ClientViewManagerImpl : ClientViewManager {
      * See [ViewEntity.setPositionAndRotation] for why this is necessary.
      */
     private val serverMainViewQueue = mutableListOf<Triple<ClientViewImpl, ClientViewImpl, Vec3d>>()
-
-    internal var yawOffset = 0f
-    internal var fogOffset = 0f
 
     private fun reset() {
         views.remove(mainView)
@@ -333,11 +327,6 @@ internal class ClientViewManagerImpl : ClientViewManager {
         mc.player?.timeUntilPortal = 200
     }
 
-    fun postSetupFog() {
-        GlStateManager.setFogStart(GlStateManager.fogState.start + fogOffset)
-        GlStateManager.setFogEnd(GlStateManager.fogState.end + fogOffset)
-    }
-
     private inner class EventHandler {
 
         @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -357,39 +346,6 @@ internal class ClientViewManagerImpl : ClientViewManager {
         @SubscribeEvent(priority = EventPriority.LOW)
         fun onDisconnect(event: FMLNetworkEvent.ClientDisconnectionFromServerEvent) {
             reset()
-        }
-
-        private var yaw: Float = 0.toFloat()
-        private var pitch: Float = 0.toFloat()
-        private var roll: Float = 0.toFloat()
-        @SubscribeEvent(priority = EventPriority.LOWEST)
-        fun onCameraSetup(event: EntityViewRenderEvent.CameraSetup) {
-            if (activeView.isMainView) {
-                yaw = event.yaw
-                pitch = event.pitch
-                roll = event.roll
-            } else {
-                event.yaw = yaw + yawOffset
-                event.pitch = pitch
-                event.roll = roll
-            }
-        }
-
-        private var fov: Float = 0.toFloat()
-        @SubscribeEvent(priority = EventPriority.LOWEST)
-        fun onFOVSetup(event: EntityViewRenderEvent.FOVModifier) {
-            if (activeView.isMainView) {
-                fov = event.fov
-            } else {
-                event.fov = fov
-            }
-        }
-
-        @SubscribeEvent(priority = EventPriority.LOWEST)
-        fun postSetupFog(event: PostSetupFogEvent) {
-            if (mc.player is ViewEntity) {
-                postSetupFog()
-            }
         }
     }
 }

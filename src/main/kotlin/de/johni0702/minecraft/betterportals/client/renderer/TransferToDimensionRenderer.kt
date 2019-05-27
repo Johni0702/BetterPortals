@@ -5,7 +5,6 @@ import de.johni0702.minecraft.betterportals.client.UtilsClient
 import de.johni0702.minecraft.betterportals.client.glMask
 import de.johni0702.minecraft.betterportals.client.renderFullScreen
 import de.johni0702.minecraft.betterportals.client.view.ClientView
-import de.johni0702.minecraft.betterportals.client.view.ClientViewManagerImpl
 import de.johni0702.minecraft.betterportals.common.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GlStateManager
@@ -110,15 +109,16 @@ class TransferToDimensionRenderer(
 
             GlStateManager.enableTexture2D()
 
-            val viewManager =  fromView.manager as ClientViewManagerImpl
-            viewManager.yawOffset = cameraYawOffset
-            viewManager.fogOffset = 0f
+            val prevPlan = ViewRenderPlan.CURRENT!!
+            ViewRenderPlan.CURRENT = ViewRenderPlan(ViewRenderManager.INSTANCE, null, fromView, prevPlan.camera, fromView.camera.pos, fromView.camera.cameraYaw, 0)
 
             mc.world.profiler.startSection("renderView" + fromView.id)
 
             mc.entityRenderer.renderWorld(partialTicks, System.nanoTime())
 
             mc.world.profiler.endSection()
+
+            ViewRenderPlan.CURRENT = prevPlan
         }
 
         GlStateManager.disableTexture2D()

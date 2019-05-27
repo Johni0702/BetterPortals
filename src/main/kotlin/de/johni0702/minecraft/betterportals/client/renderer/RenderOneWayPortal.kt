@@ -6,11 +6,11 @@ import net.minecraft.client.renderer.entity.RenderManager
 import net.minecraft.util.EnumFacing
 
 open class RenderOneWayPortal<T : OneWayPortalEntity>(renderManager: RenderManager) : AbstractRenderPortal<T>(renderManager) {
-    override fun createInstance(state: State<T>, x: Double, y: Double, z: Double, partialTicks: Float): RenderOneWayPortal.Instance<T> =
-            Instance(state, x, y, z, partialTicks)
+    override fun createInstance(entity: T, x: Double, y: Double, z: Double, partialTicks: Float): RenderOneWayPortal.Instance<T> =
+            Instance(entity, x, y, z, partialTicks)
 
-    open class Instance<T : OneWayPortalEntity>(state: State<T>, x: Double, y: Double, z: Double, partialTicks: Float)
-        : AbstractRenderPortal.Instance<T>(state, x, y, z, partialTicks) {
+    open class Instance<T : OneWayPortalEntity>(entity: T, x: Double, y: Double, z: Double, partialTicks: Float)
+        : AbstractRenderPortal.Instance<T>(entity, x, y, z, partialTicks) {
 
         open fun shouldFaceBeRendered(facing: EnumFacing): Boolean {
             // There are usually no blocks at the tail end of the portal, so we need to make sure that, when looking at

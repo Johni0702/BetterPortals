@@ -70,8 +70,10 @@ fun Vec3d.abs(): Vec3d = Vec3d(Math.abs(x), Math.abs(y), Math.abs(z))
 fun Vec3d.toJavaX() = Vector3d(x, y, z)
 fun Vec3d.toJavaXPos() = Vector4d(x, y, z, 1.0)
 fun Vec3d.toJavaXVec() = Vector4d(x, y, z, 0.0)
+fun Vec3d.toPoint() = Point3d(x, y, z)
 fun Vector3d.toMC() = Vec3d(x, y, z)
 fun Vector4d.toMC() = Vec3d(x, y, z)
+fun Point3d.toMC() = Vec3d(x, y, z)
 operator fun Vec3d.get(axis: EnumFacing.Axis) = when(axis) {
     EnumFacing.Axis.X -> x
     EnumFacing.Axis.Y -> y
@@ -146,6 +148,9 @@ var Entity.pos
 var Entity.lastTickPos
     get() = Vec3d(lastTickPosX, lastTickPosY, lastTickPosZ)
     set(value) = with(value) { lastTickPosX = x; lastTickPosY = y; lastTickPosZ = z }
+var Entity.prevPos
+    get() = Vec3d(prevPosX, prevPosY, prevPosZ)
+    set(value) = with(value) { prevPosX = x; prevPosY = y; prevPosZ = z }
 var EntityOtherPlayerMP.otherPlayerMPPos
     get() = Vec3d(otherPlayerMPX, otherPlayerMPY, otherPlayerMPZ)
     set(value) = with(value) { otherPlayerMPX = x; otherPlayerMPY = y; otherPlayerMPZ = z }

@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.mixin;
 
 import de.johni0702.minecraft.betterportals.client.PostSetupFogEvent;
 import de.johni0702.minecraft.betterportals.client.renderer.AbstractRenderPortal;
+import de.johni0702.minecraft.betterportals.client.renderer.ViewRenderManager;
 import de.johni0702.minecraft.betterportals.client.view.ViewEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.EntityRenderer;
@@ -19,6 +20,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(EntityRenderer.class)
 public abstract class MixinEntityRenderer {
     @Shadow @Final private Minecraft mc;
+
+    @Redirect(method = "updateCameraAndRender",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/EntityRenderer;renderWorld(FJ)V"))
+    private void renderWorld(EntityRenderer entityRenderer, float partialTicks, long finishTimeNano) {
+        ViewRenderManager.Companion.getINSTANCE().renderWorld(finishTimeNano);
+    }
 
     @Redirect(method = "renderWorldPass",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GlStateManager;clear(I)V"))

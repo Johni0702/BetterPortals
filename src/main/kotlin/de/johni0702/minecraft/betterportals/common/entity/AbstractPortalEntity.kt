@@ -13,6 +13,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.AbstractClientPlayer
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP
+import net.minecraft.client.renderer.culling.ICamera
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityList
 import net.minecraft.entity.player.EntityPlayer
@@ -90,6 +91,8 @@ abstract class AbstractPortalEntity(
         }
     }
 
+    private var lastTickPos = mutableMapOf<Entity, Vec3d>()
+    private var thisTickPos = mutableMapOf<Entity, Vec3d>()
     protected open fun checkTeleportees() {
         val facingVec = localFacing.directionVec.to3d().abs() * 2
         val largerBB = localBoundingBox.grow(facingVec)
@@ -100,14 +103,18 @@ abstract class AbstractPortalEntity(
                 checkTeleportee(it)
             }
         }
+        lastTickPos = thisTickPos.also {
+            thisTickPos = lastTickPos
+            thisTickPos.clear()
+        }
     }
 
-    private val lastTickPos = WeakHashMap<Entity, Vec3d>()
     protected open fun checkTeleportee(entity: Entity) {
         val portalPos = pos
         val eyeHeight = entity.eyeHeight.toDouble()
         val entityPos = entity.pos + Vec3d(0.0, eyeHeight, 0.0)
-        val entityPrevPos = lastTickPos.put(entity, entityPos) ?: return
+        thisTickPos[entity] = entityPos
+        val entityPrevPos = lastTickPos[entity] ?: return
         val relPos = entityPos - portalPos
         val prevRelPos = entityPrevPos - portalPos
         val from = localAxis.toFacing(relPos)
@@ -119,7 +126,7 @@ abstract class AbstractPortalEntity(
     }
 
     protected open fun teleportEntity(entity: Entity, from: EnumFacing) {
-        lastTickPos.remove(entity)
+        thisTickPos.remove(entity)
 
         if (entity is EntityPlayer) {
             if (world.isRemote) teleportPlayer(entity, from)
@@ -451,6 +458,11 @@ abstract class AbstractPortalEntity(
         remotePortal.onClientUpdate()
         return true
     }
+
+    @SideOnly(Side.CLIENT)
+    open fun canBeSeen(camera: ICamera): Boolean =
+            camera.isBoundingBoxInFrustum(renderBoundingBox)
+                    && localBlocks.any { camera.isBoundingBoxInFrustum(AxisAlignedBB(it)) }
 }
 
 /**

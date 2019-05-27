@@ -3,6 +3,7 @@ package de.johni0702.minecraft.betterportals.common.entity
 import de.johni0702.minecraft.betterportals.common.pos
 import net.minecraft.block.Block
 import net.minecraft.client.entity.EntityPlayerSP
+import net.minecraft.client.renderer.culling.ICamera
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTBase
@@ -97,4 +98,6 @@ abstract class OneWayPortalEntity(
         }
         return success
     }
+
+    override fun canBeSeen(camera: ICamera): Boolean = (isTailEnd || isTravelingInProgress) && super.canBeSeen(camera)
 }
