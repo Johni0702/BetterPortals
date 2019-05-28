@@ -101,6 +101,18 @@ val Rotation.reverse get() = when(this) {
 }
 operator fun Rotation.plus(other: Rotation): Rotation = add(other)
 operator fun Rotation.minus(other: Rotation): Rotation = add(other.reverse)
+val AxisAlignedBB_INFINITE = AxisAlignedBB(
+        Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY,
+        Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY
+)
+fun AxisAlignedBB.with(facing: EnumFacing, value: Double) = when(facing) {
+    EnumFacing.DOWN -> AxisAlignedBB(minX, value, minZ, maxX, maxY, maxZ)
+    EnumFacing.UP -> AxisAlignedBB(minX, minY, minZ, maxX, value, maxZ)
+    EnumFacing.NORTH -> AxisAlignedBB(minX, minY, value, maxX, maxY, maxZ)
+    EnumFacing.SOUTH -> AxisAlignedBB(minX, minY, minZ, maxX, maxY, value)
+    EnumFacing.WEST -> AxisAlignedBB(value, minY, minZ, maxX, maxY, maxZ)
+    EnumFacing.EAST -> AxisAlignedBB(minX, minY, minZ, value, maxY, maxZ)
+}
 fun AxisAlignedBB.grow(by: Vec3d): AxisAlignedBB = grow(by.x, by.y, by.z)
 fun AxisAlignedBB.expand(by: Vec3d): AxisAlignedBB = expand(by.x, by.y, by.z)
 fun AxisAlignedBB.contract(by: Vec3d): AxisAlignedBB = contract(by.x, by.y, by.z)

@@ -9,6 +9,7 @@ import de.johni0702.minecraft.betterportals.net.*
 import de.johni0702.minecraft.betterportals.server.view.ServerView
 import de.johni0702.minecraft.betterportals.server.view.viewManager
 import io.netty.buffer.ByteBuf
+import net.minecraft.block.material.Material
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.AbstractClientPlayer
 import net.minecraft.client.entity.EntityOtherPlayerMP
@@ -298,6 +299,51 @@ abstract class AbstractPortalEntity(
                     }
                 }
             }
+        }
+
+        fun isInMaterial(entity: Entity, material: Material): Boolean? {
+            val entityAABB = entity.entityBoundingBox
+            val queryAABB = entityAABB.grow(-0.1, -0.4, -0.1)
+
+            val world = entity.world
+            world.getEntities(AbstractPortalEntity::class.java) { it?.isDead == false }.forEach { portal ->
+                if (!portal.localBoundingBox.intersects(entityAABB)) return@forEach // not even close
+
+                val remotePortal = portal.getRemotePortal() ?: return@forEach
+
+                // If this is a non-rectangular portal and the entity isn't inside it, we don't care
+                if (portal.localBlocks.none { AxisAlignedBB(it).intersects(entityAABB) }) return@forEach
+
+                val portalPos = portal.localPosition.to3dMid()
+                val entityPos = portal.lastTickPos[entity] ?: (entity.pos + entity.eyeOffset)
+                val entitySide = portal.localFacing.axis.toFacing(entityPos - portalPos)
+                val hiddenSide = entitySide.opposite
+                val entityHalf = AxisAlignedBB_INFINITE.with(entitySide.opposite, portalPos[entitySide.axis])
+                val hiddenHalf = AxisAlignedBB_INFINITE.with(hiddenSide.opposite, portalPos[hiddenSide.axis])
+
+                // For sanity, pretend there are no recursive portals
+
+                // Split BB into local and remote side
+                if (queryAABB.intersects(entityHalf)) {
+                    val localAABB = queryAABB.intersect(entityHalf)
+                    if (world.isMaterialInBB(localAABB, material)) {
+                        return true
+                    }
+                }
+                if (queryAABB.intersects(hiddenHalf)) {
+                    val aabb = queryAABB.intersect(hiddenHalf)
+                    val remoteAABB = with(portal) {
+                        AxisAlignedBB(aabb.min.fromLocal().toRemote(), aabb.max.fromLocal().toRemote())
+                    }
+                    if (remotePortal.world.isMaterialInBB(remoteAABB, material)) {
+                        return true
+                    }
+                }
+                return false
+            }
+
+            // Entity not in any portal, fallback to default implementation
+            return null
         }
     }
 
