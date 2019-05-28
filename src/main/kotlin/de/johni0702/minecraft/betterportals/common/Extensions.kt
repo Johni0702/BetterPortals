@@ -103,6 +103,7 @@ operator fun Rotation.plus(other: Rotation): Rotation = add(other)
 operator fun Rotation.minus(other: Rotation): Rotation = add(other.reverse)
 fun AxisAlignedBB.grow(by: Vec3d): AxisAlignedBB = grow(by.x, by.y, by.z)
 fun AxisAlignedBB.expand(by: Vec3d): AxisAlignedBB = expand(by.x, by.y, by.z)
+fun AxisAlignedBB.contract(by: Vec3d): AxisAlignedBB = contract(by.x, by.y, by.z)
 val AxisAlignedBB.sizeX get() = maxX - minX
 val AxisAlignedBB.sizeY get() = maxY - minY
 val AxisAlignedBB.sizeZ get() = maxZ - minZ

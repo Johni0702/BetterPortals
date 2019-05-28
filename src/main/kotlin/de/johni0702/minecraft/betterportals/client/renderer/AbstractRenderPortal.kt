@@ -139,7 +139,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
         /**
          * Side of the portal on which the player's eyes are.
          */
-        val viewFacing = portalFacing.axis.toFacing(player.getPositionEyes(1f) - entity.pos)
+        val viewFacing = portalFacing.axis.toFacing(player.getPositionEyes(mc.renderPartialTicks) - entity.pos)
 
         open fun render() {
             GlStateManager.disableAlpha() // ._. someone forgot to disable this, thanks (happens if chat GUI is opened)

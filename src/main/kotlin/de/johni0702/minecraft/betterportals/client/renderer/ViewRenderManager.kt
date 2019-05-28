@@ -67,28 +67,37 @@ class ViewRenderManager {
         val viewEntity = mc.renderViewEntity ?: mc.player
         var view = BetterPortalsMod.viewManager.mainView
         (view as ClientViewImpl).captureState(mc) // capture main view camera
-        val viewEntityPos = viewEntity.prevPos + (viewEntity.pos - viewEntity.prevPos) * mc.renderPartialTicks.toDouble()
-        var pos = viewEntityPos + viewEntity.eyeOffset
+        val entityPos = viewEntity.syncPos + viewEntity.eyeOffset
+        val interpEntityPos = viewEntity.getPositionEyes(mc.renderPartialTicks)
         // TODO do third person camera
-        var cameraPos = pos
+        var cameraPos = interpEntityPos
         var cameraYaw = viewEntity.prevRotationYaw + (viewEntity.rotationYaw - viewEntity.prevRotationYaw) * mc.renderPartialTicks.toDouble()
 
         var parentPortal: AbstractPortalEntity? = null
 
         // Ray trace from the entity (eye) position backwards to the camera position, following any portals which therefore
         // the camera must be looking through.
+        // First back through time from the actual entity position to the interpolated (visual) position in this frame
+        // (which may very well still be in the previous world, then through space from the visual position to where
+        // the camera is positioned.
+        var pos = entityPos
+        var target = interpEntityPos
+        var hitVisualPosition = false
         while (true) {
             val hitInfo = view.camera.world.getEntities(AbstractPortalEntity::class.java) {
+                val view = it?.view
                 // FIXME handle one-way portals
                 // Ignore portals which haven't yet been loaded or have already been destroyed
-                it?.view != null && !it.isDead
+                view != null && !it.isDead
                         // or have already been used in the previous iteration
-                        && (it.view != parentPortal?.view || it.localPosition != parentPortal?.remotePosition)
+                        && (view.camera.world != parentPortal?.world || it.localPosition != parentPortal?.remotePosition)
             }.flatMap { portal ->
                 // For each portal, find the point intercepting the line between entity and camera
+                val vec = portal.localFacing.directionVec.to3d() * 0.5
+                val negVec = vec * -1
                 portal.localBlocks.map {
-                    // FIXME this should only detect changes from >0.5 to <0.5 in portal direction instead of hitting anywhere in the block
-                    val trace = AxisAlignedBB(it).calculateIntercept(pos, cameraPos)
+                    // contract BB to only detect changes crossing 0.5 on the portal axis instead of hitting anywhere in the block
+                    val trace = AxisAlignedBB(it).contract(vec).contract(negVec).calculateIntercept(pos, target)
                     Pair(portal, trace)
                 }.filter {
                     it.second != null
@@ -105,14 +114,19 @@ class ViewRenderManager {
             if (hitInfo != null) {
                 val (portal, hitVec) = hitInfo
 
-                // If we hit a portal, switch to its view and transform the camera position accordingly
-                // also change the entity position to be in the portal so we don't accidentally match any portals
+                // If we hit a portal, switch to its view and transform the camera/entity positions accordingly
+                // also change the current position to be in the portal so we don't accidentally match any portals
                 // behind the one we're looking through.
                 view = portal.view!!
+                target = (portal.localToRemoteMatrix * target.toPoint()).toMC()
                 cameraPos = (portal.localToRemoteMatrix * cameraPos.toPoint()).toMC()
                 cameraYaw += (portal.remoteRotation - portal.localRotation).degrees.toDouble()
                 pos = (portal.localToRemoteMatrix * hitVec.toPoint()).toMC()
                 parentPortal = portal
+            } else if (!hitVisualPosition) {
+                hitVisualPosition = true
+                pos = target
+                target = cameraPos
             } else {
                 break
             }
