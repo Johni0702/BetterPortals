@@ -34,9 +34,6 @@ internal class ServerViewImpl(
 
     override fun makeMainView() {
         if (isMainView) return
-        if (refCnt == 0) {
-            throw IllegalStateException("View has a reference count of 0! Call .retain() before using it.")
-        }
 
         val mainView = manager.mainView
         val player = mainView.camera
@@ -45,6 +42,9 @@ internal class ServerViewImpl(
         LOGGER.info("Swapping main view {}/{}/{} with {}/{}/{}",
                 player.posX, player.posY, player.posZ,
                 camera.posX, camera.posY, camera.posZ)
+
+        retain()
+        mainView.release()
 
         val oldDim = player.dimension
         val oldWorld = player.serverWorld

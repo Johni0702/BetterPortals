@@ -45,6 +45,8 @@ interface View {
      * Does nothing if this view [is the main view][isMainView].
      * Note that this method **must not** be called while any significant view-dependent operation is in progress (e.g.
      * rendering, world ticking, [ClientView.withView]).
+     * If views are reference counted (server-side), calling this method decrements the reference count of the old main
+     * view and increments the one of this view.
      */
     fun makeMainView()
 }

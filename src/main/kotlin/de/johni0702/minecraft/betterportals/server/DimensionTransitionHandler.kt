@@ -14,6 +14,10 @@ object DimensionTransitionHandler {
         val world = player.server!!.getWorld(dimension)
         val viewManager = player.viewManager
 
+        // Hold on to the old main view until the client has finished the transition
+        // (released in TransferToDimensionDone#Handler)
+        viewManager.mainView.retain()
+
         // Create a new view entity in the destination dimension
         val view = viewManager.createView(world, player.pos) {
             // Let the teleporter position the view entity
@@ -29,6 +33,9 @@ object DimensionTransitionHandler {
         // And immediately swap it with the main view (calling code expects the player to have been transferred when the method returns)
         // This will inform the client that the server main view has changed and it'll adapt accordingly
         view.makeMainView()
+
+        // Release our claim on the new view (it's the main view now, no need for us to keep it alive)
+        view.release()
 
         Transaction.end(player)
 
