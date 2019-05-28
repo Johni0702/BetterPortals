@@ -128,6 +128,10 @@ abstract class AbstractPortalEntity(
     protected open fun teleportEntity(entity: Entity, from: EnumFacing) {
         thisTickPos.remove(entity)
 
+        if (entity.isRiding || entity.isBeingRidden) {
+            return // just do nothing for now, not even dismounting works as one would hope
+        }
+
         if (entity is EntityPlayer) {
             if (world.isRemote) teleportPlayer(entity, from)
             return
