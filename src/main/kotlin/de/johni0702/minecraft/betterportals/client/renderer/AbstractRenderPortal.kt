@@ -64,7 +64,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             )
             // FIXME can't deal with entities which are in more than one portal at the same time
             inPortals.firstOrNull()?.let {
-                val entityPos = entity.syncPos + Vec3d(0.0, entity.eyeHeight.toDouble(), 0.0)
+                val entityPos = entity.syncPos + entity.eyeOffset
                 val relativePosition = entityPos - it.localPosition.to3d().addVector(0.5, 0.0, 0.5)
                 val portalFacing = it.localFacing
                 val portalDir = portalFacing.directionVec.to3d()

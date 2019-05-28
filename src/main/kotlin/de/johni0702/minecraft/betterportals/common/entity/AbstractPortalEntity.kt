@@ -31,12 +31,12 @@ import net.minecraftforge.common.ForgeHooks
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.entity.living.LivingFallEvent
 import net.minecraftforge.event.world.GetCollisionBoxesEvent
+import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
-import java.util.*
 
 abstract class AbstractPortalEntity(
         world: World,
@@ -111,8 +111,7 @@ abstract class AbstractPortalEntity(
 
     protected open fun checkTeleportee(entity: Entity) {
         val portalPos = pos
-        val eyeHeight = entity.eyeHeight.toDouble()
-        val entityPos = entity.pos + Vec3d(0.0, eyeHeight, 0.0)
+        val entityPos = entity.pos + entity.eyeOffset
         thisTickPos[entity] = entityPos
         val entityPrevPos = lastTickPos[entity] ?: return
         val relPos = entityPos - portalPos
@@ -194,8 +193,9 @@ abstract class AbstractPortalEntity(
         PacketBuffer(buffer).writeCompoundTag(writePortalToNBT())
     }
 
-    private object EventHandler {
+    internal object EventHandler {
         var registered by MinecraftForge.EVENT_BUS
+        var collisionBoxesEntity: Entity? = null
 
         @SubscribeEvent
         fun onWorldTick(event: TickEvent.WorldTickEvent) {
@@ -219,16 +219,82 @@ abstract class AbstractPortalEntity(
             }
         }
 
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.LOW)
         fun onGetCollisionBoxes(event: GetCollisionBoxesEvent) {
-            event.world.getEntities(AbstractPortalEntity::class.java, { it?.isDead == false }).forEach {
-                if (it.getRemotePortal() != null) return@forEach
-                if (it.localBoundingBox.intersects(event.aabb)) {
-                    it.localBlocks.forEach {
+            val entity = event.entity ?: collisionBoxesEntity ?: return
+            modifyAABBs(entity, event.aabb, event.aabb, event.collisionBoxesList) { world, aabb ->
+                world.getCollisionBoxes(null, aabb)
+            }
+        }
+
+        fun onIsOpenBlockSpace(entity: Entity, pos: BlockPos): Boolean {
+            val query = { world: World, aabb: AxisAlignedBB ->
+                val blockPos = aabb.min.toBlockPos()
+                val blockState = world.getBlockState(blockPos)
+                if (blockState.block.isNormalCube(blockState, world, blockPos)) {
+                    mutableListOf(AxisAlignedBB(blockPos))
+                } else {
+                    mutableListOf()
+                }
+            }
+            val aabbList = query(entity.world, AxisAlignedBB(pos))
+            modifyAABBs(entity, entity.entityBoundingBox, AxisAlignedBB(pos), aabbList, query)
+            return aabbList.isEmpty()
+        }
+
+        private fun modifyAABBs(
+                entity: Entity,
+                entityAABB: AxisAlignedBB,
+                queryAABB: AxisAlignedBB,
+                aabbList: MutableList<AxisAlignedBB>,
+                queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>
+        ) {
+            val world = entity.world
+            world.getEntities(AbstractPortalEntity::class.java) { it?.isDead == false }.forEach { portal ->
+                if (!portal.localBoundingBox.intersects(entityAABB)) return@forEach // not even close
+
+                val remotePortal = portal.getRemotePortal()
+                if (remotePortal == null) {
+                    // Remote portal hasn't yet been loaded, treat all portal blocks as solid to prevent passing
+                    portal.localBlocks.forEach {
                         val blockAABB = AxisAlignedBB(it)
-                        if (blockAABB.intersects(event.aabb)) {
-                            event.collisionBoxesList.add(blockAABB)
+                        if (blockAABB.intersects(entityAABB)) {
+                            aabbList.add(blockAABB)
                         }
+                    }
+                    return@forEach
+                }
+
+                // If this is a non-rectangular portal and the entity isn't inside it, we don't care
+                if (portal.localBlocks.none { AxisAlignedBB(it).intersects(entityAABB) }) return@forEach
+
+                // otherwise, we need to remove all collision boxes on the other, local side of the portal
+                // to prevent the entity from colliding with them
+                val portalPos = portal.localPosition.to3dMid()
+                val entityPos = portal.lastTickPos[entity] ?: (entity.pos + entity.eyeOffset)
+                val entitySide = portal.localFacing.axis.toFacing(entityPos - portalPos)
+                val hiddenSide = entitySide.opposite
+                val hiddenAABB = portal.localBoundingBox
+                        .offset(hiddenSide.directionVec.to3d())
+                        .expand(hiddenSide.directionVec.to3d() * Double.POSITIVE_INFINITY)
+                aabbList.removeIf { it.intersects(hiddenAABB) }
+
+                // and instead add collision boxes from the remote world
+                if (!hiddenAABB.intersects(queryAABB)) return@forEach // unless we're not even interested in those
+                val remoteAABB = with(portal) {
+                    // Reduce the AABB which we're looking for in the first place to the hidden section
+                    val aabb = hiddenAABB.intersect(queryAABB)
+                    // and transform it to remote space in order to lookup collision boxes over there
+                    AxisAlignedBB(aabb.min.fromLocal().toRemote(), aabb.max.fromLocal().toRemote())
+                }
+                // Unset the entity while calling into the remote world since it's not valid over there
+                collisionBoxesEntity = collisionBoxesEntity.also {
+                    collisionBoxesEntity = null
+                    val remoteCollisions = queryRemote(remotePortal.world, remoteAABB)
+
+                    // finally transform any collision boxes back to local space and add them to the result
+                    remoteCollisions.mapTo(aabbList) { aabb ->
+                        with(portal) { AxisAlignedBB(aabb.min.fromRemote().toLocal(), aabb.max.fromRemote().toLocal()) }
                     }
                 }
             }

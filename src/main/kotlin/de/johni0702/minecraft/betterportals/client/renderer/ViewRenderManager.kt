@@ -68,7 +68,7 @@ class ViewRenderManager {
         var view = BetterPortalsMod.viewManager.mainView
         (view as ClientViewImpl).captureState(mc) // capture main view camera
         val viewEntityPos = viewEntity.prevPos + (viewEntity.pos - viewEntity.prevPos) * mc.renderPartialTicks.toDouble()
-        var pos = viewEntityPos + Vec3d(0.0, viewEntity.eyeHeight.toDouble(), 0.0)
+        var pos = viewEntityPos + viewEntity.eyeOffset
         // TODO do third person camera
         var cameraPos = pos
         var cameraYaw = viewEntity.prevRotationYaw + (viewEntity.rotationYaw - viewEntity.prevRotationYaw) * mc.renderPartialTicks.toDouble()
@@ -302,7 +302,7 @@ class ViewRenderPlan(
             mc.entityRenderer.setupCameraTransform(mc.renderPartialTicks, 0)
             // setupCameraTransform configures world space with the origin at the camera's feet.
             // planePos however is currently absolute world space, so we need to convert it
-            val relPlanePos = planePos - cameraPos + Vec3d(0.0, mc.renderViewEntity!!.eyeHeight.toDouble(), 0.0)
+            val relPlanePos = planePos - cameraPos + mc.renderViewEntity!!.eyeOffset
             glClipPlane(GL11.GL_CLIP_PLANE5, cameraSide.directionVec.to3d().scale(-1.0), relPlanePos)
             GL11.glEnable(GL11.GL_CLIP_PLANE5) // FIXME don't hard-code clipping plane id
 

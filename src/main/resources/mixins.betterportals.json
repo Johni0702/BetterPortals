@@ -2,11 +2,13 @@
   "required": true,
   "package": "de.johni0702.minecraft.betterportals.mixin",
   "mixins": [
+    "MixinEntity",
     "MixinPlayerList",
     "MixinServerWorldEventHandler"
   ],
   "server": [],
   "client": [
+    "MixinEntityPlayerSP",
     "MixinEntityRenderer",
     "MixinGlStateManager",
     "MixinPlayerList",

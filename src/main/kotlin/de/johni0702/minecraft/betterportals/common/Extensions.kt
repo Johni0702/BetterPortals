@@ -71,6 +71,7 @@ fun Vec3d.toJavaX() = Vector3d(x, y, z)
 fun Vec3d.toJavaXPos() = Vector4d(x, y, z, 1.0)
 fun Vec3d.toJavaXVec() = Vector4d(x, y, z, 0.0)
 fun Vec3d.toPoint() = Point3d(x, y, z)
+fun Vec3d.toBlockPos() = BlockPos(this)
 fun Vector3d.toMC() = Vec3d(x, y, z)
 fun Vector4d.toMC() = Vec3d(x, y, z)
 fun Point3d.toMC() = Vec3d(x, y, z)
@@ -101,10 +102,13 @@ val Rotation.reverse get() = when(this) {
 operator fun Rotation.plus(other: Rotation): Rotation = add(other)
 operator fun Rotation.minus(other: Rotation): Rotation = add(other.reverse)
 fun AxisAlignedBB.grow(by: Vec3d): AxisAlignedBB = grow(by.x, by.y, by.z)
+fun AxisAlignedBB.expand(by: Vec3d): AxisAlignedBB = expand(by.x, by.y, by.z)
 val AxisAlignedBB.sizeX get() = maxX - minX
 val AxisAlignedBB.sizeY get() = maxY - minY
 val AxisAlignedBB.sizeZ get() = maxZ - minZ
 val AxisAlignedBB.maxSideLength get() = max(sizeX, max(sizeY, sizeZ))
+val AxisAlignedBB.min get() = Vec3d(minX, minY, minZ)
+val AxisAlignedBB.max get() = Vec3d(maxX, maxY, maxZ)
 fun Collection<BlockPos>.toAxisAlignedBB(): AxisAlignedBB =
         if (isEmpty()) AxisAlignedBB(BlockPos.ORIGIN, BlockPos.ORIGIN)
         else map(::AxisAlignedBB).reduce(AxisAlignedBB::union)
@@ -138,6 +142,7 @@ inline fun <reified E : Enum<E>> PacketBuffer.writeEnum(value: E): PacketBuffer 
 @Suppress("UNCHECKED_CAST") // Why forge? why?
 fun EntityTracker.getTracking(entity: Entity): Set<EntityPlayerMP> = getTrackingPlayers(entity) as Set<EntityPlayerMP>
 
+val Entity.eyeOffset get() = Vec3d(0.0, eyeHeight.toDouble(), 0.0)
 val Entity.syncPos get() = when {
     this is EntityOtherPlayerMP && otherPlayerMPPosRotationIncrements > 0 -> otherPlayerMPPos
     else -> pos
