@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.betterportals.client.renderer
 
+import de.johni0702.minecraft.betterportals.BPConfig
 import de.johni0702.minecraft.betterportals.BetterPortalsMod
 import de.johni0702.minecraft.betterportals.client.FramebufferD
 import de.johni0702.minecraft.betterportals.client.OcclusionQuery
@@ -149,8 +150,10 @@ class ViewRenderManager {
         GlStateManager.popMatrix()
         GlStateManager.popAttrib()
 
+        val maxRecursions = if (BPConfig.seeThroughPortals) 5 else 0
+
         // Build render plan
-        val plan = ViewRenderPlan(this, null, view, camera, cameraPos, cameraYaw.toFloat(), 5)
+        val plan = ViewRenderPlan(this, null, view, camera, cameraPos, cameraYaw.toFloat(), maxRecursions)
 
         // Update occlusion queries
         occlusionQueries.values.forEach { it.update() }

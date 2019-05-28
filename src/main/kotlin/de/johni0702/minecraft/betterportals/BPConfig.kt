@@ -33,4 +33,9 @@ object BPConfig {
     @Config.Name("Replace Vanilla Chunk Render Dispatcher")
     @Config.Comment("Whether to replace the vanilla ChunkRenderDispatcher(s) with a view-aware one. For debugging only.")
     var improvedChunkRenderDispatcher: Boolean = true
+
+    @JvmField
+    @Config.Name("See-through portals")
+    @Config.Comment("Whether the other side of portals will be visible. Disabling will improve performance.")
+    var seeThroughPortals: Boolean = true
 }
