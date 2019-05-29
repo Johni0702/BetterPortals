@@ -3,6 +3,7 @@ package de.johni0702.minecraft.betterportals.client.view
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.ListenableFutureTask
 import de.johni0702.minecraft.betterportals.BetterPortalsMod
+import de.johni0702.minecraft.betterportals.client.renderer.ViewRenderPlan
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.BufferBuilder
 import net.minecraft.client.renderer.RegionRenderCacheBuilder
@@ -56,6 +57,10 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
             Thread.sleep(1000)
         }
 
+        return pollNextChunkUpdate(true)!!
+    }
+
+    private fun pollNextChunkUpdate(blocking: Boolean): ChunkCompileTaskGenerator? {
         nextChunkUpdateLock.withLock {
             while (true) {
                 // Try to find the next best task in any of the views
@@ -80,13 +85,30 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
                         // Queue got emptied, try again with the other views
                         continue
                     }
-                } else {
+                } else if (blocking) {
                     // All queues are empty, wait for new tasks
                     nextChunkUpdateCondition.await()
+                } else {
+                    return null
                 }
             }
         }
         throw Error("this should be dead code, kotlin broke")
+    }
+
+    private fun pollNextChunkUpload(): PendingUpload? {
+        while (true) {
+            // Try to find the next best task in any of the views
+            val allHeads = states.values.mapNotNull { state ->
+                state.queuedUploads.peek()?.let { state to it }
+            }
+            val minHead = allHeads.minBy { it.second }
+            return if (minHead != null) {
+                minHead.first.queuedUploads.poll() ?: continue
+            } else {
+                null
+            }
+        }
     }
 
     override fun allocateRenderBuilder(): RegionRenderCacheBuilder {
@@ -117,7 +139,11 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
         }
     }
 
-    override fun runChunkUploads(finishTimeNano: Long): Boolean = activeState.runChunkUploads(finishTimeNano)
+    override fun runChunkUploads(finishTimeNano: Long): Boolean = if (ViewRenderPlan.MAIN == ViewRenderPlan.CURRENT) {
+        runChunkUploadsForAllViews(finishTimeNano)
+    } else {
+        activeState.queuedUploads.isNotEmpty()
+    }
     override fun clearChunkUpdates() { activeState.clearChunkUpdates() }
     override fun stopChunkUpdates() {
         activeState.stopChunkUpdates()
@@ -136,6 +162,32 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
         } else {
             stopChunkUpdates()
         }
+    }
+
+    private fun runChunkUploadsForAllViews(finishTimeNano: Long): Boolean {
+        var anyUploadDone = false
+        do {
+            var allDone = true
+
+            if (listWorkerThreads.isEmpty()) {
+                val task = pollNextChunkUpdate(false)
+                if (task != null) {
+                    try {
+                        renderWorker.processTask(task)
+                        allDone = false
+                    } catch (ignored: InterruptedException) {}
+                }
+            }
+
+            val upload = pollNextChunkUpload()
+            if (upload != null) {
+                upload.task.run()
+                allDone = false
+                anyUploadDone = true
+            }
+        } while (!allDone && finishTimeNano >= System.nanoTime())
+
+        return anyUploadDone
     }
 
     private inner class State(
@@ -215,7 +267,17 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
         fun stopChunkUpdates() {
             clearChunkUpdates()
             while (claimedRenderBuilders.get() > 0) {
-                runChunkUploads(Long.MAX_VALUE)
+                if (!runChunkUploads(Long.MAX_VALUE)) {
+                    // No more queued uploads in this state, that either means that:
+                    //  a) The worker is still busy producing the upload
+                    //  b) The worker is blocked because all renderBuilders are claimed (by upload task in other states)
+                    // In the first case we need to wait until it is done (or busy loop, should be relatively quick),
+                    // whereas in the second one we need to process upload tasks of other states. If you just do the
+                    // latter, we will proceed in both cases.
+                    // No need to loop in there though, once we've processed a single upload, a new render builder
+                    // should already be available.
+                    runChunkUploadsForAllViews(0)
+                }
             }
         }
     }

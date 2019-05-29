@@ -172,7 +172,9 @@ class ViewRenderManager {
 
         // execute
         mc.framebuffer.unbindFramebuffer()
+        ViewRenderPlan.MAIN = plan
         val framebuffer = plan.render(finishTimeNano)
+        ViewRenderPlan.MAIN = null
         mc.framebuffer.bindFramebuffer(true)
 
         mc.mcProfiler.startSection("renderFramebuffer")
@@ -236,6 +238,7 @@ class ViewRenderPlan(
         val maxRecursions: Int
 ) {
     companion object {
+        var MAIN: ViewRenderPlan? = null
         var CURRENT: ViewRenderPlan? = null
     }
     val world: World = view.camera.world
