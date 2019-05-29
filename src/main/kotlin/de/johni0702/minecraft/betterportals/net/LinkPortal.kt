@@ -14,14 +14,18 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 class LinkPortal(
         var entityId: Int = 0,
         var nbt: NBTTagCompound? = null,
-        var viewId: Int = 0
+        var viewId: Int? = 0
 ) : IMessage {
 
     override fun fromBytes(buf: ByteBuf) {
         with(PacketBuffer(buf)) {
             entityId = readVarInt()
             nbt = readCompoundTag()
-            viewId = readVarInt()
+            viewId = if (readBoolean()) {
+                readVarInt()
+            } else {
+                null
+            }
         }
     }
 
@@ -29,7 +33,13 @@ class LinkPortal(
         with(PacketBuffer(buf)) {
             writeVarInt(entityId)
             writeCompoundTag(nbt)
-            writeVarInt(viewId)
+            val viewId = viewId
+            if (viewId != null) {
+                writeBoolean(true)
+                writeVarInt(viewId)
+            } else {
+                writeBoolean(false)
+            }
             return
         }
     }
@@ -45,12 +55,17 @@ class LinkPortal(
                 }
                 message.nbt?.let { entity.readPortalFromNBT(it) }
 
-                val view = BetterPortalsMod.viewManager.views.find { it.id == message.viewId }
-                if (view == null) {
-                    LOGGER.warn("Received sync message with unknown view id ${message.viewId} for portal $entity")
-                    return@sync
+                val viewId = message.viewId
+                if (viewId != null) {
+                    val view = BetterPortalsMod.viewManager.views.find { it.id == message.viewId }
+                    if (view == null) {
+                        LOGGER.warn("Received sync message with unknown view id ${message.viewId} for portal $entity")
+                        return@sync
+                    }
+                    entity.view = view
+                } else {
+                    entity.view = null
                 }
-                entity.view = view
             }
             return null
         }

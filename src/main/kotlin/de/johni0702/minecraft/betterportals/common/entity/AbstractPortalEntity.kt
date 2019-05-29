@@ -373,12 +373,6 @@ abstract class AbstractPortalEntity(
             return false
         }
 
-        // Forcefully set the views which will be assigned to the camera and player after the switch to make sure
-        // they are the same as the one the client uses
-        val remotePortal = getRemotePortal()!!
-        with(this)         { views[view.camera] = views.remove(player)      }
-        with(remotePortal) { views[player]      = views.remove(view.camera) }
-
         // Update view position
         Utils.transformPosition(player, view.camera, this)
 
@@ -416,8 +410,15 @@ abstract class AbstractPortalEntity(
 
         val viewManager = player.viewManager
         val viewId = if (viewManager.player != player) {
-            // FIXME main view isn't always the right choice once portals are allowed to be recursive
-            (views[player] ?: viewManager.mainView.also { it.retain() }.also { views[player] = it }).id
+            val remotePortal = getRemotePortal()
+            (views[player] ?: if (remotePortal != null && remotePortal.trackingPlayers.contains(viewManager.player)) {
+                // The player's main view is right on the other side of this portal (in fact that's why it's loaded)
+                viewManager.mainView.also { it.retain() }.also { views[player] = it }
+            } else {
+                // Main view could be far away from the remote portal or not even in the right dimension
+                // TODO transitive portals
+                return
+            }).id
         } else {
             val remoteWorld = player.mcServer.getWorld(remoteDimension ?: return)
             // Choose already existing view
@@ -449,7 +450,15 @@ abstract class AbstractPortalEntity(
 
         trackingPlayers.remove(player)
 
-        views.remove(player)?.release()
+        views.remove(player)?.let {
+            LinkPortal(
+                    entityId,
+                    writePortalToNBT(),
+                    null
+            ).sendTo(player)
+
+            it.release()
+        }
     }
 
     override fun link(remoteDimension: Int, remotePosition: BlockPos, remoteRotation: Rotation) {

@@ -4,6 +4,7 @@ import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.common.AReferenceCounted
 import de.johni0702.minecraft.betterportals.common.Utils.swapPosRot
 import de.johni0702.minecraft.betterportals.net.ChangeServerMainView
+import de.johni0702.minecraft.betterportals.net.Transaction
 import de.johni0702.minecraft.betterportals.net.sendTo
 import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.advancements.CriteriaTriggers
@@ -44,12 +45,14 @@ internal class ServerViewImpl(
                 camera.posX, camera.posY, camera.posZ)
 
         retain()
-        mainView.release()
 
         val oldDim = player.dimension
         val oldWorld = player.serverWorld
         val newDim = camera.dimension
         val newWorld = camera.serverWorld
+
+        manager.flushPackets()
+        Transaction.start(player)
 
         // TODO set enteredNetherPosition (see EntityPlayerMP#changeDimension)
 
@@ -83,8 +86,9 @@ internal class ServerViewImpl(
 
             return Pair(knownChunks, knownEntities)
         }
-        val oldRegistrations = unregister(player)
+        // Important: Unregister the camera before the player because the camera depends on the player
         val newRegistrations = unregister(camera)
+        val oldRegistrations = unregister(player)
 
         oldWorld.removeEntityDangerously(player)
         newWorld.removeEntityDangerously(camera)
@@ -135,6 +139,7 @@ internal class ServerViewImpl(
                 it.trackedEntity.addTrackingPlayer(player)
             }
         }
+        // Important: Add the player before the camera because the camera depends on the player
         register(player, newRegistrations)
         register(camera, oldRegistrations)
 
@@ -147,7 +152,11 @@ internal class ServerViewImpl(
             CriteriaTriggers.NETHER_TRAVEL.trigger(player, Vec3d(player.posX, player.posY, player.posZ))
         }
 
+        Transaction.end(player)
+
         manager.flushPackets() // Just for good measure, who knows what other mods will do during the event
         FMLCommonHandler.instance().firePlayerChangedDimensionEvent(player, oldDim, newDim)
+
+        mainView.release()
     }
 }
