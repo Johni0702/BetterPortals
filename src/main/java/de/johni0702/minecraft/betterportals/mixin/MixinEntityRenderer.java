@@ -3,10 +3,8 @@ package de.johni0702.minecraft.betterportals.mixin;
 import de.johni0702.minecraft.betterportals.client.PostSetupFogEvent;
 import de.johni0702.minecraft.betterportals.client.renderer.AbstractRenderPortal;
 import de.johni0702.minecraft.betterportals.client.renderer.ViewRenderManager;
-import de.johni0702.minecraft.betterportals.client.view.ViewEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.EntityRenderer;
-import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraftforge.common.MinecraftForge;
 import org.spongepowered.asm.mixin.Final;
@@ -25,14 +23,6 @@ public abstract class MixinEntityRenderer {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/EntityRenderer;renderWorld(FJ)V"))
     private void renderWorld(EntityRenderer entityRenderer, float partialTicks, long finishTimeNano) {
         ViewRenderManager.Companion.getINSTANCE().renderWorld(partialTicks, finishTimeNano);
-    }
-
-    @Redirect(method = "renderWorldPass",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/GlStateManager;clear(I)V"))
-    private void clearIfNotView(int flags) {
-        if (!(mc.player instanceof ViewEntity)) {
-            GlStateManager.clear(flags);
-        }
     }
 
     @Redirect(method = "renderWorldPass",

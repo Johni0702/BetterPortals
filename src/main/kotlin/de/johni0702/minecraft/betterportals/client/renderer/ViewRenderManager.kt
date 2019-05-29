@@ -2,10 +2,7 @@ package de.johni0702.minecraft.betterportals.client.renderer
 
 import de.johni0702.minecraft.betterportals.BPConfig
 import de.johni0702.minecraft.betterportals.BetterPortalsMod
-import de.johni0702.minecraft.betterportals.client.FramebufferD
-import de.johni0702.minecraft.betterportals.client.OcclusionQuery
-import de.johni0702.minecraft.betterportals.client.PostSetupFogEvent
-import de.johni0702.minecraft.betterportals.client.glClipPlane
+import de.johni0702.minecraft.betterportals.client.*
 import de.johni0702.minecraft.betterportals.client.view.ClientView
 import de.johni0702.minecraft.betterportals.client.view.ClientViewImpl
 import de.johni0702.minecraft.betterportals.common.*
@@ -356,6 +353,7 @@ class ViewRenderPlan(
      */
     fun render(partialTicks: Float, finishTimeNano: Long): FramebufferD = try {
         renderDeps(partialTicks)
+        MinecraftForge.EVENT_BUS.post(PreRenderView(this, partialTicks))
         renderSelf(partialTicks, finishTimeNano)
     } finally {
         framebuffers.values.forEach(manager::releaseFramebuffer)

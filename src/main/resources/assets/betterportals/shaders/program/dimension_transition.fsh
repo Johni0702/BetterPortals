@@ -2,6 +2,8 @@
 
 varying vec2 vpos;
 
+uniform sampler2D sampler;
+uniform vec2 screenSize;
 uniform float progress;
 
 float snoise(vec3 v);
@@ -14,7 +16,8 @@ void main() {
     if (noise <= progress) {
         discard;
     }
-    gl_FragColor = vec4(noise, 0.0, 0.0, 1.0);
+    vec2 uv = gl_FragCoord.xy / screenSize;
+    gl_FragColor = vec4(texture2D(sampler, uv).rgb, 1.0);
 }
 
 //

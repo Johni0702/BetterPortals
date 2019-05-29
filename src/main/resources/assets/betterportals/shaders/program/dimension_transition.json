@@ -2,7 +2,11 @@
     "vertex": "betterportals:dimension_transition",
     "fragment": "betterportals:dimension_transition",
     "attributes": [ "pos" ],
+    "samplers": [
+        { "name": "sampler" }
+    ],
     "uniforms": [
+        { "name": "screenSize", "type": "float", "count": 2, "values": [ 0.0, 0.0 ] },
         { "name": "progress", "type": "float", "count": 1, "values": [ 0.0 ] }
     ]
 }
