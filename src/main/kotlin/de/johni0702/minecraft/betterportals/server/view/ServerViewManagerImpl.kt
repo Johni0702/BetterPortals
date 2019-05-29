@@ -164,5 +164,13 @@ internal class ServerViewManagerImpl(
                 destroyView(it)
             }
         }
+
+        @SubscribeEvent
+        fun onPlayerRespawn(event: PlayerEvent.PlayerRespawnEvent) {
+            val player = event.player
+            if (player is EntityPlayerMP && player.connection === connection) {
+                mainView.camera = player
+            }
+        }
     }
 }
