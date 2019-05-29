@@ -31,7 +31,9 @@ compileJava {
 }
 
 minecraft {
-    coreMod = "de.johni0702.minecraft.betterportals.MixinLoader"
+    // Note: For development, either uncomment the following line or manually add -Dfml.coreMods.load=de.johni0702.minecraft.betterportals.MixinLoader
+    //       to the jvm arguments.
+    // coreMod = "de.johni0702.minecraft.betterportals.MixinLoader"
     version = "1.12.2-14.23.3.2669"
     runDir = "run"
     mappings = "snapshot_20171003"
@@ -96,10 +98,13 @@ processResources {
 jar {
     from ({files(configurations.compile.findAll {it.name.startsWith 'mixin-'} + configurations.shade)
             .collect {it.isDirectory() ? it : zipTree(it)}})
+    exclude 'de/johni0702/minecraft/betterportals/MixinLoader.class'
     manifest {
         attributes 'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
                 'TweakOrder': '0',
+                'ForceLoadAsMod': 'true',
                 'FMLCorePluginContainsFMLMod': 'true',
+                'MixinConfigs': 'mixins.betterportals.json',
                 'FMLAT': 'betterportals_at.cfg'
     }
 }
