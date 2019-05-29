@@ -8,6 +8,7 @@
   ],
   "server": [],
   "client": [
+    "MixinActiveRenderInfo",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",
     "MixinGlStateManager",
