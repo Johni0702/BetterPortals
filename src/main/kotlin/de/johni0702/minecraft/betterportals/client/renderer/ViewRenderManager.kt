@@ -54,7 +54,7 @@ class ViewRenderManager {
     /**
      * Determine the camera's current world, prepare all portals and render the world.
      */
-    fun renderWorld(finishTimeNano: Long) {
+    fun renderWorld(partialTicks: Float, finishTimeNano: Long) {
         val mc = Minecraft.getMinecraft()
 
         if (mc.displayWidth != frameWidth || mc.displayHeight != frameHeight) {
@@ -69,10 +69,10 @@ class ViewRenderManager {
         var view = BetterPortalsMod.viewManager.mainView
         (view as ClientViewImpl).captureState(mc) // capture main view camera
         val entityPos = viewEntity.syncPos + viewEntity.eyeOffset
-        val interpEntityPos = viewEntity.getPositionEyes(mc.renderPartialTicks)
+        val interpEntityPos = viewEntity.getPositionEyes(partialTicks)
         // TODO do third person camera
         var cameraPos = interpEntityPos
-        var cameraYaw = viewEntity.prevRotationYaw + (viewEntity.rotationYaw - viewEntity.prevRotationYaw) * mc.renderPartialTicks.toDouble()
+        var cameraYaw = viewEntity.prevRotationYaw + (viewEntity.rotationYaw - viewEntity.prevRotationYaw) * partialTicks.toDouble()
 
         var parentPortal: AbstractPortalEntity? = null
 
@@ -141,9 +141,9 @@ class ViewRenderManager {
         eventHandler.capture = true
         eventHandler.mainCameraYaw = cameraYaw.toFloat()
         val camera = view.withView {
-            mc.entityRenderer.setupCameraTransform(mc.renderPartialTicks, 0)
+            mc.entityRenderer.setupCameraTransform(partialTicks, 0)
             val entity = mc.renderViewEntity!!
-            val entityPos = entity.lastTickPos + (entity.pos - entity.lastTickPos) * mc.renderPartialTicks.toDouble()
+            val entityPos = entity.lastTickPos + (entity.pos - entity.lastTickPos) * partialTicks.toDouble()
             Frustum().apply { setPosition(entityPos.x, entityPos.y, entityPos.z) }
         }
         eventHandler.capture = false
@@ -173,7 +173,7 @@ class ViewRenderManager {
         // execute
         mc.framebuffer.unbindFramebuffer()
         ViewRenderPlan.MAIN = plan
-        val framebuffer = plan.render(finishTimeNano)
+        val framebuffer = plan.render(partialTicks, finishTimeNano)
         ViewRenderPlan.MAIN = null
         mc.framebuffer.bindFramebuffer(true)
 
@@ -273,9 +273,9 @@ class ViewRenderPlan(
     /**
      * Render all dependencies of this view (including transitive ones).
      */
-    private fun renderDeps() = dependencies.map { (portal, plan) ->
+    private fun renderDeps(partialTicks: Float) = dependencies.map { (portal, plan) ->
         portal.onUpdate() // Update position (and other state) of the view entity
-        val framebuffer = plan.render(0)
+        val framebuffer = plan.render(partialTicks, 0)
         framebuffers[portal] = framebuffer
         framebuffer
     }
@@ -285,9 +285,9 @@ class ViewRenderPlan(
      * Requires all dependencies to have previously been rendered (e.g. by calling [renderDeps]), otherwise their
      * portals will be empty.
      */
-    private fun renderSelf(finishTimeNano: Long): FramebufferD {
+    private fun renderSelf(partialTicks: Float, finishTimeNano: Long): FramebufferD {
         if (view.manager.activeView != view) {
-            return view.withView { renderSelf(finishTimeNano) }
+            return view.withView { renderSelf(partialTicks, finishTimeNano) }
         }
         val mc = Minecraft.getMinecraft()
         val framebuffer = manager.allocFramebuffer()
@@ -301,7 +301,7 @@ class ViewRenderPlan(
         GlStateManager.disableFog()
         GlStateManager.disableLighting()
         mc.entityRenderer.disableLightmap()
-        mc.entityRenderer.updateFogColor(mc.renderPartialTicks)
+        mc.entityRenderer.updateFogColor(partialTicks)
         GL11.glClearDepth(1.0)
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT or GL11.GL_DEPTH_BUFFER_BIT)
 
@@ -319,7 +319,7 @@ class ViewRenderPlan(
             val planePos = parentPortal.remotePosition.to3dMid() + cameraSide.directionVec.to3d().scale(0.5)
             // glClipPlane uses the current ModelView matrix to transform the given coordinates to view space
             // so we need to have the camera setup before calling it
-            mc.entityRenderer.setupCameraTransform(mc.renderPartialTicks, 0)
+            mc.entityRenderer.setupCameraTransform(partialTicks, 0)
             // setupCameraTransform configures world space with the origin at the camera's feet.
             // planePos however is currently absolute world space, so we need to convert it
             val relPlanePos = planePos - cameraPos + mc.renderViewEntity!!.eyeOffset
@@ -340,7 +340,7 @@ class ViewRenderPlan(
         // Actually render the world
         val prevRenderPlan = ViewRenderPlan.CURRENT
         ViewRenderPlan.CURRENT = this
-        mc.entityRenderer.renderWorld(mc.renderPartialTicks, finishTimeNano)
+        mc.entityRenderer.renderWorld(partialTicks, finishTimeNano)
         ViewRenderPlan.CURRENT = prevRenderPlan
 
         manager.fogOffset = 0f
@@ -354,9 +354,9 @@ class ViewRenderPlan(
     /**
      * Render this view and all of its dependencies.
      */
-    fun render(finishTimeNano: Long): FramebufferD = try {
-        renderDeps()
-        renderSelf(finishTimeNano)
+    fun render(partialTicks: Float, finishTimeNano: Long): FramebufferD = try {
+        renderDeps(partialTicks)
+        renderSelf(partialTicks, finishTimeNano)
     } finally {
         framebuffers.values.forEach(manager::releaseFramebuffer)
         framebuffers.clear()

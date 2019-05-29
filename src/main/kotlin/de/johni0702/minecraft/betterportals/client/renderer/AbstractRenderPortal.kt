@@ -123,7 +123,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             val x: Double,
             val y: Double,
             val z: Double,
-            val partialTicks: Float
+            partialTicks: Float
     ) {
         companion object {
             // FIXME get rid of Instance and put this in AbstractRenderPortal
@@ -139,7 +139,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
         /**
          * Side of the portal on which the player's eyes are.
          */
-        val viewFacing = portalFacing.axis.toFacing(player.getPositionEyes(mc.renderPartialTicks) - entity.pos)
+        val viewFacing = portalFacing.axis.toFacing(player.getPositionEyes(partialTicks) - entity.pos)
 
         open fun render() {
             GlStateManager.disableAlpha() // ._. someone forgot to disable this, thanks (happens if chat GUI is opened)

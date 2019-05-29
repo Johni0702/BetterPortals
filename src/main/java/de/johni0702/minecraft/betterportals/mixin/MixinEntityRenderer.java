@@ -24,7 +24,7 @@ public abstract class MixinEntityRenderer {
     @Redirect(method = "updateCameraAndRender",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/EntityRenderer;renderWorld(FJ)V"))
     private void renderWorld(EntityRenderer entityRenderer, float partialTicks, long finishTimeNano) {
-        ViewRenderManager.Companion.getINSTANCE().renderWorld(finishTimeNano);
+        ViewRenderManager.Companion.getINSTANCE().renderWorld(partialTicks, finishTimeNano);
     }
 
     @Redirect(method = "renderWorldPass",

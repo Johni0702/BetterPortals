@@ -41,15 +41,14 @@ class TransferToDimensionRenderer(
         UtilsClient.transformPosition(fromView.camera, toView.camera, Mat4d.inverse(cameraPosOffset), -cameraYawOffset)
     }
 
-    private val progress
-        get() = ((ticksPassed + mc.renderPartialTicks) * 50 / duration.toMillis()).coerceIn(0f, 1f)
+    private fun getProgress(partialTicks: Float) = ((ticksPassed + partialTicks) * 50 / duration.toMillis()).coerceIn(0f, 1f)
 
     init {
         eventHandler.registered = true
     }
 
-    private fun computeStencilBuffer() {
-        shader.getShaderUniformOrDefault("progress").set(progress)
+    private fun computeStencilBuffer(partialTicks: Float) {
+        shader.getShaderUniformOrDefault("progress").set(getProgress(partialTicks))
         shader.useShader()
 
         val tessellator = Tessellator.getInstance()
@@ -81,7 +80,7 @@ class TransferToDimensionRenderer(
         GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT)
         GL11.glStencilFunc(GL11.GL_ALWAYS, 0xff, 0xff)
         GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE)
-        computeStencilBuffer()
+        computeStencilBuffer(partialTicks)
 
         GL11.glStencilFunc(GL11.GL_EQUAL, 0xff, 0xff)
         GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP)
@@ -96,7 +95,7 @@ class TransferToDimensionRenderer(
             GlStateManager.disableFog()
             GlStateManager.disableLighting()
             mc.entityRenderer.disableLightmap()
-            mc.entityRenderer.updateFogColor(mc.renderPartialTicks)
+            mc.entityRenderer.updateFogColor(partialTicks)
             with(GlStateManager.clearState.color) { GlStateManager.color(red, green, blue) }
 
             glMask(true, true, true, false, true, 0x00)
@@ -145,7 +144,7 @@ class TransferToDimensionRenderer(
                 renderTransition(event.partialTicks)
             }
 
-            if (progress >= 1) {
+            if (getProgress(event.partialTicks) >= 1) {
                 registered = false
                 shader.deleteShader()
                 whenDone()
