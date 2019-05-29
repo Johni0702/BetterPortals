@@ -99,5 +99,5 @@ abstract class OneWayPortalEntity(
         return success
     }
 
-    override fun canBeSeen(camera: ICamera): Boolean = (isTailEnd || isTravelingInProgress) && super.canBeSeen(camera)
+    override fun canBeSeen(camera: ICamera): Boolean = (!isTailEnd || isTravelingInProgress) && super.canBeSeen(camera)
 }
