@@ -81,6 +81,11 @@ internal class ServerViewManagerImpl(
 
     internal fun destroyView(view: ServerViewImpl) {
         if (!connection.netManager.isChannelOpen) return
+
+        // Flush packets before actually removing the view,
+        // otherwise entities referencing the view (e.g. portals) might not yet have been removed on the client
+        flushPackets()
+
         if (!views.remove(view)) {
             throw RuntimeException("unknown view $view")
         }
