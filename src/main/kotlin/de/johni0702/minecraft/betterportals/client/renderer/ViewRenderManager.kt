@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
+import net.minecraftforge.client.event.DrawBlockHighlightEvent
 import net.minecraftforge.client.event.EntityViewRenderEvent
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
@@ -220,6 +221,15 @@ class ViewRenderManager {
             if (fogOffset != 0f) {
                 GlStateManager.setFogStart(GlStateManager.fogState.start + fogOffset)
                 GlStateManager.setFogEnd(GlStateManager.fogState.end + fogOffset)
+            }
+        }
+
+        @SubscribeEvent(priority = EventPriority.LOW)
+        fun onRenderBlockHighlights(event: DrawBlockHighlightEvent) {
+            val plan = ViewRenderPlan.CURRENT ?: return
+            // Render block outlines only in main view (where the player entity is located)
+            if (!plan.view.isMainView) {
+                event.isCanceled = true
             }
         }
     }
