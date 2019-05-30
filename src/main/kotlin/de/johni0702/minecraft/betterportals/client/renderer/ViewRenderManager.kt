@@ -134,7 +134,6 @@ class ViewRenderManager {
         mc.mcProfiler.endSection()
 
         // Capture camera properties (rotation, fov)
-        GlStateManager.pushAttrib()
         GlStateManager.pushMatrix()
         eventHandler.capture = true
         eventHandler.mainCameraYaw = cameraYaw.toFloat()
@@ -146,7 +145,6 @@ class ViewRenderManager {
         }
         eventHandler.capture = false
         GlStateManager.popMatrix()
-        GlStateManager.popAttrib()
 
         val maxRecursions = if (BPConfig.seeThroughPortals) 5 else 0
 
@@ -301,7 +299,6 @@ class ViewRenderPlan(
 
         world.profiler.startSection("renderView" + view.id)
         framebuffer.bindFramebuffer(false)
-        GlStateManager.pushAttrib()
         GlStateManager.pushMatrix()
 
         // Clear framebuffer
@@ -352,7 +349,7 @@ class ViewRenderPlan(
 
         manager.fogOffset = 0f
         GlStateManager.popMatrix()
-        GlStateManager.popAttrib()
+        GL11.glDisable(GL11.GL_CLIP_PLANE5) // FIXME don't hard-code clipping plane id
         framebuffer.unbindFramebuffer()
         world.profiler.endSection()
         return framebuffer
