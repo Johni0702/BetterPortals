@@ -11,14 +11,8 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
-apply plugin: 'net.minecraftforge.gradle.forge'
-
-// Source sets need to be created after FG but before kotlin because FG does broken stuff in createSourceCopyTasks
-sourceSets {
-    create 'annotations'
-}
-
 apply plugin: 'kotlin'
+apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'org.spongepowered.mixin'
 
 version = determineVersion()
@@ -55,17 +49,9 @@ repositories {
     }
 }
 
-sourceSets {
-    annotations {
-        kotlin.srcDirs = [file('src/annotations')]
-        resources.srcDirs = [file('src/annotations')]
-    }
-}
-
 configurations {
     shade
     compile.extendsFrom shade
-    compile.extendsFrom annotations
 }
 
 dependencies {
