@@ -1,10 +1,15 @@
 package de.johni0702.minecraft.betterportals;
 
 import net.minecraftforge.common.config.Config;
+import net.minecraftforge.common.config.ConfigManager;
+import net.minecraftforge.fml.client.event.ConfigChangedEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 import static de.johni0702.minecraft.betterportals.BetterPortalsModKt.MOD_ID;
 
 @Config(modid = MOD_ID)
+@Mod.EventBusSubscriber(modid = MOD_ID)
 public class BPConfig {
     @Config.RequiresMcRestart
     @Config.Name("Enable Nether Portals")
@@ -33,4 +38,11 @@ public class BPConfig {
     @Config.Name("See-through portals")
     @Config.Comment("Whether the other side of portals will be visible. Disabling will improve performance.")
     public static boolean seeThroughPortals = true;
+
+    @SubscribeEvent
+    public static void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
+        if (MOD_ID.equals(event.getModID())) {
+            ConfigManager.sync(MOD_ID, Config.Type.INSTANCE);
+        }
+    }
 }
