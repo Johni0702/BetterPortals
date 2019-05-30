@@ -122,6 +122,8 @@ val AxisAlignedBB.sizeZ get() = maxZ - minZ
 val AxisAlignedBB.maxSideLength get() = max(sizeX, max(sizeY, sizeZ))
 val AxisAlignedBB.min get() = Vec3d(minX, minY, minZ)
 val AxisAlignedBB.max get() = Vec3d(maxX, maxY, maxZ)
+// Note: the obvious choice of constructor is @SideOnly(Client)
+fun Vec3d.toAxisAlignedBB(other: Vec3d) = AxisAlignedBB(x, y, z, other.x, other.y, other.z)
 fun Collection<BlockPos>.toAxisAlignedBB(): AxisAlignedBB =
         if (isEmpty()) AxisAlignedBB(BlockPos.ORIGIN, BlockPos.ORIGIN)
         else map(::AxisAlignedBB).reduce(AxisAlignedBB::union)

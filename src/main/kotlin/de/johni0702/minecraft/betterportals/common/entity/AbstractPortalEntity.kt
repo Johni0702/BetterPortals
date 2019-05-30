@@ -290,7 +290,7 @@ abstract class AbstractPortalEntity(
                     // Reduce the AABB which we're looking for in the first place to the hidden section
                     val aabb = hiddenAABB.intersect(queryAABB)
                     // and transform it to remote space in order to lookup collision boxes over there
-                    AxisAlignedBB(aabb.min.fromLocal().toRemote(), aabb.max.fromLocal().toRemote())
+                    aabb.min.fromLocal().toRemote().toAxisAlignedBB(aabb.max.fromLocal().toRemote())
                 }
                 // Unset the entity while calling into the remote world since it's not valid over there
                 collisionBoxesEntity = collisionBoxesEntity.also {
@@ -299,7 +299,7 @@ abstract class AbstractPortalEntity(
 
                     // finally transform any collision boxes back to local space and add them to the result
                     remoteCollisions.mapTo(aabbList) { aabb ->
-                        with(portal) { AxisAlignedBB(aabb.min.fromRemote().toLocal(), aabb.max.fromRemote().toLocal()) }
+                        with(portal) { aabb.min.fromRemote().toLocal().toAxisAlignedBB(aabb.max.fromRemote().toLocal()) }
                     }
                 }
             }
@@ -337,7 +337,7 @@ abstract class AbstractPortalEntity(
                 if (queryAABB.intersects(hiddenHalf)) {
                     val aabb = queryAABB.intersect(hiddenHalf)
                     val remoteAABB = with(portal) {
-                        AxisAlignedBB(aabb.min.fromLocal().toRemote(), aabb.max.fromLocal().toRemote())
+                        aabb.min.fromLocal().toRemote().toAxisAlignedBB(aabb.max.fromLocal().toRemote())
                     }
                     if (remotePortal.world.isMaterialInBB(remoteAABB, material)) {
                         return true
