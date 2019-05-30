@@ -11,10 +11,7 @@ import de.johni0702.minecraft.betterportals.server.NettyExceptionHandler
 import io.netty.buffer.ByteBuf
 import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.entity.player.EntityPlayerMP
-import net.minecraft.network.EnumPacketDirection
-import net.minecraft.network.NetHandlerPlayServer
-import net.minecraft.network.NettyPacketEncoder
-import net.minecraft.network.NettyVarint21FrameEncoder
+import net.minecraft.network.*
 import net.minecraft.network.play.server.SPacketDestroyEntities
 import net.minecraft.server.MinecraftServer
 import net.minecraft.util.math.Vec3d
@@ -59,9 +56,15 @@ internal class ServerViewManagerImpl(
                 .addLast("exception_handler", NettyExceptionHandler(connection))
                 .addLast("packet_handler", camera.connection.networkManager)
                 .fireChannelActive()
+        camera.connection.networkManager.setConnectionState(EnumConnectionState.PLAY)
 
         val networkDispatcher = NetworkDispatcher.allocAndSet(camera.connection.networkManager, server.playerList)
         channel.pipeline().addBefore("packet_handler", "fml:packet_handler", networkDispatcher)
+
+        val stateField = NetworkDispatcher::class.java.getDeclaredField("state")
+        val connectedState = stateField.type.asSubclass(Enum::class.java).enumConstants.last()
+        stateField.isAccessible = true
+        stateField.set(networkDispatcher, connectedState)
 
         val view = ServerViewImpl(this, id, camera, channel)
         views.add(view)
