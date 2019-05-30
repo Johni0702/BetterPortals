@@ -8,6 +8,7 @@ import net.minecraft.entity.player.EntityPlayer
 interface ViewManager {
     /**
      * The player whose views are managed.
+     * Note that the actual player entity may change (e.g. on respawn).
      */
     val player: EntityPlayer
 

@@ -3,6 +3,7 @@
   "package": "de.johni0702.minecraft.betterportals.mixin",
   "mixins": [
     "MixinEntity",
+    "MixinNetHandlerPlayerServer",
     "MixinPlayerList",
     "MixinServerWorldEventHandler"
   ],

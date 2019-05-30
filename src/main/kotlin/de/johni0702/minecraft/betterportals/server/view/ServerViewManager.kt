@@ -2,17 +2,14 @@ package de.johni0702.minecraft.betterportals.server.view
 
 import de.johni0702.minecraft.betterportals.common.view.ViewManager
 import net.minecraft.entity.player.EntityPlayerMP
-import net.minecraft.util.EnumFacing
+import net.minecraft.network.NetHandlerPlayServer
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.WorldServer
-import net.minecraftforge.common.capabilities.Capability
-import net.minecraftforge.common.capabilities.CapabilityInject
-import net.minecraftforge.common.capabilities.ICapabilityProvider
 
 /**
  * Manages views for a player.
  *
- * Obtain an instance for a `player` by calling `player.getCapability(ServerViewManager.CAP, null)` or `player.viewManager`.
+ * Obtain an instance for a `player` via `player.connection.viewManager` or `player.viewManager`.
  */
 interface ServerViewManager : ViewManager {
     override val player: EntityPlayerMP
@@ -39,26 +36,10 @@ interface ServerViewManager : ViewManager {
      * be called before sending the packet on the main connection.
      */
     fun flushPackets()
-
-    companion object {
-        val CAP get() = cap
-        @CapabilityInject(ServerViewManager::class)
-        private lateinit var cap: Capability<ServerViewManager>
-    }
-
-    class Provider(
-            lazyManager: () -> ServerViewManager
-    ) : ICapabilityProvider {
-        private val manager by lazy { lazyManager() }
-
-        override fun hasCapability(capability: Capability<*>, facing: EnumFacing?): Boolean =
-                capability == ServerViewManager.CAP
-
-        override fun <T : Any> getCapability(capability: Capability<T>, facing: EnumFacing?): T? = when(capability) {
-            CAP -> CAP.cast(manager)
-            else -> null
-        }
-    }
 }
 
-val EntityPlayerMP.viewManager get() = getCapability(ServerViewManager.CAP, null)!!
+internal interface IViewManagerHolder {
+    val viewManager: ServerViewManager
+}
+val NetHandlerPlayServer.viewManager get() = (this as IViewManagerHolder).viewManager
+val EntityPlayerMP.viewManager get() = connection.viewManager

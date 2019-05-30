@@ -21,7 +21,10 @@ internal class ViewEntity(world: WorldServer, profile: GameProfile, val parentCo
     : EntityPlayerMP(world.server, world, profile, PlayerInteractionManager(world)) {
     init {
         interactionManager.gameType = GameType.SPECTATOR
-        connection = NetHandlerPlayServer(world.server, NetworkManager(EnumPacketDirection.SERVERBOUND), this)
+        connection = object : NetHandlerPlayServer(world.server, NetworkManager(EnumPacketDirection.SERVERBOUND), this), IViewManagerHolder {
+            override val viewManager: ServerViewManager
+                get() = parentConnection.viewManager
+        }
     }
 
     override fun isSpectatedByPlayer(player: EntityPlayerMP): Boolean = false

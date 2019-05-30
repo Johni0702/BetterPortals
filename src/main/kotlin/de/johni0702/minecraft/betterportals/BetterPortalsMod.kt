@@ -11,15 +11,12 @@ import de.johni0702.minecraft.betterportals.client.view.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterEndPortal
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterNetherPortal
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterTFPortal
-import de.johni0702.minecraft.betterportals.common.capability.*
 import de.johni0702.minecraft.betterportals.common.entity.EndEntryPortalEntity
 import de.johni0702.minecraft.betterportals.common.entity.EndExitPortalEntity
 import de.johni0702.minecraft.betterportals.common.entity.NetherPortalEntity
 import de.johni0702.minecraft.betterportals.common.entity.TFPortalEntity
 import de.johni0702.minecraft.betterportals.common.logFailure
 import de.johni0702.minecraft.betterportals.net.Net
-import de.johni0702.minecraft.betterportals.server.view.AttachServerViewManagerCapability
-import de.johni0702.minecraft.betterportals.server.view.ServerViewManager
 import net.minecraft.block.Block
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
@@ -29,7 +26,6 @@ import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 import net.minecraftforge.common.ForgeChunkManager
 import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.common.capabilities.CapabilityManager
 import net.minecraftforge.event.RegistryEvent
 import net.minecraftforge.fml.client.registry.ClientRegistry
 import net.minecraftforge.fml.client.registry.RenderingRegistry
@@ -92,9 +88,6 @@ class BetterPortalsMod {
 
         override fun init(mod: BetterPortalsMod) {
             Net.INSTANCE // initialize via <init>
-
-            CapabilityManager.INSTANCE.register(ServerViewManager::class.java, NoStorage(), { throw UnsupportedOperationException() })
-            MinecraftForge.EVENT_BUS.register(AttachServerViewManagerCapability())
 
             // Tickets are only allocated temporarily during remote portal frame search and otherwise aren't needed
             ForgeChunkManager.setForcedChunkLoadingCallback(mod, { tickets, _ ->
