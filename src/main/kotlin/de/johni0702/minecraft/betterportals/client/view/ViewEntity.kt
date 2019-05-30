@@ -16,6 +16,10 @@ internal class ViewEntity constructor(world: WorldClient, connection: NetHandler
         // Negative ids cannot be used by the server
         // Fixed id should be fine as there'll only ever be one view entity per world (on the client at least)
         entityId = -4850
+
+        // Entity doesn't set this by itself for some reason
+        // (it's usually set in the JoinGame packet handler but views are created by their own packet)
+        dimension = world.provider.dimension
     }
 
     override fun setPositionAndRotation(x: Double, y: Double, z: Double, yaw: Float, pitch: Float) {
