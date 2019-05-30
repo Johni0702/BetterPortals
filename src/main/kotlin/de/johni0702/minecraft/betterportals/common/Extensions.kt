@@ -215,10 +215,12 @@ fun BlockStateContainer.copy(): BlockStateContainer {
     val copy = BlockStateContainer()
     copy.bits = bits
     copy.palette = when {
-        bits <= 4 -> BlockStatePaletteLinear(bits, this).apply {
-            System.arraycopy((palette as BlockStatePaletteLinear).states, 0, states, 0, states.size)
+        bits <= 4 -> BlockStatePaletteLinear(bits, copy).apply {
+            val oldPalette = palette as BlockStatePaletteLinear
+            System.arraycopy(oldPalette.states, 0, states, 0, states.size)
+            arraySize = oldPalette.arraySize
         }
-        bits <= 8 -> BlockStatePaletteHashMap(bits, this).apply {
+        bits <= 8 -> BlockStatePaletteHashMap(bits, copy).apply {
             val org = (palette as BlockStatePaletteHashMap).statePaletteMap
             org.forEach { statePaletteMap.put(it, org.getId(it)) }
         }
