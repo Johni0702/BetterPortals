@@ -12,6 +12,7 @@
   "logoFile": "",
   "screenshots": [],
   "requiredMods": [ "forgelin" ]
+  "dependencies": [ "forgelin" ]
   "useDependencyInformation": true
 }
 ]
