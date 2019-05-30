@@ -79,8 +79,8 @@ internal class ViewDemuxingTaskQueue(
 
     override fun offer(p0: FutureTask<*>): Boolean = backingQueue.offer(wrapTask(p0))
     override fun iterator(): MutableIterator<FutureTask<*>> = backingQueue.iterator()
-    override fun peek(): FutureTask<*> = backingQueue.peek()
-    override fun poll(): FutureTask<*> = backingQueue.poll()
+    override fun peek(): FutureTask<*>? = backingQueue.peek()
+    override fun poll(): FutureTask<*>? = backingQueue.poll()
     override fun isEmpty(): Boolean = backingQueue.isEmpty()
     override val size: Int get() = backingQueue.size
 }
