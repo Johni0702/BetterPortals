@@ -1,6 +1,6 @@
-package de.johni0702.minecraft.betterportals.server.view
+package de.johni0702.minecraft.view.server
 
-import de.johni0702.minecraft.betterportals.common.view.ViewManager
+import de.johni0702.minecraft.view.common.ViewManager
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.network.NetHandlerPlayServer
 import net.minecraft.util.math.Vec3d
@@ -38,8 +38,12 @@ interface ServerViewManager : ViewManager {
     fun flushPackets()
 }
 
-internal interface IViewManagerHolder {
-    val viewManager: ServerViewManager
-}
-val NetHandlerPlayServer.viewManager get() = (this as IViewManagerHolder).viewManager
-val EntityPlayerMP.viewManager get() = connection.viewManager
+/**
+ * The server-side view manager responsible for this connection.
+ */
+val NetHandlerPlayServer.viewManager get() = ServerViewAPI.instance.getViewManager(this)
+
+/**
+ * The server-side view manager responsible for this player.
+ */
+val EntityPlayerMP.viewManager get() = ServerViewAPI.instance.getViewManager(this)

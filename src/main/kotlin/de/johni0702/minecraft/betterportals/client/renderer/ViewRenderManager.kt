@@ -4,7 +4,7 @@ import de.johni0702.minecraft.betterportals.BPConfig
 import de.johni0702.minecraft.betterportals.BetterPortalsMod
 import de.johni0702.minecraft.betterportals.client.*
 import de.johni0702.minecraft.betterportals.client.compat.Optifine
-import de.johni0702.minecraft.betterportals.client.view.ClientView
+import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.betterportals.client.view.ClientViewImpl
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity

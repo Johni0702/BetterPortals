@@ -1,9 +1,8 @@
 package de.johni0702.minecraft.betterportals.net
 
-import de.johni0702.minecraft.betterportals.BetterPortalsMod
 import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.common.sync
-import de.johni0702.minecraft.betterportals.server.view.viewManager
+import de.johni0702.minecraft.view.server.viewManager
 import io.netty.buffer.ByteBuf
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler

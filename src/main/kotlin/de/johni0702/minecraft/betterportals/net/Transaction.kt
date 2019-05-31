@@ -4,7 +4,7 @@ import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.MOD_ID
 import de.johni0702.minecraft.betterportals.client.view.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.betterportals.common.*
-import de.johni0702.minecraft.betterportals.server.view.viewManager
+import de.johni0702.minecraft.view.server.viewManager
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import net.minecraft.client.Minecraft

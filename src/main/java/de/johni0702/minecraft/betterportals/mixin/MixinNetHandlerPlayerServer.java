@@ -1,7 +1,7 @@
 package de.johni0702.minecraft.betterportals.mixin;
 
-import de.johni0702.minecraft.betterportals.server.view.IViewManagerHolder;
-import de.johni0702.minecraft.betterportals.server.view.ServerViewManager;
+import de.johni0702.minecraft.betterportals.IViewManagerHolder;
+import de.johni0702.minecraft.view.server.ServerViewManager;
 import de.johni0702.minecraft.betterportals.server.view.ServerViewManagerImpl;
 import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.server.MinecraftServer;

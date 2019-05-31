@@ -3,7 +3,7 @@ package de.johni0702.minecraft.betterportals.client.renderer
 import de.johni0702.minecraft.betterportals.client.FramebufferD
 import de.johni0702.minecraft.betterportals.client.PreRenderView
 import de.johni0702.minecraft.betterportals.client.UtilsClient
-import de.johni0702.minecraft.betterportals.client.view.ClientView
+import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.betterportals.common.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.Tessellator

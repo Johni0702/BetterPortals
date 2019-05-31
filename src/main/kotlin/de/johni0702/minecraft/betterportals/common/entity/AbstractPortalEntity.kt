@@ -3,11 +3,11 @@ package de.johni0702.minecraft.betterportals.common.entity
 import de.johni0702.minecraft.betterportals.BPConfig
 import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.client.UtilsClient
-import de.johni0702.minecraft.betterportals.client.view.ClientView
+import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.net.*
-import de.johni0702.minecraft.betterportals.server.view.ServerView
-import de.johni0702.minecraft.betterportals.server.view.viewManager
+import de.johni0702.minecraft.view.server.ServerView
+import de.johni0702.minecraft.view.server.viewManager
 import io.netty.buffer.ByteBuf
 import net.minecraft.block.material.Material
 import net.minecraft.client.Minecraft

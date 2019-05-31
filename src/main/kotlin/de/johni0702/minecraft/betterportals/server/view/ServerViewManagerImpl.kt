@@ -8,6 +8,8 @@ import de.johni0702.minecraft.betterportals.net.DestroyView
 import de.johni0702.minecraft.betterportals.net.ViewData
 import de.johni0702.minecraft.betterportals.net.sendTo
 import de.johni0702.minecraft.betterportals.server.NettyExceptionHandler
+import de.johni0702.minecraft.view.server.ServerView
+import de.johni0702.minecraft.view.server.ServerViewManager
 import io.netty.buffer.ByteBuf
 import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.entity.player.EntityPlayerMP

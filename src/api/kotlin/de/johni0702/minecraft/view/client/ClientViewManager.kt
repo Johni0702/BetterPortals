@@ -1,12 +1,14 @@
-package de.johni0702.minecraft.betterportals.client.view
+package de.johni0702.minecraft.view.client
 
-import de.johni0702.minecraft.betterportals.common.view.ViewManager
+import de.johni0702.minecraft.view.common.ViewAPI
+import de.johni0702.minecraft.view.common.ViewManager
+import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
 
 /**
  * Manages views sent from the server.
  *
- * Can be obtained from [de.johni0702.minecraft.betterportals.BetterPortalsMod.viewManager]
+ * Can be obtained from [ViewAPI.getViewManager].
  */
 interface ClientViewManager : ViewManager {
     override val player: EntityPlayerSP
@@ -24,3 +26,8 @@ interface ClientViewManager : ViewManager {
      */
     fun <T> withView(view: ClientView, block: () -> T): T
 }
+
+/**
+ * The client-side view manager responsible for this instance of the Minecraft client.
+ */
+val Minecraft.viewManager get() = ClientViewAPI.instance.getViewManager(this)

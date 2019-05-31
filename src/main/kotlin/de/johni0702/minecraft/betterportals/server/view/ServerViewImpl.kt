@@ -6,6 +6,7 @@ import de.johni0702.minecraft.betterportals.common.Utils.swapPosRot
 import de.johni0702.minecraft.betterportals.net.ChangeServerMainView
 import de.johni0702.minecraft.betterportals.net.Transaction
 import de.johni0702.minecraft.betterportals.net.sendTo
+import de.johni0702.minecraft.view.server.ServerView
 import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.advancements.CriteriaTriggers
 import net.minecraft.entity.EntityTrackerEntry

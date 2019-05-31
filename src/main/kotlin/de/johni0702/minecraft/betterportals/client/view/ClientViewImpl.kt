@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.client.view
 
 import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.client.clippingHelper
+import de.johni0702.minecraft.view.client.ClientView
 import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP

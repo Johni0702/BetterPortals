@@ -1,4 +1,4 @@
-package de.johni0702.minecraft.betterportals.common.view
+package de.johni0702.minecraft.view.common
 
 import net.minecraft.entity.player.EntityPlayer
 

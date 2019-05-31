@@ -5,6 +5,8 @@ import de.johni0702.minecraft.betterportals.client.UtilsClient
 import de.johni0702.minecraft.betterportals.common.popOrNull
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.removeAtOrNull
+import de.johni0702.minecraft.view.client.ClientView
+import de.johni0702.minecraft.view.client.ClientViewManager
 import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP

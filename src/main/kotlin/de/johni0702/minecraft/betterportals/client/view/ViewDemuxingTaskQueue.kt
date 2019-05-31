@@ -3,6 +3,7 @@ package de.johni0702.minecraft.betterportals.client.view
 import de.johni0702.minecraft.betterportals.BetterPortalsMod
 import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.common.maybeValue
+import de.johni0702.minecraft.view.client.ClientView
 import net.minecraft.client.Minecraft
 import net.minecraft.network.NetworkManager
 import java.util.*

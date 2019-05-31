@@ -1,7 +1,10 @@
 package de.johni0702.minecraft.betterportals.server.view
 
 import com.mojang.authlib.GameProfile
+import de.johni0702.minecraft.betterportals.IViewManagerHolder
 import de.johni0702.minecraft.betterportals.common.server
+import de.johni0702.minecraft.view.server.ServerViewManager
+import de.johni0702.minecraft.view.server.viewManager
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP

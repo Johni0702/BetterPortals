@@ -1,6 +1,6 @@
-package de.johni0702.minecraft.betterportals.client.view
+package de.johni0702.minecraft.view.client
 
-import de.johni0702.minecraft.betterportals.common.view.View
+import de.johni0702.minecraft.view.common.View
 import net.minecraft.client.entity.EntityPlayerSP
 
 interface ClientView : View {

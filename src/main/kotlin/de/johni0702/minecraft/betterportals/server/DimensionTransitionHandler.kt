@@ -4,7 +4,7 @@ import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.net.Transaction
 import de.johni0702.minecraft.betterportals.net.TransferToDimension
 import de.johni0702.minecraft.betterportals.net.sendTo
-import de.johni0702.minecraft.betterportals.server.view.viewManager
+import de.johni0702.minecraft.view.server.viewManager
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.server.management.PlayerList
 import net.minecraftforge.common.util.ITeleporter

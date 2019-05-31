@@ -5,7 +5,7 @@ import de.johni0702.minecraft.betterportals.client.renderer.RenderEndPortal
 import de.johni0702.minecraft.betterportals.client.renderer.RenderNetherPortal
 import de.johni0702.minecraft.betterportals.client.renderer.RenderOneWayPortal
 import de.johni0702.minecraft.betterportals.client.tile.renderer.BetterEndPortalTileRenderer
-import de.johni0702.minecraft.betterportals.client.view.ClientViewManager
+import de.johni0702.minecraft.view.client.ClientViewManager
 import de.johni0702.minecraft.betterportals.client.view.ClientViewManagerImpl
 import de.johni0702.minecraft.betterportals.client.view.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterEndPortal
@@ -17,9 +17,14 @@ import de.johni0702.minecraft.betterportals.common.entity.NetherPortalEntity
 import de.johni0702.minecraft.betterportals.common.entity.TFPortalEntity
 import de.johni0702.minecraft.betterportals.common.logFailure
 import de.johni0702.minecraft.betterportals.net.Net
+import de.johni0702.minecraft.view.client.ClientViewAPI
+import de.johni0702.minecraft.view.common.ViewAPI
+import de.johni0702.minecraft.view.server.ServerViewManager
+import de.johni0702.minecraft.view.server.ServerViewAPI
 import net.minecraft.block.Block
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
+import net.minecraft.network.NetHandlerPlayServer
 import net.minecraft.tileentity.TileEntityEndPortal
 import net.minecraft.util.ResourceLocation
 import net.minecraft.world.World
@@ -47,7 +52,7 @@ const val TF_MOD_ID = "twilightforest"
 lateinit var LOGGER: Logger
 
 @Mod(modid = MOD_ID, useMetadata = true)
-class BetterPortalsMod {
+class BetterPortalsMod: ViewAPI {
 
     internal val hasTwilightForest by lazy { BPConfig.enableExperimentalTwilightForestPortals && Loader.isModLoaded(TF_MOD_ID) }
 
@@ -76,6 +81,11 @@ class BetterPortalsMod {
         PROXY.init(this)
     }
 
+    override val client: ClientViewAPI
+        get() = PROXY as ClientViewAPI
+    override val server: ServerViewAPI
+        get() = PROXY as ServerViewAPI
+
     interface Proxy {
         fun preInit(mod: BetterPortalsMod)
         fun init(mod: BetterPortalsMod)
@@ -83,7 +93,7 @@ class BetterPortalsMod {
         fun nextTick(world: World?, runnable: () -> Unit)
     }
 
-    internal abstract class CommonProxy : Proxy {
+    internal abstract class CommonProxy : Proxy, ServerViewAPI {
         override fun preInit(mod: BetterPortalsMod) {}
 
         override fun init(mod: BetterPortalsMod) {
@@ -149,13 +159,15 @@ class BetterPortalsMod {
         override fun nextTick(world: World?, runnable: () -> Unit) {
             TODO("not implemented")
         }
+
+        override fun getViewManager(connection: NetHandlerPlayServer): ServerViewManager = (connection as IViewManagerHolder).viewManager
     }
 
     @Suppress("unused")
     internal class ServerProxy : CommonProxy()
 
     @Suppress("unused")
-    internal class ClientProxy : CommonProxy() {
+    internal class ClientProxy : CommonProxy(), ClientViewAPI {
         override fun preInit(mod: BetterPortalsMod) {
             if (BPConfig.enableNetherPortals) {
                 RenderingRegistry.registerEntityRenderingHandler(NetherPortalEntity::class.java, ::RenderNetherPortal)
@@ -230,6 +242,8 @@ class BetterPortalsMod {
                 throw UnsupportedOperationException("Cannot determine side.")
             }
         }
+
+        override fun getViewManager(minecraft: Minecraft): ClientViewManager = viewManager
     }
 
     companion object {
@@ -240,4 +254,8 @@ class BetterPortalsMod {
         internal val viewManagerImpl by lazy { ClientViewManagerImpl() }
         val viewManager: ClientViewManager by lazy { viewManagerImpl }
     }
+}
+
+internal interface IViewManagerHolder {
+    val viewManager: ServerViewManager
 }
