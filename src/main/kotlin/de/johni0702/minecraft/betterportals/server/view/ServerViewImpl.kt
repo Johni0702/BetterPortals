@@ -67,7 +67,7 @@ internal class ServerViewImpl(
                     val entry = playerChunkMap.getEntry(x, z)
                     if (entry != null && entry.players.remove(player)) {
                         if (entry.isSentToPlayers) {
-                            MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.UnWatch(entry.pos, player))
+                            MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.UnWatch(entry.chunk, player))
                         }
                         knownChunks.add(entry)
                     }
@@ -129,7 +129,7 @@ internal class ServerViewImpl(
             knownChunks.forEach {
                 it.players.add(player)
                 if (it.isSentToPlayers) {
-                    MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.Watch(it.pos, player))
+                    MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.Watch(it.chunk, player))
                 }
             }
             player.serverWorld.playerChunkMap.players.add(player)
