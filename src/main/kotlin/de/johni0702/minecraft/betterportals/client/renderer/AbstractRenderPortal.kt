@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.betterportals.client.renderer
 
+import de.johni0702.minecraft.betterportals.client.compat.Optifine
 import de.johni0702.minecraft.betterportals.client.glClipPlane
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
@@ -158,7 +159,10 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             occlusionQuery.begin()
 
             val framebuffer = ViewRenderPlan.CURRENT?.framebuffers?.get(entity)
-            if (framebuffer == null) {
+            // TODO: the OF shaders check is only here because it's the easy fix to us using shaders to draw the portal
+            //       (while OF is using shaders which doesn't fly). once view rendering works with OF shaders, this
+            //       check should be removed and an alternative approach to rendering the portal face should be used.
+            if (framebuffer == null || Optifine?.shadersActive == true) {
                 renderPortalInactive()
             } else {
                 shader.addSamplerTexture("sampler", framebuffer.framebufferTexture)
