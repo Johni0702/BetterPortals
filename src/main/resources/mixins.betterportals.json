@@ -1,6 +1,7 @@
 {
   "required": true,
   "package": "de.johni0702.minecraft.betterportals.mixin",
+  "plugin": "de.johni0702.minecraft.betterportals.BetterPortalsMixinConfigPlugin",
   "mixins": [
     "MixinEntity",
     "MixinNetHandlerPlayerServer",
@@ -12,6 +13,8 @@
     "MixinActiveRenderInfo",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",
+    "MixinEntityRenderer_NoOF",
+    "MixinEntityRenderer_OF",
     "MixinPlayerList",
     "MixinRenderGlobal",
     "MixinRenderManager",

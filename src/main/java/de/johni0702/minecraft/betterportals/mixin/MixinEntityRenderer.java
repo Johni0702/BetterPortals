@@ -1,14 +1,12 @@
 package de.johni0702.minecraft.betterportals.mixin;
 
 import de.johni0702.minecraft.betterportals.client.PostSetupFogEvent;
-import de.johni0702.minecraft.betterportals.client.renderer.AbstractRenderPortal;
 import de.johni0702.minecraft.betterportals.client.renderer.ViewRenderManager;
 import de.johni0702.minecraft.betterportals.client.renderer.ViewRenderPlan;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.EntityRenderer;
-import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.MinecraftForge;
@@ -28,16 +26,6 @@ public abstract class MixinEntityRenderer {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/EntityRenderer;renderWorld(FJ)V"))
     private void renderWorld(EntityRenderer entityRenderer, float partialTicks, long finishTimeNano) {
         ViewRenderManager.Companion.getINSTANCE().renderWorld(partialTicks, finishTimeNano);
-    }
-
-    @Redirect(method = "renderWorldPass",
-            at = @At(value = "NEW", target = "net/minecraft/client/renderer/culling/Frustum"))
-    private Frustum createCamera() {
-        Frustum camera = AbstractRenderPortal.Companion.createCamera();
-        if (camera == null) {
-            camera = new Frustum();
-        }
-        return camera;
     }
 
     // See also MixinActiveRenderInfo#disableFogInView
