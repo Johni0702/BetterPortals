@@ -298,6 +298,9 @@ class ViewRenderPlan(
         val framebuffer = manager.allocFramebuffer()
 
         world.profiler.startSection("renderView" + view.id)
+
+        val framebufferMc = mc.framebufferMc
+        mc.framebufferMc = framebuffer
         framebuffer.bindFramebuffer(false)
         GlStateManager.pushMatrix()
 
@@ -351,6 +354,7 @@ class ViewRenderPlan(
         GlStateManager.popMatrix()
         GL11.glDisable(GL11.GL_CLIP_PLANE5) // FIXME don't hard-code clipping plane id
         framebuffer.unbindFramebuffer()
+        mc.framebufferMc = framebufferMc
         world.profiler.endSection()
         return framebuffer
     }
