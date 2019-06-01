@@ -8,6 +8,9 @@ import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.betterportals.client.view.ClientViewImpl
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
+import de.johni0702.minecraft.view.client.render.Camera
+import de.johni0702.minecraft.view.client.render.RenderPass
+import de.johni0702.minecraft.view.client.render.RenderPassManager
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.culling.Frustum
@@ -20,10 +23,13 @@ import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import org.lwjgl.opengl.GL11
-import java.util.*
-import javax.vecmath.Point3d
 
-class ViewRenderManager {
+class ViewRenderManager : RenderPassManager {
+    override val root: RenderPass?
+        get() = ViewRenderPlan.MAIN
+    override val current: RenderPass?
+        get() = ViewRenderPlan.CURRENT
+
     companion object {
         val INSTANCE = ViewRenderManager()
     }
@@ -76,6 +82,7 @@ class ViewRenderManager {
         // TODO do third person camera
         var cameraPos = interpEntityPos
         var cameraYaw = viewEntity.prevRotationYaw + (viewEntity.rotationYaw - viewEntity.prevRotationYaw) * partialTicks.toDouble()
+        var cameraPitch = viewEntity.prevRotationPitch + (viewEntity.rotationPitch - viewEntity.prevRotationPitch) * partialTicks.toDouble()
 
         var parentPortal: AbstractPortalEntity? = null
 
@@ -142,6 +149,7 @@ class ViewRenderManager {
         GlStateManager.pushMatrix()
         eventHandler.capture = true
         eventHandler.mainCameraYaw = cameraYaw.toFloat()
+        eventHandler.mainCameraPitch = cameraYaw.toFloat()
         val camera = view.withView {
             mc.entityRenderer.setupCameraTransform(partialTicks, 0)
             val entity = mc.renderViewEntity!!
@@ -154,13 +162,21 @@ class ViewRenderManager {
         val maxRecursions = if (BPConfig.seeThroughPortals) 5 else 0
 
         // Build render plan
-        val plan = ViewRenderPlan(this, null, view, camera, cameraPos, cameraYaw.toFloat(), maxRecursions)
+        val plan = ViewRenderPlan(this, null, view, Camera(camera, cameraPos, Vec3d(cameraYaw, cameraPitch, 0.0)))
+
+        // Recursively add portal views
+        plan.addPortals(maxRecursions)
 
         // Update occlusion queries
         occlusionQueries.values.forEach { it.update() }
 
         // Cleanup occlusion queries for portals which are no longer visible
-        val knownPortals = plan.allPortals.toSet()
+        fun getAllPortals(plan: ViewRenderPlan, result: MutableSet<AbstractPortalEntity>) {
+            plan.portalDetail?.parent?.let { result.add(it) }
+            plan.children.forEach { getAllPortals(it, result) }
+        }
+        val knownPortals = mutableSetOf<AbstractPortalEntity>()
+        getAllPortals(plan, knownPortals)
         occlusionQueries.entries.removeIf { (portal, query) ->
             if (knownPortals.contains(portal)) {
                 false
@@ -190,6 +206,8 @@ class ViewRenderManager {
 
         var capture = false
         var mainCameraYaw = 0.toFloat()
+        var mainCameraPitch = 0.toFloat()
+        var mainCameraRoll = 0.toFloat()
         var fogOffset = 0.toFloat()
         private var yaw = 0.toFloat()
         private var pitch = 0.toFloat()
@@ -203,9 +221,9 @@ class ViewRenderManager {
                 roll = event.roll
             } else {
                 val plan = ViewRenderPlan.CURRENT ?: return
-                event.yaw = yaw - mainCameraYaw + plan.cameraYaw
-                event.pitch = pitch
-                event.roll = roll
+                event.yaw = yaw - mainCameraYaw + plan.camera.rotation.y.toFloat()
+                event.pitch = pitch - mainCameraPitch + plan.camera.rotation.x.toFloat()
+                event.roll = roll - mainCameraRoll + plan.camera.rotation.z.toFloat()
             }
         }
 
@@ -239,24 +257,32 @@ class ViewRenderManager {
 }
 
 class ViewRenderPlan(
-        val manager: ViewRenderManager,
-        val parentPortal: AbstractPortalEntity?,
-        val view: ClientView,
-        val camera: Frustum,
-        val cameraPos: Vec3d,
-        val cameraYaw: Float,
-        val maxRecursions: Int
-) {
+        override val manager: ViewRenderManager,
+        override val parent: RenderPass?,
+        override val view: ClientView,
+        override val camera: Camera
+) : RenderPass {
     companion object {
         var MAIN: ViewRenderPlan? = null
         var CURRENT: ViewRenderPlan? = null
     }
     val world: World = view.camera.world
+    override var framebuffer: FramebufferD? = null
 
-    val dependencies = if (maxRecursions > 0)
+    override val children = mutableListOf<ViewRenderPlan>()
+
+    override fun addChild(view: ClientView, camera: Camera): ViewRenderPlan {
+        val child = ViewRenderPlan(manager, this, view, camera)
+        children.add(child)
+        return child
+    }
+
+    fun addPortals(maxRecursions: Int) {
+        if (maxRecursions <= 0) return
+        val parentPortal = portalDetail?.parent
         world.getEntities(AbstractPortalEntity::class.java) {
             // portal must be visible (i.e. must not be frustum culled)
-            it!!.canBeSeen(camera)
+            it!!.canBeSeen(camera.frustum)
                     // its view must have been loaded (otherwise there's nothing to render)
                     && it.view != null
                     // it must not be our parent (the portal from which this world is being viewed)
@@ -264,30 +290,35 @@ class ViewRenderPlan(
                     && (it.view != parentPortal?.view || it.remotePosition != parentPortal?.localPosition)
                     // it must not be occluded by blocks
                     && !manager.getOcclusionQuery(it).occluded
-        }.map { portal ->
+        }.forEach { portal ->
             val rotation = portal.remoteRotation - portal.localRotation
-            val cameraYaw = this.cameraYaw + rotation.degrees.toFloat()
-            val cameraPos = with(this.cameraPos) { portal.localToRemoteMatrix * Point3d(x, y, z) }.toMC()
-            val camera = PortalCamera(portal, cameraPos, camera)
-            val plan = ViewRenderPlan(manager, portal, portal.view!!, camera, cameraPos, cameraYaw, maxRecursions - 1)
-            Pair(portal, plan)
+            val cameraRot = camera.rotation + Vec3d(0.0, rotation.degrees.toDouble(), 0.0)
+            val cameraPos = (portal.localToRemoteMatrix * camera.position.toPoint()).toMC()
+            val frustum = PortalCamera(portal, cameraPos, camera.frustum)
+            val camera = Camera(frustum, cameraPos, cameraRot)
+            val plan = addChild(portal.view!!, camera)
+            plan.portalDetail = PortalDetail(portal)
+            plan.addPortals(maxRecursions - 1)
         }
-    else
-        Collections.emptyList()
+    }
 
-    val framebuffers = mutableMapOf<AbstractPortalEntity, FramebufferD>()
+    private val details = mutableMapOf<Class<*>, Any>()
 
-    val allPortals: List<AbstractPortalEntity>
-        get() = listOfNotNull(parentPortal) + dependencies.flatMap { it.second.allPortals }
+    override fun <T> set(type: Class<T>, detail: T?) {
+        details[type] = detail as Any
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T> get(type: Class<T>): T? = details[type] as T?
 
     /**
      * Render all dependencies of this view (including transitive ones).
      */
-    private fun renderDeps(partialTicks: Float) = dependencies.map { (portal, plan) ->
-        portal.onUpdate() // Update position (and other state) of the view entity
-        val framebuffer = plan.render(partialTicks, 0)
-        framebuffers[portal] = framebuffer
-        framebuffer
+    private fun renderDeps(partialTicks: Float) {
+        children.forEach {
+            it.portalDetail?.parent?.onUpdate()
+            it.render(partialTicks, 0)
+        }
     }
 
     /**
@@ -300,6 +331,7 @@ class ViewRenderPlan(
         // render the main view.
         if (Optifine?.shadersActive == true && this != MAIN) {
             val framebuffer = manager.allocFramebuffer()
+            this.framebuffer = framebuffer
             framebuffer.bindFramebuffer(false)
             GL11.glClearColor(0f, 0f, 0f, 1f)
             GL11.glClearDepth(1.0)
@@ -313,6 +345,7 @@ class ViewRenderPlan(
         }
         val mc = Minecraft.getMinecraft()
         val framebuffer = manager.allocFramebuffer()
+        this.framebuffer = framebuffer
 
         world.profiler.startSection("renderView" + view.id)
 
@@ -329,6 +362,7 @@ class ViewRenderPlan(
         GL11.glClearDepth(1.0)
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT or GL11.GL_DEPTH_BUFFER_BIT)
 
+        val parentPortal = portalDetail?.parent
         if (parentPortal != null) {
             // Setup clipping plane for parent portal
             // The render is supposed to look like this from the parent (we are currently rendering Remote World):
@@ -338,7 +372,7 @@ class ViewRenderPlan(
             // so we need to clip away the remote world on the camera side of the portal, otherwise blocks in the
             // Remote World which are between the camera and the portal will show up in the final composed render.
             val portalPos = parentPortal.remotePosition.to3dMid()
-            val cameraSide = parentPortal.remoteAxis.toFacing(cameraPos - portalPos)
+            val cameraSide = parentPortal.remoteAxis.toFacing(camera.position - portalPos)
             // Position clipping plane on the camera side of the portal such that the portal frame is fully rendered
             val planePos = parentPortal.remotePosition.to3dMid() + cameraSide.directionVec.to3d().scale(0.5)
             // glClipPlane uses the current ModelView matrix to transform the given coordinates to view space
@@ -346,14 +380,14 @@ class ViewRenderPlan(
             mc.entityRenderer.setupCameraTransform(partialTicks, 0)
             // setupCameraTransform configures world space with the origin at the camera's feet.
             // planePos however is currently absolute world space, so we need to convert it
-            val relPlanePos = planePos - cameraPos + mc.renderViewEntity!!.eyeOffset
+            val relPlanePos = planePos - camera.position + mc.renderViewEntity!!.eyeOffset
             glClipPlane(GL11.GL_CLIP_PLANE5, cameraSide.directionVec.to3d().scale(-1.0), relPlanePos)
             GL11.glEnable(GL11.GL_CLIP_PLANE5) // FIXME don't hard-code clipping plane id
 
             // Reduce fog by distance between camera and portal, we will later re-apply this distance worth of fog
             // to the rendered portal but then with the fog of the correct dimension.
             // This won't give quite correct results for large portals but far better ones than using the incorrect fog.
-            val dist = (cameraPos - portalPos).lengthVector().toFloat()
+            val dist = (camera.position - portalPos).lengthVector().toFloat()
             when (GlStateManager.FogMode.values().find { it.capabilityId == GlStateManager.fogState.mode }) {
                 GlStateManager.FogMode.LINEAR -> manager.fogOffset = dist
                 // TODO
@@ -384,7 +418,9 @@ class ViewRenderPlan(
         MinecraftForge.EVENT_BUS.post(PreRenderView(this, partialTicks))
         renderSelf(partialTicks, finishTimeNano)
     } finally {
-        framebuffers.values.forEach(manager::releaseFramebuffer)
-        framebuffers.clear()
+        children.forEach {
+            manager.releaseFramebuffer(it.framebuffer ?: return@forEach)
+            it.framebuffer = null
+        }
     }
 }

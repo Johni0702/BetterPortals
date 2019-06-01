@@ -13,7 +13,7 @@ public abstract class MixinEntityRenderer_NoOF {
     private Frustum createCamera() {
         ViewRenderPlan plan = ViewRenderPlan.Companion.getCURRENT();
         if (plan != null) {
-            return plan.getCamera();
+            return plan.getCamera().getFrustum();
         }
         return new Frustum();
     }

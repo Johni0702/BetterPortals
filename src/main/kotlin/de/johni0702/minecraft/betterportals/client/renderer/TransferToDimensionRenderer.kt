@@ -5,10 +5,12 @@ import de.johni0702.minecraft.betterportals.client.PreRenderView
 import de.johni0702.minecraft.betterportals.client.UtilsClient
 import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.betterportals.common.*
+import de.johni0702.minecraft.view.client.render.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.client.shader.ShaderManager
+import net.minecraft.util.math.Vec3d
 import net.minecraftforge.client.event.RenderWorldLastEvent
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
@@ -50,7 +52,9 @@ class TransferToDimensionRenderer(
 
         // TODO this isn't quite right once we use a portal in the new view while the transition is still active
         UtilsClient.transformPosition(mainPlan.view.camera, fromView.camera, cameraPosOffset, cameraYawOffset)
-        val plan = ViewRenderPlan(ViewRenderManager.INSTANCE, null, fromView, mainPlan.camera, fromView.camera.pos, mainPlan.cameraYaw + cameraYawOffset, 0)
+        val cameraRot = mainPlan.camera.rotation + Vec3d(0.0, cameraYawOffset.toDouble(), 0.0)
+        val camera = Camera(mainPlan.camera.frustum, fromView.camera.pos, cameraRot)
+        val plan = mainPlan.addChild(fromView, camera)
         framebuffer = plan.render(partialTicks, 0)
     }
 

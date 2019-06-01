@@ -14,7 +14,7 @@ public abstract class MixinEntityRenderer_OF {
     private Frustum createCamera(ClippingHelper clippingHelper) {
         ViewRenderPlan plan = ViewRenderPlan.Companion.getCURRENT();
         if (plan != null) {
-            return plan.getCamera();
+            return plan.getCamera().getFrustum();
         }
         return new Frustum(clippingHelper);
     }

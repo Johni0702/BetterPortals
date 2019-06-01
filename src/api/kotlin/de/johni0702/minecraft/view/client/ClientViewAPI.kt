@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.view.client
 
+import de.johni0702.minecraft.view.client.render.RenderPassManager
 import de.johni0702.minecraft.view.common.ViewAPI
 import net.minecraft.client.Minecraft
 
@@ -16,4 +17,9 @@ interface ClientViewAPI {
      * Returns the client-side view manager responsible for the given instance of the Minecraft client.
      */
     fun getViewManager(minecraft: Minecraft): ClientViewManager
+
+    /**
+     * Return the [RenderPassManager] responsible for the given instance of the Minecraft client.
+     */
+    fun getRenderPassManager(minecraft: Minecraft): RenderPassManager
 }

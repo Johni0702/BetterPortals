@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.ListenableFutureTask
 import de.johni0702.minecraft.betterportals.client.renderer.RenderEndPortal
 import de.johni0702.minecraft.betterportals.client.renderer.RenderNetherPortal
 import de.johni0702.minecraft.betterportals.client.renderer.RenderOneWayPortal
+import de.johni0702.minecraft.betterportals.client.renderer.ViewRenderManager
 import de.johni0702.minecraft.betterportals.client.tile.renderer.BetterEndPortalTileRenderer
 import de.johni0702.minecraft.view.client.ClientViewManager
 import de.johni0702.minecraft.betterportals.client.view.ClientViewManagerImpl
@@ -18,6 +19,7 @@ import de.johni0702.minecraft.betterportals.common.entity.TFPortalEntity
 import de.johni0702.minecraft.betterportals.common.logFailure
 import de.johni0702.minecraft.betterportals.net.Net
 import de.johni0702.minecraft.view.client.ClientViewAPI
+import de.johni0702.minecraft.view.client.render.RenderPassManager
 import de.johni0702.minecraft.view.common.ViewAPI
 import de.johni0702.minecraft.view.server.ServerView
 import de.johni0702.minecraft.view.server.ServerViewManager
@@ -249,6 +251,8 @@ class BetterPortalsMod: ViewAPI {
         }
 
         override fun getViewManager(minecraft: Minecraft): ClientViewManager = viewManager
+
+        override fun getRenderPassManager(minecraft: Minecraft): RenderPassManager = ViewRenderManager.INSTANCE
     }
 
     companion object {

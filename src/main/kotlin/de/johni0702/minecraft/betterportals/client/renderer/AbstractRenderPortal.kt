@@ -35,9 +35,9 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             val portal = ViewRenderPlan.CURRENT?.let { instance ->
                 // If we're not rendering our own world (i.e. if we're looking through a portal)
                 // then we do not want to render entities on the wrong remote side of said portal
-                val portal = instance.parentPortal ?: return@let null
+                val portal = instance.portalDetail?.parent ?: return@let null
                 val portalPos = portal.remotePosition.to3dMid()
-                val facing = portal.remoteFacing.axis.toFacing(instance.cameraPos - portalPos)
+                val facing = portal.remoteFacing.axis.toFacing(instance.camera.position - portalPos)
                 // We need to take the top most y of the entity because otherwise when looking throw a horizontal portal
                 // from the below, we might see the head of entities whose feet are below the portal y
                 // Same goes the other way around
@@ -94,7 +94,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
                 GL11.glDisable(GL11.GL_CLIP_PLANE4)
             }
 
-            if (ViewRenderPlan.CURRENT?.parentPortal == null) return
+            if (ViewRenderPlan.CURRENT?.portalDetail?.parent == null) return
 
             GL11.glEnable(GL11.GL_CLIP_PLANE5)
         }
@@ -130,7 +130,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
                 return
             }
 
-            val parentPortal = ViewRenderPlan.CURRENT?.parentPortal
+            val parentPortal = ViewRenderPlan.CURRENT?.portalDetail?.parent
             if (parentPortal?.world == portal.view?.camera?.world && parentPortal?.remotePosition == entity.localPosition) {
                 // Skip rendering of portal if it's the remote to the portal we're currently in
                 return
@@ -139,7 +139,9 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             val occlusionQuery = ViewRenderManager.INSTANCE.getOcclusionQuery(entity)
             occlusionQuery.begin()
 
-            val framebuffer = ViewRenderPlan.CURRENT?.framebuffers?.get(entity)
+            val framebuffer = ViewRenderPlan.CURRENT?.children?.find {
+                it.portalDetail?.parent == entity
+            }?.framebuffer
             // TODO: the OF shaders check is only here because it's the easy fix to us using shaders to draw the portal
             //       (while OF is using shaders which doesn't fly). once view rendering works with OF shaders, this
             //       check should be removed and an alternative approach to rendering the portal face should be used.
