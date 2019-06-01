@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.net
 
 import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.common.sync
+import de.johni0702.minecraft.betterportals.server.DimensionTransitionHandler
 import de.johni0702.minecraft.view.server.viewManager
 import io.netty.buffer.ByteBuf
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage
@@ -32,7 +33,7 @@ internal class TransferToDimensionDone(
                     LOGGER.warn("Got TransferToDimensionDone message for unknown source view with id {}", message.viewId)
                     return@sync
                 }
-                view.release()
+                DimensionTransitionHandler.tickets[view]?.release()
             }
             return null
         }

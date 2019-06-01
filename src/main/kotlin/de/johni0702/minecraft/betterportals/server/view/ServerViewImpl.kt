@@ -1,12 +1,11 @@
 package de.johni0702.minecraft.betterportals.server.view
 
 import de.johni0702.minecraft.betterportals.LOGGER
-import de.johni0702.minecraft.betterportals.common.AReferenceCounted
 import de.johni0702.minecraft.betterportals.common.Utils.swapPosRot
 import de.johni0702.minecraft.betterportals.net.ChangeServerMainView
 import de.johni0702.minecraft.betterportals.net.Transaction
 import de.johni0702.minecraft.betterportals.net.sendTo
-import de.johni0702.minecraft.view.server.ServerView
+import de.johni0702.minecraft.view.server.*
 import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.advancements.CriteriaTriggers
 import net.minecraft.entity.EntityTrackerEntry
@@ -23,19 +22,52 @@ internal class ServerViewImpl(
         override val id: Int,
         override var camera: EntityPlayerMP,
         var channel: EmbeddedChannel?
-) : ServerView, AReferenceCounted {
-    override var refCnt: Int = 1
+) : ServerView {
+    internal var tickets = mutableListOf<TicketImpl>()
+    private var fixedLocationTickets = 0
+    private var exclusiveTickets = 0
 
-    override fun doRelease() {
-        // ServerViewImpls with refCnt 0 are cleaned up once per tick only.
-        // That way, the view can be reused by anyone else for one tick even if it's been released already
-        if (isMainView) {
-            LOGGER.warn("Main view of $camera has been released at: ", Throwable())
+    override fun allocatePlainTicket(): Ticket = TicketImpl(this).also { tickets.add(it) }
+
+    override fun allocateFixedLocationTicket(): FixedLocationTicket? = if (exclusiveTickets > 0) {
+        null
+    } else {
+        fixedLocationTickets += 1
+        FixedLocationTicketImpl(this).also { tickets.add(it) }
+    }
+
+    override fun allocateExclusiveTicket(): ExclusiveTicket? = if (fixedLocationTickets > 0 || exclusiveTickets > 0) {
+        null
+    } else {
+        exclusiveTickets += 1
+        ExclusiveTicketImpl(this).also { tickets.add(it) }
+    }
+
+    internal fun releaseTicket(ticket: TicketImpl) {
+        tickets.remove(ticket)
+        if (ticket is FixedLocationTicket) {
+            fixedLocationTickets -= 1
+        }
+        if (ticket is ExclusiveTicket) {
+            exclusiveTickets -= 1
         }
     }
 
-    override fun makeMainView() {
-        if (isMainView) return
+    override fun makeMainView(ticket: CanMakeMainView) {
+        ticket.ensureValid(this)
+        makeMainView()
+    }
+
+    override fun releaseAndMakeMainView(ticket: CanMakeMainView) {
+        ticket.ensureValid(this)
+        ticket.release()
+        makeMainView()
+    }
+
+    private fun makeMainView() {
+        if (isMainView) {
+            throw IllegalStateException("makeMainView called on main view")
+        }
 
         val mainView = manager.mainView
         val player = mainView.camera
@@ -44,8 +76,6 @@ internal class ServerViewImpl(
         LOGGER.info("Swapping main view {}/{}/{} with {}/{}/{}",
                 player.posX, player.posY, player.posZ,
                 camera.posX, camera.posY, camera.posZ)
-
-        retain()
 
         val oldDim = player.dimension
         val oldWorld = player.serverWorld
@@ -157,7 +187,5 @@ internal class ServerViewImpl(
 
         manager.flushPackets() // Just for good measure, who knows what other mods will do during the event
         FMLCommonHandler.instance().firePlayerChangedDimensionEvent(player, oldDim, newDim)
-
-        mainView.release()
     }
 }

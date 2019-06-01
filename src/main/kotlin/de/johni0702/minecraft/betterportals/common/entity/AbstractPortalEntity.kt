@@ -6,8 +6,7 @@ import de.johni0702.minecraft.betterportals.client.UtilsClient
 import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.net.*
-import de.johni0702.minecraft.view.server.ServerView
-import de.johni0702.minecraft.view.server.viewManager
+import de.johni0702.minecraft.view.server.*
 import io.netty.buffer.ByteBuf
 import net.minecraft.block.material.Material
 import net.minecraft.client.Minecraft
@@ -147,7 +146,9 @@ abstract class AbstractPortalEntity(
             val newEntity = EntityList.newEntity(entity.javaClass, remoteWorld) ?: return
 
             // Inform other clients that the entity is going to be teleported
-            val trackingPlayers = localWorld.entityTracker.getTracking(entity).intersect(views.keys)
+            val trackingPlayers = localWorld.entityTracker.getTracking(entity).filterTo(mutableSetOf()) {
+                views.containsKey(it.viewManager)
+            }
             trackingPlayers.forEach {
                 Transaction.start(it)
                 it.viewManager.flushPackets()
@@ -357,19 +358,40 @@ abstract class AbstractPortalEntity(
         } else {
             world.minecraftServer!!.getWorld(remoteDimension ?: return null)
         }
-        return remoteWorld.getEntitiesWithinAABB(javaClass, AxisAlignedBB(remotePosition)).firstOrNull()
+        val chunk = remoteWorld.getChunkFromBlockCoords(remotePosition)
+        val list = mutableListOf<AbstractPortalEntity>()
+        chunk.getEntitiesOfTypeWithinAABB(javaClass, AxisAlignedBB(remotePosition), list) { it?.remotePosition == localPosition }
+        return list.firstOrNull()
     }
 
     //
     //  Server-side
     //
 
-    private val views = mutableMapOf<EntityPlayerMP, ServerView?>()
+    // When switching main view of a player, we need to ignore any add/removeTrackingPlayer calls
+    // as otherwise we'll release our ticket for the player and might not be able to get it back.
+    private var ignoreTracking = false
+
+    private val views = mutableMapOf<ServerViewManager, FixedLocationTicket>()
 
     internal open fun usePortal(player: EntityPlayerMP): Boolean {
-        val view = views[player]
-        if (view == null) {
+        val viewManager = player.viewManager
+        val ticket = views[viewManager]
+        if (ticket == null) {
             LOGGER.warn("Received use portal request from $player which has no view for portal $this")
+            return false
+        }
+        val view = ticket.view
+
+        val remotePortal = getRemotePortal()
+        if (remotePortal == null) {
+            LOGGER.warn("Received use portal request from $player for $this but our remote portal has vanished!?")
+            return false
+        }
+
+        val remoteTicket = remotePortal.views[viewManager]
+        if (remoteTicket == null) {
+            LOGGER.warn("Received use portal request from $player for $this but our remote portal has no ticket!?")
             return false
         }
 
@@ -377,7 +399,9 @@ abstract class AbstractPortalEntity(
         Utils.transformPosition(player, view.camera, this)
 
         // Inform other clients that the entity is going to be teleported
-        val trackingPlayers = player.serverWorld.entityTracker.getTracking(player).intersect(views.keys)
+        val trackingPlayers = player.serverWorld.entityTracker.getTracking(player).filterTo(mutableSetOf()) {
+            views.containsKey(it.viewManager)
+        }
         trackingPlayers.forEach {
             Transaction.start(it)
             it.viewManager.flushPackets()
@@ -385,7 +409,11 @@ abstract class AbstractPortalEntity(
         EntityUsePortal(EntityUsePortal.Phase.BEFORE, player.entityId, this.entityId).sendTo(trackingPlayers)
 
         // Swap views
-        view.makeMainView()
+        ignoreTracking = true
+        remotePortal.ignoreTracking = true
+        view.makeMainView(ticket)
+        ignoreTracking = false
+        remotePortal.ignoreTracking = false
 
         // Inform other clients that the teleportation has happened
         trackingPlayers.forEach { it.viewManager.flushPackets() }
@@ -408,40 +436,44 @@ abstract class AbstractPortalEntity(
 
         trackingPlayers.add(player)
 
+        if (ignoreTracking) return
+
+        val remotePortal = getRemotePortal() ?: return
+        val remoteWorld = remotePortal.world as WorldServer
         val viewManager = player.viewManager
-        val viewId = if (viewManager.player != player) {
-            val remotePortal = getRemotePortal()
-            (views[player] ?: if (remotePortal != null && remotePortal.trackingPlayers.contains(viewManager.player)) {
-                // The player's main view is right on the other side of this portal (in fact that's why it's loaded)
-                viewManager.mainView.also { it.retain() }.also { views[player] = it }
-            } else {
-                // Main view could be far away from the remote portal or not even in the right dimension
-                // TODO transitive portals
-                return
-            }).id
-        } else {
-            val remoteWorld = player.mcServer.getWorld(remoteDimension ?: return)
-            // Choose already existing view
-            val view = views[player] ?: (
-                    // Or existing view close by (64 blocks, ignoring y axis)
-                    viewManager.views
-                            .filter { it.camera.world == remoteWorld }
-                            .map { it to it.camera.pos.withoutY().distanceTo(remotePosition.to3d().withoutY()) }
-                            .filter { it.second < 64 } // Arbitrarily chosen limit for max distance between cam and portal
-                            .sortedBy { it.second }
-                            .firstOrNull()
-                            ?.first
-                            ?.also { it.retain() }
-                            // Or create a new one
-                            ?: viewManager.createView(remoteWorld, remotePosition.to3d())
-                    ).also { views[player] = it }
-            view.id
+
+        // If we already have a view for this player, then just link to it.
+        // This can happen either because this is the remote portal to some other portal which we've already dealt with
+        // or when multiple view entities have the same portal nearby.
+        val ticket = views.getOrPut(viewManager) {
+            // otherwise, it's time to find a suitable view
+
+            // Disable recursive portals, to be removed once cycle detection (and some recursion limit) is in place
+            if (viewManager.player != player) return
+
+            // Allocate a ticket for our local world which we can later give to our remote end
+            // If this fails, someone is holding an exclusive ticket to our current world, so we fail soft
+            val localView = player.view ?: return
+            remotePortal.views[viewManager] = localView.allocateFixedLocationTicket() ?: return
+
+            // preferably an existing view close by (64 blocks, ignoring y axis)
+            viewManager.views
+                    .asSequence()
+                    .filter { it.camera.world == remoteWorld }
+                    .map { it to it.camera.pos.withoutY().distanceTo(remotePosition.to3d().withoutY()) }
+                    .filter { it.second < 64 } // Arbitrarily chosen limit for max distance between cam and portal
+                    .sortedBy { it.second }
+                    .fold(null as FixedLocationTicket?) { acc, view ->
+                        acc ?: view.first.allocateFixedLocationTicket()
+                    }
+                    // but we'll also create a new one if we can't find one
+                    ?: viewManager.createView(remoteWorld, remotePosition.to3d()).allocateFixedLocationTicket()!!
         }
 
         LinkPortal(
                 entityId,
                 writePortalToNBT(),
-                viewId
+                ticket.view.id
         ).sendTo(player)
     }
 
@@ -450,7 +482,9 @@ abstract class AbstractPortalEntity(
 
         trackingPlayers.remove(player)
 
-        views.remove(player)?.let {
+        if (ignoreTracking) return
+
+        views.remove(player.viewManager)?.let {
             LinkPortal(
                     entityId,
                     writePortalToNBT(),
@@ -474,6 +508,11 @@ abstract class AbstractPortalEntity(
         // Update tracking players
         trackingPlayers.toList().forEach {
             addTrackingPlayer(it)
+        }
+        getRemotePortal()?.let { remotePortal ->
+            remotePortal.trackingPlayers.toList().forEach {
+                remotePortal.addTrackingPlayer(it)
+            }
         }
     }
 

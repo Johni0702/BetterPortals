@@ -4,19 +4,29 @@ import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.net.Transaction
 import de.johni0702.minecraft.betterportals.net.TransferToDimension
 import de.johni0702.minecraft.betterportals.net.sendTo
+import de.johni0702.minecraft.view.server.ServerView
+import de.johni0702.minecraft.view.server.Ticket
 import de.johni0702.minecraft.view.server.viewManager
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.server.management.PlayerList
 import net.minecraftforge.common.util.ITeleporter
 
 object DimensionTransitionHandler {
+    val tickets = mutableMapOf<ServerView, Ticket>()
+
     fun transferPlayerToDimension(playerList: PlayerList, player: EntityPlayerMP, dimension: Int, teleporter: ITeleporter) {
         val world = player.server!!.getWorld(dimension)
         val viewManager = player.viewManager
+        val oldView = viewManager.mainView
 
         // Hold on to the old main view until the client has finished the transition
         // (released in TransferToDimensionDone#Handler)
-        viewManager.mainView.retain()
+        tickets[oldView] = oldView.allocateExclusiveTicket() ?:
+                // Even though optimally we'd want an exclusive ticket here, we're much more likely to get a fixed location one
+                // and if they aren't moving super fast (and why would they during the transition?), that should do as well.
+                oldView.allocateFixedLocationTicket() ?:
+                // For maximum compatibility (and because we really only need it for 10 seconds), we'll even make due with a plain one.
+                oldView.allocatePlainTicket()
 
         // Create a new view entity in the destination dimension
         val view = viewManager.createView(world, player.pos) {
@@ -32,10 +42,7 @@ object DimensionTransitionHandler {
 
         // And immediately swap it with the main view (calling code expects the player to have been transferred when the method returns)
         // This will inform the client that the server main view has changed and it'll adapt accordingly
-        view.makeMainView()
-
-        // Release our claim on the new view (it's the main view now, no need for us to keep it alive)
-        view.release()
+        view.releaseAndMakeMainView(view.allocateExclusiveTicket()!!)
 
         Transaction.end(player)
 

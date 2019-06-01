@@ -116,12 +116,7 @@ internal class ServerViewManagerImpl(
     }
 
     private fun tick() {
-        views.filter { it.refCnt == 0 }.forEach {
-            if (it.isMainView) {
-                LOGGER.warn("Main view of $player somehow reached a refCnt of 0!")
-                it.retain()
-                return@forEach
-            }
+        views.filter { it.tickets.isEmpty() && !it.isMainView }.forEach {
             destroyView(it)
         }
 
@@ -168,8 +163,13 @@ internal class ServerViewManagerImpl(
         @SubscribeEvent
         fun onWorldUnload(event: WorldEvent.Unload) {
             views.filter { !it.isMainView && it.camera.world === event.world }.forEach {
-                if (it.refCnt > 0) {
-                    LOGGER.warn("View $it has a refCnt of ${it.refCnt} even though its world is unloaded!")
+                if (it.tickets.isNotEmpty()) {
+                    LOGGER.warn("View $it has ${it.tickets.size} active tickets even though its world is unloaded!")
+                    LOGGER.warn("Initial allocation stack traces for all remaining tickets:")
+                    it.tickets.toList().forEach { ticket ->
+                        LOGGER.warn("", ticket.allocStackTrace)
+                        ticket.release()
+                    }
                 }
                 destroyView(it)
             }

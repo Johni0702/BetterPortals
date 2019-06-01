@@ -19,11 +19,14 @@ import de.johni0702.minecraft.betterportals.common.logFailure
 import de.johni0702.minecraft.betterportals.net.Net
 import de.johni0702.minecraft.view.client.ClientViewAPI
 import de.johni0702.minecraft.view.common.ViewAPI
+import de.johni0702.minecraft.view.server.ServerView
 import de.johni0702.minecraft.view.server.ServerViewManager
 import de.johni0702.minecraft.view.server.ServerViewAPI
+import de.johni0702.minecraft.view.server.viewManager
 import net.minecraft.block.Block
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
+import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.network.NetHandlerPlayServer
 import net.minecraft.tileentity.TileEntityEndPortal
 import net.minecraft.util.ResourceLocation
@@ -161,6 +164,8 @@ class BetterPortalsMod: ViewAPI {
         }
 
         override fun getViewManager(connection: NetHandlerPlayServer): ServerViewManager = (connection as IViewManagerHolder).viewManager
+
+        override fun getView(player: EntityPlayerMP): ServerView? = player.viewManager.views.find { it.camera == player }
     }
 
     @Suppress("unused")

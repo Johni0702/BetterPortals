@@ -1,6 +1,5 @@
 package de.johni0702.minecraft.betterportals.common
 
-import io.netty.util.ReferenceCounted
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
@@ -104,33 +103,6 @@ object Utils {
         to.prevDistanceWalkedModified = from.prevDistanceWalkedModified
         to.isSneaking = from.isSneaking
         to.isSprinting = from.isSprinting
-    }
-}
-
-interface AReferenceCounted : ReferenceCounted {
-    override fun touch(): ReferenceCounted = this
-    override fun touch(hint: Any?): ReferenceCounted = this
-
-    var refCnt: Int
-    override fun refCnt(): Int = refCnt
-    fun doRelease()
-
-    override fun release(): Boolean = release(1)
-    override fun release(decrement: Int): Boolean {
-        if (decrement <= 0) return false
-        if (refCnt <= 0) throw IllegalStateException("refCnt is already at 0")
-        refCnt -= decrement
-        if (refCnt <= 0) {
-            doRelease()
-            return true
-        }
-        return false
-    }
-
-    override fun retain(): ReferenceCounted = retain(1)
-    override fun retain(increment: Int): ReferenceCounted {
-        refCnt += increment
-        return this
     }
 }
 

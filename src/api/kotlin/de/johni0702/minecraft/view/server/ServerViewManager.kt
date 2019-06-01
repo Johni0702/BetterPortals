@@ -19,8 +19,7 @@ interface ServerViewManager : ViewManager {
     /**
      * Create a new view of [world] at [pos].
      *
-     * The view is created with a reference count of one. Unless [ServerView.release] is called, the view will never be
-     * destroyed (until the player disconnects).
+     * To use the view, you **must** acquire a [Ticket] for it via any of its `allocate*Ticket` methods.
      *
      * @param world World of which the view is created
      * @param pos The position where the newly created camera will be placed
@@ -47,3 +46,9 @@ val NetHandlerPlayServer.viewManager get() = ServerViewAPI.instance.getViewManag
  * The server-side view manager responsible for this player.
  */
 val EntityPlayerMP.viewManager get() = ServerViewAPI.instance.getViewManager(this)
+
+/**
+ * The server-side view for which this player is the camera.
+ * Can return null e.g. for [net.minecraftforge.common.util.FakePlayer].
+ */
+val EntityPlayerMP.view get() = ServerViewAPI.instance.getView(this)

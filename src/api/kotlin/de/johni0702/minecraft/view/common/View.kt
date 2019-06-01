@@ -1,10 +1,13 @@
 package de.johni0702.minecraft.view.common
 
-import de.johni0702.minecraft.view.client.ClientView
 import net.minecraft.entity.player.EntityPlayer
 
 /**
- * Provides a view of a different world to a player.
+ * Represents a player's view of a world.
+ * Multiple views may exist of the same or multiple worlds but only one of which is the main view at any one time.
+ * The main view is the one which has the actual player entity, is responsible for user input and by default is the only
+ * view rendered.
+ *
  * Note that the world being viewed only changes when the player re-spawns after death with this view active
  * or some other mod changes the dimension of the player with this view active.
  */
@@ -32,21 +35,10 @@ interface View {
      * The camera entity for this view.
      * For the [main view][isMainView], this is the ordinary player entity. For all other views, this is a special
      * entity which is invisible to all players and does not interact with the world.
-     * While the [camera] may change after [makeMainView], the world it's in will not.
+     *
+     * The camera entity may change when the main view changes or, if this is the main view, on player respawn.
+     * However the world it resides in will only ever change when this is the main view and the player respawns. In
+     * particular it will not change when the main view changes.
      */
     val camera: EntityPlayer
-
-    /**
-     * Changes this view to be the main view by swapping [camera] entities and designation with the [current main view]
-     * [ViewManager.mainView].
-     * The position, rotation and some other state of the camera entities are swapped as well, such that `camera.pos`
-     * is the same before and after this call. Or more generally, rendering the world with the camera before and after
-     * the call will look (almost) the same.
-     * Does nothing if this view [is the main view][isMainView].
-     * Note that this method **must not** be called while any significant view-dependent operation is in progress (e.g.
-     * rendering, world ticking, [ClientView.withView]).
-     * If views are reference counted (server-side), calling this method decrements the reference count of the old main
-     * view and increments the one of this view.
-     */
-    fun makeMainView()
 }
