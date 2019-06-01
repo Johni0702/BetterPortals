@@ -42,7 +42,11 @@ class ViewRenderManager {
             eventHandler.fogOffset = value
         }
 
-    fun allocFramebuffer() = framebufferPool.popOrNull() ?: FramebufferD(frameWidth, frameHeight)
+    fun allocFramebuffer() = framebufferPool.popOrNull() ?: FramebufferD(frameWidth, frameHeight).apply {
+        if (!isStencilEnabled && Minecraft.getMinecraft().framebuffer.isStencilEnabled) {
+            enableStencil()
+        }
+    }
 
     fun releaseFramebuffer(framebuffer: FramebufferD) {
         framebufferPool.add(framebuffer)
