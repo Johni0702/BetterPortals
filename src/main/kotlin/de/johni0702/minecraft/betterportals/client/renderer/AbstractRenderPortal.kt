@@ -58,11 +58,18 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             // might be looking at right now (i.e. on the other side of any portals in our world)
             // Actually, we do still want to render it outside the portal frame but only on the right side,
             // because there it'll be visible when looking at the portal from the side.
-            val inPortals = entity.world.getEntitiesWithinAABB(
-                    AbstractPortalEntity::class.java,
-                    entity.renderBoundingBox,
-                    { it?.localPosition != portal?.remotePosition } // ignore remote end of current portal
-            )
+            val entityAABB = entity.renderBoundingBox
+            val inPortals = entity.world.getEntities(AbstractPortalEntity::class.java) {
+                it != null
+                        // the portal has to be alive
+                        && !it.isDead
+                        // and not the remote end of our current one
+                        && it.localPosition != portal?.remotePosition
+                        // the entity has to be even remotely close to it
+                        && it.localBoundingBox.intersects(entityAABB)
+                        // if it is, then check if it's actually in one of the blocks (and not some hole)
+                        && it.localBlocks.any { block -> AxisAlignedBB(block).intersects(entityAABB) }
+            }
             // FIXME can't deal with entities which are in more than one portal at the same time
             inPortals.firstOrNull()?.let {
                 val entityPos = entity.syncPos + entity.eyeOffset
