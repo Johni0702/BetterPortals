@@ -29,8 +29,6 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
 
         private val mc: Minecraft = Minecraft.getMinecraft()
 
-        private var portalStack = mutableListOf<Instance<*>>()
-
         private val stencilStack = mutableListOf<Boolean>()
         private val clippingStack = mutableListOf<Boolean>()
 
@@ -106,7 +104,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
                 GL11.glDisable(GL11.GL_CLIP_PLANE4)
             }
 
-            if (portalStack.isEmpty()) return
+            if (ViewRenderPlan.CURRENT?.parentPortal == null) return
 
             GL11.glEnable(GL11.GL_CLIP_PLANE5)
             if (stencilStack.removeAt(stencilStack.size - 1)) {
