@@ -1,10 +1,16 @@
 package de.johni0702.minecraft.view.client.render
 
+import de.johni0702.minecraft.view.client.ClientView
+import de.johni0702.minecraft.view.client.ClientViewAPI
+import net.minecraftforge.fml.common.eventhandler.Event
+
 /**
  * Manages the way in which multiple views will be rendered in order to produce one final frame.
  *
  * For each frame, it will first build a tree of [RenderPass]es, then render each one to its own framebuffer and
  * finally render the result of the root [RenderPass] to Minecraft's framebuffer.
+ *
+ * To get the current instance, call [ClientViewAPI.getRenderPassManager].
  */
 interface RenderPassManager {
     /**
@@ -22,3 +28,36 @@ interface RenderPassManager {
      */
     val current: RenderPass?
 }
+
+/**
+ * Emitted to determine the [root][RenderPassManager.root] node of the render pass tree.
+ * The default root node mimics vanilla.
+ */
+class DetermineRootPassEvent(
+        val manager: RenderPassManager,
+        val partialTicks: Float,
+        var view: ClientView,
+        var camera: Camera
+) : Event()
+
+/**
+ * Emitted to populate the render pass tree, i.e. add more passes where required.
+ *
+ * The event may be emitted multiple times for each tree in order to allow all participants to inspect the full tree.
+ * If you've substantially changed the tree, make sure to set [changed] to `true` to give others a chance to
+ * react to your changes.
+ */
+class PopulateTreeEvent(
+        val partialTicks: Float,
+
+        /**
+         * The root node of the tree.
+         */
+        val root: RenderPass,
+
+        /**
+         * When set to true, the event will be re-emitted to give everyone a fair chance of dealing with the updated
+         * tree.
+         */
+        var changed: Boolean
+) : Event()

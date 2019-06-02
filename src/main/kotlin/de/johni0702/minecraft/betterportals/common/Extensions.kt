@@ -24,6 +24,8 @@ import net.minecraft.world.WorldServer
 import net.minecraft.world.chunk.BlockStateContainer
 import net.minecraft.world.chunk.BlockStatePaletteHashMap
 import net.minecraft.world.chunk.BlockStatePaletteLinear
+import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.fml.common.eventhandler.Event
 import net.minecraftforge.fml.common.eventhandler.EventBus
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 import javax.vecmath.*
@@ -250,3 +252,5 @@ private class EventBusRegistration<in T>(
     }
 
 }
+
+fun <T: Event> T.post() = apply { MinecraftForge.EVENT_BUS.post(this) }

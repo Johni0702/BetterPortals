@@ -2,6 +2,8 @@ package de.johni0702.minecraft.view.client.render
 
 import de.johni0702.minecraft.view.client.ClientView
 import net.minecraft.client.shader.Framebuffer
+import net.minecraftforge.fml.common.eventhandler.Cancelable
+import net.minecraftforge.fml.common.eventhandler.Event
 
 /**
  * Contains settings and dependencies for rendering a single view.
@@ -68,3 +70,42 @@ inline fun <reified T> RenderPass.get(): T? = get(T::class.java)
  * Return the detail of given type or `null` if not set.
  */
 inline fun <reified T> RenderPass.set(detail: T?) = set(T::class.java, detail)
+
+
+
+abstract class RenderPassEvent(
+        val partialTicks: Float,
+        val renderPass: RenderPass
+) : Event() {
+    /**
+     * Emitted before a [RenderPass] or any of its children are run, early enough to cancel all of it.
+     */
+    @Cancelable
+    class Prepare(partialTicks: Float, renderPass: RenderPass) : RenderPassEvent(partialTicks, renderPass)
+
+    /**
+     * Emitted before a [RenderPass] is run, after all children have been run but still early enough to cancel it.
+     */
+    @Cancelable
+    class Before(partialTicks: Float, renderPass: RenderPass) : RenderPassEvent(partialTicks, renderPass)
+
+    /**
+     * Emitted right before the view of a [RenderPass] is drawn.
+     * All its children have already been drawn (except those that were cancelled).
+     * The framebuffer has been set up and bound but rendering has not yet begun.
+     */
+    class Start(partialTicks: Float, renderPass: RenderPass) : RenderPassEvent(partialTicks, renderPass)
+
+    /**
+     * Emitted right after the view of a [RenderPass] has been drawn.
+     * The framebuffer has been set up, bound (and still is) and drawn onto.
+     */
+    class End(partialTicks: Float, renderPass: RenderPass) : RenderPassEvent(partialTicks, renderPass)
+
+    /**
+     * Emitted after the view of a [RenderPass] has been drawn.
+     * The framebuffer has been set up, bound, drawn onto, finally unbound and is now ready to use for the parent view.
+     * If any post processing of the framebuffer or general cleanup needs to happen, now is the time for that.
+     */
+    class After(partialTicks: Float, renderPass: RenderPass) : RenderPassEvent(partialTicks, renderPass)
+}

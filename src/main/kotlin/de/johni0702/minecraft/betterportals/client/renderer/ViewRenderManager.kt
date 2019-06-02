@@ -8,9 +8,7 @@ import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.betterportals.client.view.ClientViewImpl
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
-import de.johni0702.minecraft.view.client.render.Camera
-import de.johni0702.minecraft.view.client.render.RenderPass
-import de.johni0702.minecraft.view.client.render.RenderPassManager
+import de.johni0702.minecraft.view.client.render.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.culling.Frustum
@@ -149,12 +147,13 @@ class ViewRenderManager : RenderPassManager {
         GlStateManager.pushMatrix()
         eventHandler.capture = true
         eventHandler.mainCameraYaw = cameraYaw.toFloat()
-        eventHandler.mainCameraPitch = cameraYaw.toFloat()
+        eventHandler.mainCameraPitch = cameraPitch.toFloat()
         val camera = view.withView {
             mc.entityRenderer.setupCameraTransform(partialTicks, 0)
             val entity = mc.renderViewEntity!!
             val entityPos = entity.lastTickPos + (entity.pos - entity.lastTickPos) * partialTicks.toDouble()
-            Frustum().apply { setPosition(entityPos.x, entityPos.y, entityPos.z) }
+            val frustum = Frustum().apply { setPosition(entityPos.x, entityPos.y, entityPos.z) }
+            Camera(frustum, cameraPos, Vec3d(cameraPitch, cameraYaw, 0.0))
         }
         eventHandler.capture = false
         GlStateManager.popMatrix()
@@ -162,10 +161,17 @@ class ViewRenderManager : RenderPassManager {
         val maxRecursions = if (BPConfig.seeThroughPortals) 5 else 0
 
         // Build render plan
-        val plan = ViewRenderPlan(this, null, view, Camera(camera, cameraPos, Vec3d(cameraYaw, cameraPitch, 0.0)))
+        var plan = with(DetermineRootPassEvent(this, partialTicks, view, camera).post()) {
+            ViewRenderPlan(this@ViewRenderManager, null, this.view, this.camera)
+        }
 
         // Recursively add portal views
         plan.addPortals(maxRecursions)
+
+        do {
+            val event = PopulateTreeEvent(partialTicks, plan, false).post()
+            plan = event.root as ViewRenderPlan
+        } while (event.changed)
 
         // Update occlusion queries
         occlusionQueries.values.forEach { it.update() }
@@ -190,9 +196,11 @@ class ViewRenderManager : RenderPassManager {
         // execute
         mc.framebuffer.unbindFramebuffer()
         ViewRenderPlan.MAIN = plan
-        val framebuffer = plan.render(partialTicks, finishTimeNano)
+        plan.render(partialTicks, finishTimeNano)
         ViewRenderPlan.MAIN = null
         mc.framebuffer.bindFramebuffer(true)
+
+        val framebuffer = plan.framebuffer ?: return
 
         mc.mcProfiler.startSection("renderFramebuffer")
         framebuffer.framebufferRender(frameWidth, frameHeight)
@@ -355,6 +363,7 @@ class ViewRenderPlan(
         GlStateManager.pushMatrix()
 
         // Clear framebuffer
+        // TODO given we move the fog calculations into some mixin, we should no longer need this block
         GlStateManager.disableFog()
         GlStateManager.disableLighting()
         mc.entityRenderer.disableLightmap()
@@ -395,11 +404,15 @@ class ViewRenderPlan(
             }
         }
 
+        RenderPassEvent.Start(partialTicks, this).post()
+
         // Actually render the world
         val prevRenderPlan = ViewRenderPlan.CURRENT
         ViewRenderPlan.CURRENT = this
         mc.entityRenderer.renderWorld(partialTicks, finishTimeNano)
         ViewRenderPlan.CURRENT = prevRenderPlan
+
+        RenderPassEvent.Start(partialTicks, this).post()
 
         manager.fogOffset = 0f
         GlStateManager.popMatrix()
@@ -413,14 +426,18 @@ class ViewRenderPlan(
     /**
      * Render this view and all of its dependencies.
      */
-    fun render(partialTicks: Float, finishTimeNano: Long): FramebufferD = try {
-        renderDeps(partialTicks)
-        MinecraftForge.EVENT_BUS.post(PreRenderView(this, partialTicks))
-        renderSelf(partialTicks, finishTimeNano)
-    } finally {
-        children.forEach {
-            manager.releaseFramebuffer(it.framebuffer ?: return@forEach)
-            it.framebuffer = null
+    fun render(partialTicks: Float, finishTimeNano: Long) {
+        try {
+            if (RenderPassEvent.Prepare(partialTicks, this).post().isCanceled) return
+            renderDeps(partialTicks)
+            if (RenderPassEvent.Before(partialTicks, this).post().isCanceled) return
+            renderSelf(partialTicks, finishTimeNano)
+            RenderPassEvent.After(partialTicks, this).post()
+        } finally {
+            children.forEach {
+                manager.releaseFramebuffer(it.framebuffer ?: return@forEach)
+                it.framebuffer = null
+            }
         }
     }
 }
