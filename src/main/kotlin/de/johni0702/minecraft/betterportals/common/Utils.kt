@@ -1,11 +1,9 @@
 package de.johni0702.minecraft.betterportals.common
 
-import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.math.AxisAlignedBB
-import net.minecraft.util.math.BlockPos
 import javax.vecmath.AxisAngle4d
 import javax.vecmath.Matrix4d
 import javax.vecmath.Point3d
@@ -104,22 +102,4 @@ object Utils {
         to.isSneaking = from.isSneaking
         to.isSprinting = from.isSprinting
     }
-}
-
-class Gettable<in K, out V>(
-        private val getter: (K) -> V
-) {
-    operator fun get(key: K): V = getter(key)
-    operator fun invoke(key: K) = getter(key)
-}
-typealias BlockCache = Gettable<BlockPos, IBlockState>
-
-object Mat4d {
-    fun id() = Matrix4d().apply { setIdentity() }
-    fun add(dx: Double, dy: Double, dz: Double) = add(Vector3d(dx, dy, dz))
-    fun add(vec: Vector3d) = id().apply { setTranslation(vec) }
-    fun sub(dx: Double, dy: Double, dz: Double) = sub(Vector3d(dx, dy, dz))
-    fun sub(vec: Vector3d) = id().apply { setTranslation(Vector3d().also { it.negate(vec) }) }
-    fun rotYaw(angle: Number) = id().apply { setRotation(AxisAngle4d(0.0, -1.0, 0.0, Math.toRadians(angle.toDouble()))) }
-    fun inverse(of: Matrix4d) = id().apply { invert(of) }
 }

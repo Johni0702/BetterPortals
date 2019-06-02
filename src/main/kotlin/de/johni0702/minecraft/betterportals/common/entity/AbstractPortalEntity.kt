@@ -48,7 +48,7 @@ abstract class AbstractPortalEntity(
         override var remoteDimension: Int?,
         override var remotePosition: BlockPos,
         override var remoteRotation: Rotation
-) : Entity(world), Portal.Mutable, IEntityAdditionalSpawnData {
+) : Entity(world), FinitePortal.Mutable, IEntityAdditionalSpawnData {
 
     override fun getRenderBoundingBox(): AxisAlignedBB = localBoundingBox
     override var localPosition = localPosition

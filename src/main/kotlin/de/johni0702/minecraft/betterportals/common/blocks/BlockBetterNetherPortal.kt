@@ -1,7 +1,9 @@
 package de.johni0702.minecraft.betterportals.common.blocks
 
+import de.johni0702.minecraft.betterportals.BetterPortalsMod
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.Utils.EMPTY_AABB
+import de.johni0702.minecraft.betterportals.common.block.PortalBlock
 import de.johni0702.minecraft.betterportals.common.entity.NetherPortalEntity
 import net.minecraft.block.Block
 import net.minecraft.block.BlockPortal
@@ -33,6 +35,7 @@ class BlockBetterNetherPortal : BlockPortal(), PortalBlock<NetherPortalEntity> {
     override val frameStepsBlock: Block get() = Blocks.OBSIDIAN
     override val maxPortalSize: Int = 100
     override val entityType: Class<NetherPortalEntity> = NetherPortalEntity::class.java
+    override val mod = BetterPortalsMod.INSTANCE
 
     override fun createPortalEntity(localEnd: Boolean, world: World, plane: EnumFacing.Plane, portalBlocks: Set<BlockPos>,
                                     localDim: Int, localPos: BlockPos, localRot: Rotation): NetherPortalEntity =

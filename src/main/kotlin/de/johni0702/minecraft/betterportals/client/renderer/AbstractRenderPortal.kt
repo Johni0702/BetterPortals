@@ -64,7 +64,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
                         // the entity has to be even remotely close to it
                         && it.localBoundingBox.intersects(entityAABB)
                         // if it is, then check if it's actually in one of the blocks (and not some hole)
-                        && it.localBlocks.any { block -> AxisAlignedBB(block).intersects(entityAABB) }
+                        && it.localDetailedBounds.any { aabb -> aabb.intersects(entityAABB) }
             }
             // FIXME can't deal with entities which are in more than one portal at the same time
             inPortals.firstOrNull()?.let {
@@ -114,7 +114,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
         val portal = entity
         val player: EntityPlayerSP = mc.player
         val isPlayerInPortal = portal.localBoundingBox.intersects(player.entityBoundingBox)
-                && portal.localBlocks.any { AxisAlignedBB(it).intersects(player.entityBoundingBox) }
+                && portal.localDetailedBounds.any { it.intersects(player.entityBoundingBox) }
 
         val portalRotation = portal.localRotation
         val portalFacing = portal.localFacing

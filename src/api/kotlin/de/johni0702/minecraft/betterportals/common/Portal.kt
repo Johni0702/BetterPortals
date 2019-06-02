@@ -13,7 +13,6 @@ import javax.vecmath.Matrix4d
 
 interface Portal {
     val plane: EnumFacing.Plane
-    val relativeBlocks: Set<BlockPos>
     val localDimension: Int
     val localPosition: BlockPos
     val localRotation: Rotation
@@ -52,17 +51,14 @@ interface Portal {
                 Mat4d.rotYaw((remoteRotation - localRotation).degrees) *
                 Mat4d.sub((localPosition.to3d() + Vec3d(0.5, 0.0, 0.5)).toJavaX())
 
-    val localBlocks get() = relativeBlocks.map { it.toLocal() }.toSet()
-    val remoteBlocks get() = relativeBlocks.map { it.toRemote() }.toSet()
+    val localDetailedBounds: Iterable<AxisAlignedBB>
+    val remoteDetailedBounds: Iterable<AxisAlignedBB>
 
-    val localBoundingBox: AxisAlignedBB get() = localBlocks.toAxisAlignedBB()
-    val remoteBoundingBox: AxisAlignedBB get() = remoteBlocks.toAxisAlignedBB()
+    val localBoundingBox: AxisAlignedBB
+    val remoteBoundingBox: AxisAlignedBB
 
     fun writePortalToNBT(): NBTTagCompound = NBTTagCompound().apply {
         setInteger("Plane", plane.ordinal)
-        setTag("Blocks", NBTTagList().apply {
-            relativeBlocks.forEach { appendTag(NBTTagCompound().setXYZ(it)) }
-        })
         setTag("Local", NBTTagCompound().apply {
             setXYZ(localPosition)
             setInteger("Rotation", localRotation.ordinal)
@@ -82,9 +78,8 @@ interface Portal {
         fun link(remoteDimension: Int, remotePosition: BlockPos, remoteRotation: Rotation)
     }
 
-    interface Mutable : Portal.Linkable {
+    interface Mutable : Linkable {
         override var plane: EnumFacing.Plane
-        override var relativeBlocks: Set<BlockPos>
         override var localDimension: Int
         override var localPosition: BlockPos
         override var localRotation: Rotation
@@ -101,9 +96,6 @@ interface Portal {
         fun readPortalFromNBT(nbt: NBTBase?) {
             (nbt as? NBTTagCompound)?.apply {
                 plane = EnumFacing.Plane.values()[getInteger("Plane")]
-                relativeBlocks = getTagList("Blocks", Constants.NBT.TAG_COMPOUND).map {
-                    (it as NBTTagCompound).getXYZ()
-                }.toSet()
                 getCompoundTag("Local").apply {
                     localPosition = getXYZ()
                     localRotation = Rotation.values()[getInteger("Rotation")]
@@ -120,6 +112,39 @@ interface Portal {
                     remoteRotation = Rotation.NONE
                     remoteDimension = null
                 }
+            }
+        }
+    }
+}
+
+interface FinitePortal : Portal {
+    val relativeBlocks: Set<BlockPos>
+
+    val localBlocks get() = relativeBlocks.map { it.toLocal() }.toSet()
+    val remoteBlocks get() = relativeBlocks.map { it.toRemote() }.toSet()
+
+    override val localDetailedBounds get() = localBlocks.map(::AxisAlignedBB)
+    override val remoteDetailedBounds get() = remoteBlocks.map(::AxisAlignedBB)
+
+    override val localBoundingBox: AxisAlignedBB get() = localBlocks.toAxisAlignedBB()
+    override val remoteBoundingBox: AxisAlignedBB get() = remoteBlocks.toAxisAlignedBB()
+
+    override fun writePortalToNBT(): NBTTagCompound = super.writePortalToNBT().apply {
+        setTag("Blocks", NBTTagList().apply {
+            relativeBlocks.forEach { appendTag(NBTTagCompound().setXYZ(it)) }
+        })
+    }
+
+    interface Linkable : FinitePortal, Portal.Linkable
+
+    interface Mutable : Linkable, Portal.Mutable {
+        override var relativeBlocks: Set<BlockPos>
+        override fun readPortalFromNBT(nbt: NBTBase?) {
+            super.readPortalFromNBT(nbt)
+            (nbt as? NBTTagCompound)?.apply {
+                relativeBlocks = getTagList("Blocks", Constants.NBT.TAG_COMPOUND).map {
+                    (it as NBTTagCompound).getXYZ()
+                }.toSet()
             }
         }
     }

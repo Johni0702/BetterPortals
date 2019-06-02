@@ -1,8 +1,10 @@
 package de.johni0702.minecraft.betterportals.common.blocks
 
+import de.johni0702.minecraft.betterportals.BetterPortalsMod
 import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.TF_MOD_ID
 import de.johni0702.minecraft.betterportals.common.*
+import de.johni0702.minecraft.betterportals.common.block.PortalBlock
 import de.johni0702.minecraft.betterportals.common.entity.TFPortalEntity
 import net.minecraft.block.Block
 import net.minecraft.block.state.IBlockState
@@ -40,6 +42,7 @@ class BlockBetterTFPortal : BlockTFPortal(), PortalBlock<TFPortalEntity> {
         get() = 100
     override val entityType: Class<TFPortalEntity>
         get() = TFPortalEntity::class.java
+    override val mod = BetterPortalsMod.INSTANCE
 
     override fun getRemoteWorldFor(localWorld: WorldServer, pos: BlockPos): WorldServer {
         val tfDimId = TFConfig.dimension.dimensionID

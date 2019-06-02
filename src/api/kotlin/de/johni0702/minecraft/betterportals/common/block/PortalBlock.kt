@@ -1,12 +1,12 @@
-package de.johni0702.minecraft.betterportals.common.blocks
+package de.johni0702.minecraft.betterportals.common.block
 
-import de.johni0702.minecraft.betterportals.BetterPortalsMod
-import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.common.*
 import net.minecraft.block.Block
+import net.minecraft.crash.CrashReport
 import net.minecraft.entity.Entity
 import net.minecraft.init.Blocks
 import net.minecraft.util.EnumFacing
+import net.minecraft.util.ReportedException
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
@@ -23,7 +23,7 @@ import kotlin.math.roundToInt
 /**
  * Interface which can be inherited from by blocks which form arbitrarily shaped portal structures.
  */
-interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.Linkable {
+interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePortal.Linkable {
     /**
      * Type of block used as the portal block itself. Usually `this`.
      * Probably shouldn't be solid.
@@ -53,6 +53,11 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
      * The type of entity created by this block.
      */
     val entityType: Class<EntityType>
+
+    /**
+     * The instance of the mod to be passed to [ForgeChunkManager.requestTicket].
+     */
+    val mod: Any
 
     /**
      * Returns the remote world for a portal created at [pos] in the [localWorld].
@@ -97,13 +102,8 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
         }
         localWorld.forceSpawnEntity(localPortal)
 
-        future.handleAsync({ result, throwable ->
-            if (throwable != null) {
-                LOGGER.error("Finding remote portal frame: ", throwable)
-                localPortal.setDead()
-            }
-
-            if (localPortal.isDead) return@handleAsync
+        future.thenAcceptAsync({ result ->
+            if (localPortal.isDead) return@thenAcceptAsync
 
             val (remotePos, remoteRot) = result
             val remotePortal = createPortalEntity(false, remoteWorld, localAxis.perpendicularPlane, portalBlocks, remoteDim, remotePos, remoteRot)
@@ -114,7 +114,11 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
 
             localPortal.link(remoteDim, remotePos, remoteRot)
             remotePortal.link(localDim, localPos, localRot)
-        }, { localWorld.server.addScheduledTask(it) }).exceptionally { LOGGER.catching(it) }
+        }, { localWorld.server.addScheduledTask(it) }).exceptionally {
+            localPortal.setDead()
+            val report = CrashReport.makeCrashReport(it, "Finding remote portal")
+            throw ReportedException(report)
+        }
         return true
     }
 
@@ -170,7 +174,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Portal.L
         }
 
         // Make sure the world isn't unloaded while we're searching (that would invalidate our remoteWorld reference)
-        val ticket = ForgeChunkManager.requestTicket(BetterPortalsMod.INSTANCE, remoteWorld, ForgeChunkManager.Type.NORMAL)
+        val ticket = ForgeChunkManager.requestTicket(mod, remoteWorld, ForgeChunkManager.Type.NORMAL)
         ForgeChunkManager.forceChunk(ticket, remoteChunkPos)
 
         return CompletableFuture.allOf(*loadedChunks.toTypedArray()).thenApplyAsync {
