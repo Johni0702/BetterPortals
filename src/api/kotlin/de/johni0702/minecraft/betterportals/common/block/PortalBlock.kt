@@ -112,8 +112,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
             }
             remoteWorld.forceSpawnEntity(remotePortal)
 
-            localPortal.link(remoteDim, remotePos, remoteRot)
-            remotePortal.link(localDim, localPos, localRot)
+            localPortal.link(remotePortal)
         }, { localWorld.server.addScheduledTask(it) }).exceptionally {
             localPortal.setDead()
             val report = CrashReport.makeCrashReport(it, "Finding remote portal")

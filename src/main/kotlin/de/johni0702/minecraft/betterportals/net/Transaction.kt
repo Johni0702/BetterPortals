@@ -1,16 +1,11 @@
 package de.johni0702.minecraft.betterportals.net
 
 import de.johni0702.minecraft.betterportals.LOGGER
-import de.johni0702.minecraft.betterportals.MOD_ID
 import de.johni0702.minecraft.betterportals.client.view.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.betterportals.common.*
-import de.johni0702.minecraft.view.server.viewManager
 import io.netty.buffer.ByteBuf
-import io.netty.buffer.Unpooled
 import net.minecraft.client.Minecraft
-import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.network.PacketBuffer
-import net.minecraft.network.play.server.SPacketCustomPayload
 import net.minecraft.util.Util
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
@@ -88,19 +83,5 @@ class Transaction(
 
     companion object {
         private var inTransaction = 0
-
-        fun start(player: EntityPlayerMP) {
-            with(player.viewManager.player) {
-                connection.sendPacket(SPacketCustomPayload("$MOD_ID|TS", PacketBuffer(Unpooled.EMPTY_BUFFER)))
-                Transaction(Phase.START).sendTo(this)
-            }
-        }
-
-        fun end(player: EntityPlayerMP) {
-            with(player.viewManager.player) {
-                Transaction(Phase.END).sendTo(this)
-                connection.sendPacket(SPacketCustomPayload("$MOD_ID|TE", PacketBuffer(Unpooled.EMPTY_BUFFER)))
-            }
-        }
     }
 }

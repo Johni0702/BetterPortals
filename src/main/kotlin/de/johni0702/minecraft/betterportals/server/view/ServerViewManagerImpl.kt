@@ -2,18 +2,19 @@ package de.johni0702.minecraft.betterportals.server.view
 
 import com.mojang.authlib.GameProfile
 import de.johni0702.minecraft.betterportals.LOGGER
+import de.johni0702.minecraft.betterportals.MOD_ID
 import de.johni0702.minecraft.betterportals.common.provideDelegate
-import de.johni0702.minecraft.betterportals.net.CreateView
-import de.johni0702.minecraft.betterportals.net.DestroyView
-import de.johni0702.minecraft.betterportals.net.ViewData
-import de.johni0702.minecraft.betterportals.net.sendTo
+import de.johni0702.minecraft.betterportals.net.*
+import de.johni0702.minecraft.betterportals.net.Transaction.Phase
 import de.johni0702.minecraft.betterportals.server.NettyExceptionHandler
 import de.johni0702.minecraft.view.server.ServerView
 import de.johni0702.minecraft.view.server.ServerViewManager
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.Unpooled
 import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.network.*
+import net.minecraft.network.play.server.SPacketCustomPayload
 import net.minecraft.network.play.server.SPacketDestroyEntities
 import net.minecraft.server.MinecraftServer
 import net.minecraft.util.math.Vec3d
@@ -141,6 +142,18 @@ internal class ServerViewManagerImpl(
                 ViewData(view.id, it as ByteBuf).sendTo(connection.player)
             }?.clear()
         }
+    }
+
+    override fun beginTransaction() {
+        flushPackets()
+        connection.sendPacket(SPacketCustomPayload("$MOD_ID|TS", PacketBuffer(Unpooled.EMPTY_BUFFER)))
+        Transaction(Phase.START).sendTo(player)
+    }
+
+    override fun endTransaction() {
+        flushPackets()
+        Transaction(Phase.END).sendTo(player)
+        connection.sendPacket(SPacketCustomPayload("$MOD_ID|TE", PacketBuffer(Unpooled.EMPTY_BUFFER)))
     }
 
     private inner class EventHandler {

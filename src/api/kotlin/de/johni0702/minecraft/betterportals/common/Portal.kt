@@ -57,6 +57,11 @@ interface Portal {
     val localBoundingBox: AxisAlignedBB
     val remoteBoundingBox: AxisAlignedBB
 
+    fun isTarget(other: Portal): Boolean =
+            remotePosition == other.localPosition
+                    && remoteDimension == other.localDimension
+                    && remoteRotation == other.localRotation
+
     fun writePortalToNBT(): NBTTagCompound = NBTTagCompound().apply {
         setInteger("Plane", plane.ordinal)
         setTag("Local", NBTTagCompound().apply {
@@ -75,7 +80,7 @@ interface Portal {
     }
 
     interface Linkable : Portal {
-        fun link(remoteDimension: Int, remotePosition: BlockPos, remoteRotation: Rotation)
+        fun link(other: Linkable)
     }
 
     interface Mutable : Linkable {
@@ -87,10 +92,13 @@ interface Portal {
         override var remotePosition: BlockPos
         override var remoteRotation: Rotation
 
-        override fun link(remoteDimension: Int, remotePosition: BlockPos, remoteRotation: Rotation) {
-            this.remoteDimension = remoteDimension
-            this.remotePosition = remotePosition
-            this.remoteRotation = remoteRotation
+        override fun link(other: Linkable) {
+            this.remoteDimension = other.localDimension
+            this.remotePosition = other.localPosition
+            this.remoteRotation = other.localRotation
+            if (!other.isTarget(this)) {
+                other.link(this)
+            }
         }
 
         fun readPortalFromNBT(nbt: NBTBase?) {

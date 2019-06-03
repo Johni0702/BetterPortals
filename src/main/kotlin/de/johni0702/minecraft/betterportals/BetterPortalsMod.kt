@@ -9,14 +9,11 @@ import de.johni0702.minecraft.betterportals.client.tile.renderer.BetterEndPortal
 import de.johni0702.minecraft.view.client.ClientViewManager
 import de.johni0702.minecraft.betterportals.client.view.ClientViewManagerImpl
 import de.johni0702.minecraft.betterportals.client.view.ViewDemuxingTaskQueue
+import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterEndPortal
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterNetherPortal
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterTFPortal
-import de.johni0702.minecraft.betterportals.common.entity.EndEntryPortalEntity
-import de.johni0702.minecraft.betterportals.common.entity.EndExitPortalEntity
-import de.johni0702.minecraft.betterportals.common.entity.NetherPortalEntity
-import de.johni0702.minecraft.betterportals.common.entity.TFPortalEntity
-import de.johni0702.minecraft.betterportals.common.logFailure
+import de.johni0702.minecraft.betterportals.common.entity.*
 import de.johni0702.minecraft.betterportals.net.Net
 import de.johni0702.minecraft.view.client.ClientViewAPI
 import de.johni0702.minecraft.view.client.render.RenderPassManager
@@ -37,6 +34,7 @@ import net.minecraft.world.WorldServer
 import net.minecraftforge.common.ForgeChunkManager
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.RegistryEvent
+import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.fml.client.registry.ClientRegistry
 import net.minecraftforge.fml.client.registry.RenderingRegistry
 import net.minecraftforge.fml.common.Loader
@@ -57,7 +55,7 @@ const val TF_MOD_ID = "twilightforest"
 lateinit var LOGGER: Logger
 
 @Mod(modid = MOD_ID, useMetadata = true)
-class BetterPortalsMod: ViewAPI {
+class BetterPortalsMod: ViewAPI, BetterPortalsAPI {
 
     internal val hasTwilightForest by lazy { BPConfig.enableExperimentalTwilightForestPortals && Loader.isModLoaded(TF_MOD_ID) }
 
@@ -91,6 +89,8 @@ class BetterPortalsMod: ViewAPI {
     override val server: ServerViewAPI
         get() = PROXY as ServerViewAPI
 
+    override fun getPortalManager(world: World): PortalManager = (world as HasPortalManager).portalManager
+
     interface Proxy {
         fun preInit(mod: BetterPortalsMod)
         fun init(mod: BetterPortalsMod)
@@ -120,6 +120,13 @@ class BetterPortalsMod: ViewAPI {
                         Int.MAX_VALUE,
                         false
                 )
+                MinecraftForge.EVENT_BUS.register(object {
+                    @SubscribeEvent
+                    fun onWorld(event: WorldEvent.Load) {
+                        val world = event.world
+                        event.world.portalManager.registerPortals(PortalEntityAccessor(NetherPortalEntity::class.java, world))
+                    }
+                })
             }
             if (BPConfig.enableEndPortals) {
                 EntityRegistry.registerModEntity(
@@ -142,6 +149,15 @@ class BetterPortalsMod: ViewAPI {
                         Int.MAX_VALUE,
                         false
                 )
+                MinecraftForge.EVENT_BUS.register(object {
+                    @SubscribeEvent
+                    fun onWorld(event: WorldEvent.Load) {
+                        val world = event.world
+                        val portalManager = event.world.portalManager
+                        portalManager.registerPortals(PortalEntityAccessor(EndEntryPortalEntity::class.java, world))
+                        portalManager.registerPortals(PortalEntityAccessor(EndExitPortalEntity::class.java, world))
+                    }
+                })
             }
             if (mod.hasTwilightForest) {
                 EntityRegistry.registerModEntity(
@@ -154,6 +170,13 @@ class BetterPortalsMod: ViewAPI {
                         Int.MAX_VALUE,
                         false
                 )
+                MinecraftForge.EVENT_BUS.register(object {
+                    @SubscribeEvent
+                    fun onWorld(event: WorldEvent.Load) {
+                        val world = event.world
+                        event.world.portalManager.registerPortals(PortalEntityAccessor(TFPortalEntity::class.java, world))
+                    }
+                })
             }
         }
 

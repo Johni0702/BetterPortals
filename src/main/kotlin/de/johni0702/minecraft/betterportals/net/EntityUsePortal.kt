@@ -1,12 +1,13 @@
 package de.johni0702.minecraft.betterportals.net
 
 import de.johni0702.minecraft.betterportals.LOGGER
-import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
+import de.johni0702.minecraft.betterportals.common.portalManager
 import de.johni0702.minecraft.betterportals.common.readEnum
 import de.johni0702.minecraft.betterportals.common.sync
 import de.johni0702.minecraft.betterportals.common.writeEnum
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.PacketBuffer
+import net.minecraft.util.ResourceLocation
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
@@ -14,13 +15,13 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 class EntityUsePortal(
         var phase: Phase = Phase.BEFORE,
         var entityId: Int = 0,
-        var portalId: Int = 0
+        var portalId: ResourceLocation? = null
 ) : IMessage {
     override fun fromBytes(buf: ByteBuf) {
         with(PacketBuffer(buf)) {
             phase = readEnum()
             entityId = readVarInt()
-            portalId = readVarInt()
+            portalId = readResourceLocation()
         }
     }
 
@@ -28,7 +29,7 @@ class EntityUsePortal(
         with(PacketBuffer(buf)) {
             writeEnum(phase)
             writeVarInt(entityId)
-            writeVarInt(portalId)
+            writeResourceLocation(portalId!!)
         }
     }
 
@@ -36,7 +37,7 @@ class EntityUsePortal(
         override fun onMessage(message: EntityUsePortal, ctx: MessageContext): IMessage? {
             ctx.sync {
                 val world = ctx.clientHandler.clientWorldController
-                val portal = world.getEntityByID(message.portalId) as? AbstractPortalEntity
+                val portal = world.portalManager.findById(message.portalId!!)
                 if (portal == null) {
                     LOGGER.warn("Received EntityUsePortal for unknown portal with id ${message.portalId}")
                     return@sync

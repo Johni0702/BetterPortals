@@ -94,10 +94,10 @@ class ViewRenderManager : RenderPassManager {
         var hitVisualPosition = false
         while (true) {
             val hitInfo = view.camera.world.getEntities(AbstractPortalEntity::class.java) {
-                val view = it?.view
+                val view = it?.agent?.view
                 // FIXME handle one-way portals
-                // Ignore portals which haven't yet been loaded or have already been destroyed
-                view != null && !it.isDead
+                // Ignore portals which haven't yet been loaded
+                view != null
                         // or have already been used in the previous iteration
                         && (view.camera.world != parentPortal?.world || it.localPosition != parentPortal?.remotePosition)
             }.flatMap { portal ->
@@ -126,7 +126,7 @@ class ViewRenderManager : RenderPassManager {
                 // If we hit a portal, switch to its view and transform the camera/entity positions accordingly
                 // also change the current position to be in the portal so we don't accidentally match any portals
                 // behind the one we're looking through.
-                view = portal.view!!
+                view = portal.agent.view!!
                 target = (portal.localToRemoteMatrix * target.toPoint()).toMC()
                 cameraPos = (portal.localToRemoteMatrix * cameraPos.toPoint()).toMC()
                 cameraYaw += (portal.remoteRotation - portal.localRotation).degrees.toDouble()
@@ -292,10 +292,10 @@ class ViewRenderPlan(
             // portal must be visible (i.e. must not be frustum culled)
             it!!.canBeSeen(camera.frustum)
                     // its view must have been loaded (otherwise there's nothing to render)
-                    && it.view != null
+                    && it.agent.view != null
                     // it must not be our parent (the portal from which this world is being viewed)
                     // that is, it must either link to a different world or to a different place than our parent portal
-                    && (it.view != parentPortal?.view || it.remotePosition != parentPortal?.localPosition)
+                    && (it.agent.view != parentPortal?.agent?.view || it.remotePosition != parentPortal?.localPosition)
                     // it must not be occluded by blocks
                     && !manager.getOcclusionQuery(it).occluded
         }.forEach { portal ->
@@ -304,7 +304,7 @@ class ViewRenderPlan(
             val cameraPos = (portal.localToRemoteMatrix * camera.position.toPoint()).toMC()
             val frustum = PortalCamera(portal, cameraPos, camera.frustum)
             val camera = Camera(frustum, cameraPos, cameraRot)
-            val plan = addChild(portal.view!!, camera)
+            val plan = addChild(portal.agent.view!!, camera)
             plan.portalDetail = PortalDetail(portal)
             plan.addPortals(maxRecursions - 1)
         }

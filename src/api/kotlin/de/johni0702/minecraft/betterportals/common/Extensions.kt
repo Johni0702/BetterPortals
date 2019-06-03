@@ -3,7 +3,9 @@ package de.johni0702.minecraft.betterportals.common
 import net.minecraft.block.state.IBlockState
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.entity.Entity
+import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.EntityTracker
+import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTTagCompound
@@ -255,3 +257,62 @@ private class EventBusRegistration<in T>(
 }
 
 fun <T: Event> T.post() = apply { MinecraftForge.EVENT_BUS.post(this) }
+
+
+fun Entity.derivePosRotFrom(from: Entity, portal: Portal) {
+    val rotation = portal.remoteRotation - portal.localRotation
+    derivePosRotFrom(from, portal.localToRemoteMatrix, rotation.degrees.toFloat())
+}
+
+fun Entity.derivePosRotFrom(from: Entity, matrix: Matrix4d, yawOffset: Float) {
+    val to = this
+    with(from) { matrix * Point3d(posX, posY, posZ) }.let { pos ->
+        to.setPosition(pos.x, pos.y, pos.z)
+    }
+    with(from) { matrix * Point3d(prevPosX, prevPosY, prevPosZ) }.let { pos ->
+        to.prevPosX = pos.x
+        to.prevPosY = pos.y
+        to.prevPosZ = pos.z
+    }
+    with(from) { matrix * Point3d(lastTickPosX, lastTickPosY, lastTickPosZ) }.let { pos ->
+        to.lastTickPosX = pos.x
+        to.lastTickPosY = pos.y
+        to.lastTickPosZ = pos.z
+    }
+    with(from) { matrix * Vector3d(motionX, motionY, motionZ) }.let { pos ->
+        to.motionX = pos.x
+        to.motionY = pos.y
+        to.motionZ = pos.z
+    }
+
+    to.rotationYaw = from.rotationYaw + yawOffset
+    to.prevRotationYaw = from.prevRotationYaw + yawOffset
+    to.rotationPitch = from.rotationPitch
+    to.prevRotationPitch = from.prevRotationPitch
+
+    if (to is EntityPlayer && from is EntityPlayer) {
+        to.cameraYaw = from.cameraYaw
+        to.prevCameraYaw = from.prevCameraYaw
+        to.cameraPitch = from.cameraPitch
+        to.prevCameraPitch = from.prevCameraPitch
+
+        // Sneaking
+        to.height = from.height
+    }
+
+    if (to is EntityLivingBase && from is EntityLivingBase) {
+        to.limbSwing = from.limbSwing
+        to.limbSwingAmount = from.limbSwingAmount
+        to.prevLimbSwingAmount = from.prevLimbSwingAmount
+
+        to.rotationYawHead = from.rotationYawHead + yawOffset
+        to.prevRotationYawHead = from.prevRotationYawHead + yawOffset
+        to.renderYawOffset = from.renderYawOffset + yawOffset
+        to.prevRenderYawOffset = from.prevRenderYawOffset + yawOffset
+    }
+
+    to.distanceWalkedModified = from.distanceWalkedModified
+    to.prevDistanceWalkedModified = from.prevDistanceWalkedModified
+    to.isSneaking = from.isSneaking
+    to.isSprinting = from.isSprinting
+}

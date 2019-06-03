@@ -1,35 +1,25 @@
 package de.johni0702.minecraft.betterportals.common.entity
 
-import de.johni0702.minecraft.betterportals.BPConfig
-import de.johni0702.minecraft.betterportals.LOGGER
-import de.johni0702.minecraft.betterportals.client.UtilsClient
-import de.johni0702.minecraft.view.client.ClientView
+import de.johni0702.minecraft.betterportals.client.deriveClientPosRotFrom
 import de.johni0702.minecraft.betterportals.common.*
-import de.johni0702.minecraft.betterportals.net.*
-import de.johni0702.minecraft.view.server.*
+import de.johni0702.minecraft.view.server.FixedLocationTicket
 import io.netty.buffer.ByteBuf
 import net.minecraft.block.material.Material
 import net.minecraft.client.Minecraft
-import net.minecraft.client.entity.AbstractClientPlayer
-import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.renderer.culling.ICamera
 import net.minecraft.entity.Entity
-import net.minecraft.entity.EntityList
-import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.network.PacketBuffer
 import net.minecraft.util.EnumFacing
+import net.minecraft.util.ResourceLocation
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
-import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
-import net.minecraftforge.common.ForgeHooks
 import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.event.entity.living.LivingFallEvent
 import net.minecraftforge.event.world.GetCollisionBoxesEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -37,6 +27,32 @@ import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
+
+open class PortalEntityPortalAgent(
+        manager: PortalManager,
+        open val entity: AbstractPortalEntity
+) : PortalAgent<FixedLocationTicket>(
+        manager,
+        PortalEntityAccessor.getId(entity),
+        entity,
+        { it.allocateFixedLocationTicket() }
+) {
+    // The entity ID might not be correct before the entity is actually spawned into the world
+    override val id: ResourceLocation
+        get() = PortalEntityAccessor.getId(entity)
+
+    override fun serverPortalUsed(player: EntityPlayerMP): Boolean {
+        val remotePortal = entity.getRemotePortal()
+        entity.ignoreTracking = true
+        remotePortal?.ignoreTracking = true
+        try {
+            return super.serverPortalUsed(player)
+        } finally {
+            entity.ignoreTracking = false
+            remotePortal?.ignoreTracking = false
+        }
+    }
+}
 
 abstract class AbstractPortalEntity(
         world: World,
@@ -48,7 +64,7 @@ abstract class AbstractPortalEntity(
         override var remoteDimension: Int?,
         override var remotePosition: BlockPos,
         override var remoteRotation: Rotation
-) : Entity(world), FinitePortal.Mutable, IEntityAdditionalSpawnData {
+) : Entity(world), PortalEntity, FinitePortal.Mutable, IEntityAdditionalSpawnData {
 
     override fun getRenderBoundingBox(): AxisAlignedBB = localBoundingBox
     override var localPosition = localPosition
@@ -61,6 +77,8 @@ abstract class AbstractPortalEntity(
             field = value
             setRotation(value.degrees.toFloat(), 0f)
         }
+
+    override val agent = PortalEntityPortalAgent(world.portalManager, this)
 
     init {
         // MC checks whether entities are completely inside the view frustum which is completely useless/broken for
@@ -91,91 +109,6 @@ abstract class AbstractPortalEntity(
         }
     }
 
-    private var lastTickPos = mutableMapOf<Entity, Vec3d>()
-    private var thisTickPos = mutableMapOf<Entity, Vec3d>()
-    protected open fun checkTeleportees() {
-        val facingVec = localFacing.directionVec.to3d().abs() * 2
-        val largerBB = localBoundingBox.grow(facingVec)
-        val finerBBs = localBlocks.map { AxisAlignedBB(it).grow(facingVec) }
-        world.getEntitiesWithinAABBExcludingEntity(this, largerBB).forEach {
-            val entityBB = it.entityBoundingBox
-            if (finerBBs.any { entityBB.intersects(it) }) {
-                checkTeleportee(it)
-            }
-        }
-        lastTickPos = thisTickPos.also {
-            thisTickPos = lastTickPos
-            thisTickPos.clear()
-        }
-    }
-
-    protected open fun checkTeleportee(entity: Entity) {
-        val portalPos = pos
-        val entityPos = entity.pos + entity.eyeOffset
-        thisTickPos[entity] = entityPos
-        val entityPrevPos = lastTickPos[entity] ?: return
-        val relPos = entityPos - portalPos
-        val prevRelPos = entityPrevPos - portalPos
-        val from = localAxis.toFacing(relPos)
-        val prevFrom = localAxis.toFacing(prevRelPos)
-
-        if (from != prevFrom) {
-            teleportEntity(entity, prevFrom)
-        }
-    }
-
-    protected open fun teleportEntity(entity: Entity, from: EnumFacing) {
-        thisTickPos.remove(entity)
-
-        if (entity.isRiding || entity.isBeingRidden) {
-            return // just do nothing for now, not even dismounting works as one would hope
-        }
-
-        if (entity is EntityPlayer) {
-            if (world.isRemote) teleportPlayer(entity, from)
-            return
-        }
-
-        if (!world.isRemote) {
-            val remotePortal = getRemotePortal()!!
-            val localWorld = world as WorldServer
-            val remoteWorld = remotePortal.world as WorldServer
-
-            if (!ForgeHooks.onTravelToDimension(entity, remotePortal.dimension)) return
-
-            val newEntity = EntityList.newEntity(entity.javaClass, remoteWorld) ?: return
-
-            // Inform other clients that the entity is going to be teleported
-            val trackingPlayers = localWorld.entityTracker.getTracking(entity).filterTo(mutableSetOf()) {
-                views.containsKey(it.viewManager)
-            }
-            trackingPlayers.forEach {
-                Transaction.start(it)
-                it.viewManager.flushPackets()
-            }
-            EntityUsePortal(EntityUsePortal.Phase.BEFORE, entity.entityId, this.entityId).sendTo(trackingPlayers)
-
-            localWorld.removeEntityDangerously(entity)
-            localWorld.resetUpdateEntityTick()
-
-            entity.dimension = remotePortal.dimension
-            entity.isDead = false
-            newEntity.readFromNBT(entity.writeToNBT(NBTTagCompound()))
-            entity.isDead = true
-
-            Utils.transformPosition(entity, newEntity, this)
-
-            remoteWorld.forceSpawnEntity(newEntity)
-            // TODO Vanilla does an update here, not sure if that's necessary?
-            //remoteWorld.updateEntityWithOptionalForce(newEntity, false)
-            remoteWorld.resetUpdateEntityTick()
-
-            // Inform other clients that the teleportation has happened
-            trackingPlayers.forEach { it.viewManager.flushPackets() }
-            EntityUsePortal(EntityUsePortal.Phase.AFTER, newEntity.entityId, this.entityId).sendTo(trackingPlayers)
-            trackingPlayers.forEach { Transaction.end(it) }
-        }
-    }
 
     override fun canBeAttackedWithItem(): Boolean = true
     override fun canBeCollidedWith(): Boolean = true
@@ -221,7 +154,7 @@ abstract class AbstractPortalEntity(
 
         private fun tickWorld(world: World) {
             world.getEntities(AbstractPortalEntity::class.java, { it?.isDead == false }).forEach {
-                it.checkTeleportees()
+                it.agent.checkTeleportees()
             }
         }
 
@@ -276,9 +209,7 @@ abstract class AbstractPortalEntity(
 
                 // otherwise, we need to remove all collision boxes on the other, local side of the portal
                 // to prevent the entity from colliding with them
-                val portalPos = portal.localPosition.to3dMid()
-                val entityPos = portal.lastTickPos[entity] ?: (entity.pos + entity.eyeOffset)
-                val entitySide = portal.localFacing.axis.toFacing(entityPos - portalPos)
+                val entitySide = portal.agent.getEntitySide(entity)
                 val hiddenSide = entitySide.opposite
                 val hiddenAABB = portal.localBoundingBox
                         .offset(hiddenSide.directionVec.to3d())
@@ -320,8 +251,7 @@ abstract class AbstractPortalEntity(
                 if (portal.localBlocks.none { AxisAlignedBB(it).intersects(entityAABB) }) return@forEach
 
                 val portalPos = portal.localPosition.to3dMid()
-                val entityPos = portal.lastTickPos[entity] ?: (entity.pos + entity.eyeOffset)
-                val entitySide = portal.localFacing.axis.toFacing(entityPos - portalPos)
+                val entitySide = portal.agent.getEntitySide(entity)
                 val hiddenSide = entitySide.opposite
                 val entityHalf = AxisAlignedBB_INFINITE.with(entitySide.opposite, portalPos[entitySide.axis])
                 val hiddenHalf = AxisAlignedBB_INFINITE.with(hiddenSide.opposite, portalPos[hiddenSide.axis])
@@ -352,15 +282,17 @@ abstract class AbstractPortalEntity(
         }
     }
 
-    protected fun getRemotePortal(): AbstractPortalEntity? {
+    fun getRemotePortal(): AbstractPortalEntity? {
         val remoteWorld = if (world.isRemote) {
-            (view ?: return null).camera.world
+            (agent.view ?: return null).camera.world
         } else {
             world.minecraftServer!!.getWorld(remoteDimension ?: return null)
         }
         val chunk = remoteWorld.getChunkFromBlockCoords(remotePosition)
         val list = mutableListOf<AbstractPortalEntity>()
-        chunk.getEntitiesOfTypeWithinAABB(javaClass, AxisAlignedBB(remotePosition), list) { it?.remotePosition == localPosition }
+        chunk.getEntitiesOfTypeWithinAABB(javaClass, AxisAlignedBB(remotePosition), list) {
+            it?.agent?.isLinked(agent) == true
+        }
         return list.firstOrNull()
     }
 
@@ -370,65 +302,7 @@ abstract class AbstractPortalEntity(
 
     // When switching main view of a player, we need to ignore any add/removeTrackingPlayer calls
     // as otherwise we'll release our ticket for the player and might not be able to get it back.
-    private var ignoreTracking = false
-
-    private val views = mutableMapOf<ServerViewManager, FixedLocationTicket>()
-
-    internal open fun usePortal(player: EntityPlayerMP): Boolean {
-        val viewManager = player.viewManager
-        val ticket = views[viewManager]
-        if (ticket == null) {
-            LOGGER.warn("Received use portal request from $player which has no view for portal $this")
-            return false
-        }
-        val view = ticket.view
-
-        val remotePortal = getRemotePortal()
-        if (remotePortal == null) {
-            LOGGER.warn("Received use portal request from $player for $this but our remote portal has vanished!?")
-            return false
-        }
-
-        val remoteTicket = remotePortal.views[viewManager]
-        if (remoteTicket == null) {
-            LOGGER.warn("Received use portal request from $player for $this but our remote portal has no ticket!?")
-            return false
-        }
-
-        // Update view position
-        Utils.transformPosition(player, view.camera, this)
-
-        // Inform other clients that the entity is going to be teleported
-        val trackingPlayers = player.serverWorld.entityTracker.getTracking(player).filterTo(mutableSetOf()) {
-            views.containsKey(it.viewManager)
-        }
-        trackingPlayers.forEach {
-            Transaction.start(it)
-            it.viewManager.flushPackets()
-        }
-        EntityUsePortal(EntityUsePortal.Phase.BEFORE, player.entityId, this.entityId).sendTo(trackingPlayers)
-
-        // Swap views
-        ignoreTracking = true
-        remotePortal.ignoreTracking = true
-        view.makeMainView(ticket)
-        ignoreTracking = false
-        remotePortal.ignoreTracking = false
-
-        // Inform other clients that the teleportation has happened
-        trackingPlayers.forEach { it.viewManager.flushPackets() }
-        EntityUsePortal(EntityUsePortal.Phase.AFTER, player.entityId, this.entityId).sendTo(trackingPlayers)
-        trackingPlayers.forEach { it.viewManager.flushPackets() }
-        trackingPlayers.forEach { Transaction.end(it) }
-
-        // In case of horizontal portals, be nice and protect the player from fall damage for the next 10 seconds
-        if (plane == EnumFacing.Plane.HORIZONTAL && BPConfig.preventFallDamage) {
-            PreventNextFallDamage(player)
-        }
-
-        return true
-    }
-
+    internal var ignoreTracking = false
     private val trackingPlayers = mutableListOf<EntityPlayerMP>()
 
     override fun addTrackingPlayer(player: EntityPlayerMP) {
@@ -438,43 +312,7 @@ abstract class AbstractPortalEntity(
 
         if (ignoreTracking) return
 
-        val remotePortal = getRemotePortal() ?: return
-        val remoteWorld = remotePortal.world as WorldServer
-        val viewManager = player.viewManager
-
-        // If we already have a view for this player, then just link to it.
-        // This can happen either because this is the remote portal to some other portal which we've already dealt with
-        // or when multiple view entities have the same portal nearby.
-        val ticket = views.getOrPut(viewManager) {
-            // otherwise, it's time to find a suitable view
-
-            // Disable recursive portals, to be removed once cycle detection (and some recursion limit) is in place
-            if (viewManager.player != player) return
-
-            // Allocate a ticket for our local world which we can later give to our remote end
-            // If this fails, someone is holding an exclusive ticket to our current world, so we fail soft
-            val localView = player.view ?: return
-            remotePortal.views[viewManager] = localView.allocateFixedLocationTicket() ?: return
-
-            // preferably an existing view close by (64 blocks, ignoring y axis)
-            viewManager.views
-                    .asSequence()
-                    .filter { it.camera.world == remoteWorld }
-                    .map { it to it.camera.pos.withoutY().distanceTo(remotePosition.to3d().withoutY()) }
-                    .filter { it.second < 64 } // Arbitrarily chosen limit for max distance between cam and portal
-                    .sortedBy { it.second }
-                    .fold(null as FixedLocationTicket?) { acc, view ->
-                        acc ?: view.first.allocateFixedLocationTicket()
-                    }
-                    // but we'll also create a new one if we can't find one
-                    ?: viewManager.createView(remoteWorld, remotePosition.to3d()).allocateFixedLocationTicket()!!
-        }
-
-        LinkPortal(
-                entityId,
-                writePortalToNBT(),
-                ticket.view.id
-        ).sendTo(player)
+        agent.addTrackingPlayer(player)
     }
 
     override fun removeTrackingPlayer(player: EntityPlayerMP) {
@@ -484,18 +322,10 @@ abstract class AbstractPortalEntity(
 
         if (ignoreTracking) return
 
-        views.remove(player.viewManager)?.let {
-            LinkPortal(
-                    entityId,
-                    writePortalToNBT(),
-                    null
-            ).sendTo(player)
-
-            it.release()
-        }
+        agent.removeTrackingPlayer(player)
     }
 
-    override fun link(remoteDimension: Int, remotePosition: BlockPos, remoteRotation: Rotation) {
+    override fun link(other: Portal.Linkable) {
         if (this.remoteDimension != null) {
             // Unlink all tracking players
             trackingPlayers.toList().forEach {
@@ -503,7 +333,7 @@ abstract class AbstractPortalEntity(
             }
         }
 
-        super.link(remoteDimension, remotePosition, remoteRotation)
+        super.link(other)
 
         // Update tracking players
         trackingPlayers.toList().forEach {
@@ -534,93 +364,16 @@ abstract class AbstractPortalEntity(
     //
 
     @SideOnly(Side.CLIENT)
-    var view: ClientView? = null
-
-    @SideOnly(Side.CLIENT)
     override fun isInRangeToRenderDist(distance: Double): Boolean = true // MC makes this depend on entityBoundingBox
 
     @SideOnly(Side.CLIENT)
     protected open fun onClientUpdate() {
         val player = world.getPlayers(EntityPlayerSP::class.java) { true }[0]
-        view?.let { view ->
+        agent.view?.let { view ->
             if (!view.isMainView) {
-                UtilsClient.transformPosition(player, view.camera, this)
+                view.camera.deriveClientPosRotFrom(player, this)
             }
         }
-    }
-
-    @SideOnly(Side.CLIENT)
-    private var portalUser: Entity? = null
-
-    @SideOnly(Side.CLIENT)
-    fun beforeUsePortal(entity: Entity) {
-        portalUser = entity
-    }
-
-    @SideOnly(Side.CLIENT)
-    fun afterUsePortal(entityId: Int) {
-        val entity = portalUser
-        portalUser = null
-        if (entity == null) {
-            LOGGER.warn("Got unexpected post portal usage message for $this by entity with new id $entityId")
-            return
-        }
-        if (!entity.isDead) {
-            LOGGER.warn("Entity $entity is still alive post portal usage!")
-        }
-
-        val view = view
-        if (view == null) {
-            LOGGER.warn("Failed syncing of $entity after usage of portal $this because view has not been set")
-            return
-        }
-
-        val newEntity = view.camera.world.getEntityByID(entityId)
-        if (newEntity == null) {
-            LOGGER.warn("Oh no! The entity $entity with new id $entityId did not reappear at the other side of $this!")
-            return
-        }
-
-        val pos = newEntity.pos
-        val yaw = newEntity.rotationYaw
-        val pitch = newEntity.rotationPitch
-        Utils.transformPosition(entity, newEntity, this)
-        if (newEntity is EntityOtherPlayerMP) {
-            newEntity.otherPlayerMPPos = pos // preserve otherPlayerMP pos to prevent desync
-            newEntity.otherPlayerMPYaw = yaw.toDouble()
-            newEntity.otherPlayerMPPitch = pitch.toDouble()
-            newEntity.otherPlayerMPPosRotationIncrements = 3 // and sudden jumps
-        }
-        if (newEntity is AbstractClientPlayer && entity is AbstractClientPlayer) {
-            newEntity.ticksElytraFlying = entity.ticksElytraFlying
-            newEntity.rotateElytraX = entity.rotateElytraX
-            newEntity.rotateElytraY = entity.rotateElytraY
-            newEntity.rotateElytraZ = entity.rotateElytraZ
-        }
-    }
-
-    @SideOnly(Side.CLIENT)
-    protected open fun teleportPlayer(player: EntityPlayer, from: EnumFacing): Boolean {
-        if (player !is EntityPlayerSP || player.entityId < 0) return false
-
-        val view = view
-        if (view == null) {
-            LOGGER.warn("Failed to use portal $this because view has not been set")
-            return false
-        }
-        UtilsClient.transformPosition(player, view.camera, this)
-
-        val remotePortal = getRemotePortal()
-        if (remotePortal == null) {
-            LOGGER.warn("Failed to use portal $this because remote portal in $view couldn't be found")
-            return false
-        }
-
-        view.makeMainView()
-        Net.INSTANCE.sendToServer(UsePortal(entityId))
-
-        remotePortal.onClientUpdate()
-        return true
     }
 
     @SideOnly(Side.CLIENT)
@@ -628,38 +381,3 @@ abstract class AbstractPortalEntity(
             camera.isBoundingBoxInFrustum(renderBoundingBox)
                     && localBlocks.any { camera.isBoundingBoxInFrustum(AxisAlignedBB(it)) }
 }
-
-/**
- * Suppresses the next fall damage a player will take (within 10 seconds).
- */
-class PreventNextFallDamage(
-        private val player: EntityPlayerMP
-) {
-    private var registered by MinecraftForge.EVENT_BUS
-    /**
-     * After this timeout reaches zero, we stop listening and assume the player somehow managed to not take fall damage.
-     */
-    private var timeoutTicks = 10 * 20 // 10 seconds
-
-    init {
-        registered = true
-    }
-
-    @SubscribeEvent
-    fun onLivingFall(event: LivingFallEvent) {
-        if (event.entity !== player) return // Note: cannot use != because Entity overwrites .equals
-        event.isCanceled = true
-        registered = false
-    }
-
-    @SubscribeEvent
-    fun onTick(event: TickEvent.ServerTickEvent) {
-        if (event.phase != TickEvent.Phase.START) return
-
-        timeoutTicks--
-        if (timeoutTicks <= 0) {
-            registered = false
-        }
-    }
-}
-

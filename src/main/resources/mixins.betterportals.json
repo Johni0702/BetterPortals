@@ -6,7 +6,8 @@
     "MixinEntity",
     "MixinNetHandlerPlayerServer",
     "MixinPlayerList",
-    "MixinServerWorldEventHandler"
+    "MixinServerWorldEventHandler",
+    "MixinWorld"
   ],
   "server": [],
   "client": [

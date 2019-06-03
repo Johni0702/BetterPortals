@@ -1,9 +1,6 @@
 package de.johni0702.minecraft.betterportals.client
 
-import de.johni0702.minecraft.betterportals.common.Portal
-import de.johni0702.minecraft.betterportals.common.Utils
-import de.johni0702.minecraft.betterportals.common.degrees
-import de.johni0702.minecraft.betterportals.common.minus
+import de.johni0702.minecraft.betterportals.common.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.renderer.GlStateManager
@@ -15,7 +12,6 @@ import net.minecraft.util.math.Vec3d
 import org.lwjgl.opengl.GL11
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import javax.vecmath.Matrix4d
 
 object UtilsClient {
     fun swapPosRot(e1: EntityPlayerSP, e2: EntityPlayerSP) {
@@ -25,20 +21,6 @@ object UtilsClient {
         e1.renderArmPitch = e2.renderArmPitch.also { e2.renderArmPitch = e1.renderArmPitch }
         e1.prevRenderArmYaw = e2.prevRenderArmYaw.also { e2.prevRenderArmYaw = e1.prevRenderArmYaw }
         e1.prevRenderArmPitch = e2.prevRenderArmPitch.also { e2.prevRenderArmPitch = e1.prevRenderArmPitch }
-    }
-
-    fun transformPosition(from: EntityPlayerSP, to: EntityPlayerSP, portal: Portal) {
-        val rotation = portal.remoteRotation - portal.localRotation
-        transformPosition(from, to, portal.localToRemoteMatrix, rotation.degrees.toFloat())
-    }
-
-    fun transformPosition(from: EntityPlayerSP, to: EntityPlayerSP, matrix: Matrix4d, yawOffset: Float) {
-        Utils.transformPosition(from, to, matrix, yawOffset)
-
-        to.renderArmPitch = from.renderArmPitch
-        to.prevRenderArmPitch = from.prevRenderArmPitch
-        to.renderArmYaw = from.renderArmYaw + yawOffset
-        to.prevRenderArmYaw = from.prevRenderArmYaw + yawOffset
     }
 }
 

@@ -3,7 +3,6 @@ package de.johni0702.minecraft.betterportals.server.view
 import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.common.Utils.swapPosRot
 import de.johni0702.minecraft.betterportals.net.ChangeServerMainView
-import de.johni0702.minecraft.betterportals.net.Transaction
 import de.johni0702.minecraft.betterportals.net.sendTo
 import de.johni0702.minecraft.view.server.*
 import io.netty.channel.embedded.EmbeddedChannel
@@ -82,8 +81,7 @@ internal class ServerViewImpl(
         val newDim = camera.dimension
         val newWorld = camera.serverWorld
 
-        manager.flushPackets()
-        Transaction.start(player)
+        manager.beginTransaction()
 
         // TODO set enteredNetherPosition (see EntityPlayerMP#changeDimension)
 
@@ -183,7 +181,7 @@ internal class ServerViewImpl(
             CriteriaTriggers.NETHER_TRAVEL.trigger(player, Vec3d(player.posX, player.posY, player.posZ))
         }
 
-        Transaction.end(player)
+        manager.endTransaction()
 
         manager.flushPackets() // Just for good measure, who knows what other mods will do during the event
         FMLCommonHandler.instance().firePlayerChangedDimensionEvent(player, oldDim, newDim)

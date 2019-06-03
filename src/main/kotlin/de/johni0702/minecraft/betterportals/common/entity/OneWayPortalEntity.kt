@@ -1,5 +1,7 @@
 package de.johni0702.minecraft.betterportals.common.entity
 
+import de.johni0702.minecraft.betterportals.common.PortalManager
+import de.johni0702.minecraft.betterportals.common.portalManager
 import de.johni0702.minecraft.betterportals.common.pos
 import net.minecraft.block.Block
 import net.minecraft.client.entity.EntityPlayerSP
@@ -12,6 +14,25 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
+
+open class OneWayPortalEntityPortalAgent(
+        manager: PortalManager,
+        override val entity: OneWayPortalEntity
+) : PortalEntityPortalAgent(manager, entity) {
+    override fun checkTeleportees() {
+        if (entity.isTailEnd) return // Cannot use portal from the tail end
+        super.checkTeleportees()
+    }
+
+    override fun teleportPlayer(player: EntityPlayer, from: EnumFacing): Boolean {
+        val remotePortal = entity.getRemotePortal() // FIXME for some reason this call fails after the teleport; might be fixed by now
+        val success = super.teleportPlayer(player, from)
+        if (success) {
+            (remotePortal as OneWayPortalEntity).isTravelingInProgress = true
+        }
+        return success
+    }
+}
 
 /**
  * A portal which really only exists at one end.
@@ -34,6 +55,8 @@ abstract class OneWayPortalEntity(
         localDimension, localPosition, localRotation,
         remoteDimension,remotePosition, remoteRotation
 ) {
+    override val agent = OneWayPortalEntityPortalAgent(world.portalManager, this)
+
     override fun writePortalToNBT(): NBTTagCompound =
             super.writePortalToNBT().apply { setBoolean("IsTailEnd", isTailEnd) }
 
@@ -73,11 +96,6 @@ abstract class OneWayPortalEntity(
      */
     abstract val portalFrameBlock: Block
 
-    override fun checkTeleportees() {
-        if (isTailEnd) return // Cannot use portal from the tail end
-        super.checkTeleportees()
-    }
-
     override fun onClientUpdate() {
         super.onClientUpdate()
 
@@ -88,15 +106,6 @@ abstract class OneWayPortalEntity(
                 localBoundingBox.center.squareDistanceTo(it.pos) < 100.0
             }
         }
-    }
-
-    override fun teleportPlayer(player: EntityPlayer, from: EnumFacing): Boolean {
-        val remotePortal = getRemotePortal() // FIXME for some reason this call fails after the teleport
-        val success = super.teleportPlayer(player, from)
-        if (success) {
-            (remotePortal as OneWayPortalEntity).isTravelingInProgress = true
-        }
-        return success
     }
 
     override fun canBeSeen(camera: ICamera): Boolean = (!isTailEnd || isTravelingInProgress) && super.canBeSeen(camera)

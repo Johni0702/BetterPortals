@@ -93,8 +93,7 @@ class BlockBetterTFPortal : BlockTFPortal(), PortalBlock<TFPortalEntity> {
         val remotePortal = createPortalEntity(false, remoteWorld, EnumFacing.Plane.HORIZONTAL, portalBlocks, remoteDim, remotePos, rot)
         remoteWorld.forceSpawnEntity(remotePortal)
 
-        localPortal.link(remoteDim, remotePos, rot)
-        remotePortal.link(localDim, localPos, rot)
+        localPortal.link(remotePortal)
 
         // Now, TF has already created the exit (or entry, really depends on your perspective) portal for us,
         // time to find it and recursively upgrade it to a better one

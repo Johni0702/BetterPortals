@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.client.renderer
 
 import de.johni0702.minecraft.betterportals.client.FramebufferD
 import de.johni0702.minecraft.betterportals.client.UtilsClient
+import de.johni0702.minecraft.betterportals.client.deriveClientPosRotFrom
 import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.view.client.render.Camera
@@ -38,7 +39,7 @@ class TransferToDimensionRenderer(
 
     init {
         // Copy current pitch onto new camera to prevent sudden camera jumps when switching views
-        UtilsClient.transformPosition(fromView.camera, toView.camera, Mat4d.inverse(cameraPosOffset), -cameraYawOffset)
+        toView.camera.deriveClientPosRotFrom(fromView.camera, Mat4d.inverse(cameraPosOffset), -cameraYawOffset)
     }
 
     private fun getProgress(partialTicks: Float) = ((ticksPassed + partialTicks) * 50 / duration.toMillis()).coerceIn(0f, 1f)
@@ -51,7 +52,7 @@ class TransferToDimensionRenderer(
         framebuffer?.let { ViewRenderManager.INSTANCE.releaseFramebuffer(it) } // just in case
 
         // TODO this isn't quite right once we use a portal in the new view while the transition is still active
-        UtilsClient.transformPosition(mainPlan.view.camera, fromView.camera, cameraPosOffset, cameraYawOffset)
+        fromView.camera.deriveClientPosRotFrom(mainPlan.view.camera, cameraPosOffset, cameraYawOffset)
         val cameraRot = mainPlan.camera.rotation + Vec3d(0.0, cameraYawOffset.toDouble(), 0.0)
         val camera = Camera(mainPlan.camera.frustum, fromView.camera.pos, cameraRot)
         val plan = mainPlan.addChild(fromView, camera)

@@ -35,6 +35,26 @@ interface ServerViewManager : ViewManager {
      * be called before sending the packet on the main connection.
      */
     fun flushPackets()
+
+    /**
+     * For certain things to look correct on the client, they need to happen all at once (e.g. despawning an entity
+     * in one world, telling the client where it will reappear and then spawning it in another world) , i.e. they must
+     * not be executed just partially with network lag in between, nor should the client render any frames between
+     * processing these packets.
+     * To make this happen, such actions need to happen within a single transaction.
+     *
+     * Calling this method starts a new transaction. Transactions may be nested.
+     *
+     * Starting/ending a transaction will also automatically ensure all packets are [flushed][flushPackets].
+     */
+    fun beginTransaction()
+
+    /**
+     * Ends a transaction started with [beginTransaction].
+     *
+     * Ending a transaction when none is in progress is an error.
+     */
+    fun endTransaction()
 }
 
 /**

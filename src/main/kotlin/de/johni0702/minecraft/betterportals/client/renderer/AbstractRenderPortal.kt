@@ -131,7 +131,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             }
 
             val parentPortal = ViewRenderPlan.CURRENT?.portalDetail?.parent
-            if (parentPortal?.world == portal.view?.camera?.world && parentPortal?.remotePosition == entity.localPosition) {
+            if (parentPortal?.world == portal.agent.view?.camera?.world && parentPortal?.remotePosition == entity.localPosition) {
                 // Skip rendering of portal if it's the remote to the portal we're currently in
                 return
             }
