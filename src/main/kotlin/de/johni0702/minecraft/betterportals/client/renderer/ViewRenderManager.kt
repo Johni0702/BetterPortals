@@ -361,6 +361,10 @@ class ViewRenderPlan(
             }
         }
 
+        // MC only dirties it (and recalculates visible chunks as a consequence) when the camera has moved (pos or rot).
+        // Our camera doesn't move but our view frustum changes and for that visible chunks have to be updated.
+        mc.renderGlobal.setDisplayListEntitiesDirty()
+
         // Actually render the world
         val prevRenderPlan = ViewRenderPlan.CURRENT
         ViewRenderPlan.CURRENT = this
