@@ -2,8 +2,7 @@
     "vertex": "betterportals:render_portal",
     "fragment": "betterportals:render_portal",
     "samplers": [
-        { "name": "sampler" },
-        { "name": "depthSampler" }
+        { "name": "sampler" }
     ],
     "uniforms": [
         { "name": "screenSize", "type": "float", "count": 2, "values": [ 0.0, 0.0 ] }

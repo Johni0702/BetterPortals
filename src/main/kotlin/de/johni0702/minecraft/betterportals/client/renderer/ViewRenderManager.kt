@@ -4,6 +4,8 @@ import de.johni0702.minecraft.betterportals.BPConfig
 import de.johni0702.minecraft.betterportals.BetterPortalsMod
 import de.johni0702.minecraft.betterportals.client.*
 import de.johni0702.minecraft.betterportals.client.compat.Optifine
+import de.johni0702.minecraft.betterportals.client.render.PortalDetail
+import de.johni0702.minecraft.betterportals.client.render.portalDetail
 import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.betterportals.client.view.ClientViewImpl
 import de.johni0702.minecraft.betterportals.common.*
@@ -27,6 +29,8 @@ class ViewRenderManager : RenderPassManager {
         get() = ViewRenderPlan.MAIN
     override val current: RenderPass?
         get() = ViewRenderPlan.CURRENT
+    override val previous: RenderPass?
+        get() = ViewRenderPlan.PREVIOUS_FRAME
 
     companion object {
         val INSTANCE = ViewRenderManager()
@@ -38,7 +42,6 @@ class ViewRenderManager : RenderPassManager {
     init {
         eventHandler.registered = true
     }
-    private val occlusionQueries = mutableMapOf<AbstractPortalEntity, OcclusionQuery>()
     private val disposedOcclusionQueries = mutableListOf<OcclusionQuery>()
     var fogOffset: Float
         get() = eventHandler.fogOffset
@@ -55,8 +58,6 @@ class ViewRenderManager : RenderPassManager {
     fun releaseFramebuffer(framebuffer: FramebufferD) {
         framebufferPool.add(framebuffer)
     }
-
-    fun getOcclusionQuery(entity: AbstractPortalEntity) = occlusionQueries.getOrPut(entity, ::OcclusionQuery)
 
     /**
      * Determine the camera's current world, prepare all portals and render the world.
@@ -160,37 +161,42 @@ class ViewRenderManager : RenderPassManager {
 
         val maxRecursions = if (BPConfig.seeThroughPortals) 5 else 0
 
+        // Update occlusion queries
+        val activeOcclusionDetails = mutableSetOf<OcclusionDetail>()
+        fun updateOcclusionQueries(plan: ViewRenderPlan) {
+            val detail = plan.occlusionDetail
+            activeOcclusionDetails.add(detail)
+            val accessed = detail.accessed
+            val query = detail.occlusionQuery
+            query.update()
+            detail.occluded = accessed && query.occluded
+            detail.accessed = false
+
+            plan.children.forEach(::updateOcclusionQueries)
+        }
+        ViewRenderPlan.PREVIOUS_FRAME?.let { updateOcclusionQueries(it) }
+
         // Build render plan
         var plan = with(DetermineRootPassEvent(this, partialTicks, view, camera).post()) {
             ViewRenderPlan(this@ViewRenderManager, null, this.view, this.camera)
         }
 
         // Recursively add portal views
-        plan.addPortals(maxRecursions)
+        plan.addPortals(maxRecursions, ViewRenderPlan.PREVIOUS_FRAME)
 
         do {
             val event = PopulateTreeEvent(partialTicks, plan, false).post()
             plan = event.root as ViewRenderPlan
         } while (event.changed)
 
-        // Update occlusion queries
-        occlusionQueries.values.forEach { it.update() }
-
         // Cleanup occlusion queries for portals which are no longer visible
-        fun getAllPortals(plan: ViewRenderPlan, result: MutableSet<AbstractPortalEntity>) {
-            plan.portalDetail?.parent?.let { result.add(it) }
-            plan.children.forEach { getAllPortals(it, result) }
-        }
-        val knownPortals = mutableSetOf<AbstractPortalEntity>()
-        getAllPortals(plan, knownPortals)
-        occlusionQueries.entries.removeIf { (portal, query) ->
-            if (knownPortals.contains(portal)) {
-                false
-            } else {
-                disposedOcclusionQueries.add(query)
-                true
+        fun cleanupOcclusionQueries(plan: ViewRenderPlan) {
+            if (!activeOcclusionDetails.contains(plan.occlusionDetail)) {
+                disposedOcclusionQueries.add(plan.occlusionDetail.occlusionQuery)
             }
+            plan.children.forEach(::updateOcclusionQueries)
         }
+        ViewRenderPlan.PREVIOUS_FRAME?.let(::cleanupOcclusionQueries)
         disposedOcclusionQueries.removeIf { it.update() }
 
         // execute
@@ -198,6 +204,7 @@ class ViewRenderManager : RenderPassManager {
         ViewRenderPlan.MAIN = plan
         plan.render(partialTicks, finishTimeNano)
         ViewRenderPlan.MAIN = null
+        ViewRenderPlan.PREVIOUS_FRAME = plan
         mc.framebuffer.bindFramebuffer(true)
 
         val framebuffer = plan.framebuffer ?: return
@@ -273,44 +280,58 @@ class ViewRenderPlan(
     companion object {
         var MAIN: ViewRenderPlan? = null
         var CURRENT: ViewRenderPlan? = null
+        var PREVIOUS_FRAME: ViewRenderPlan? = null
     }
     val world: World = view.camera.world
     override var framebuffer: FramebufferD? = null
 
     override val children = mutableListOf<ViewRenderPlan>()
 
-    override fun addChild(view: ClientView, camera: Camera): ViewRenderPlan {
+    override fun addChild(view: ClientView, camera: Camera, previousFrame: RenderPass?): ViewRenderPlan {
         val child = ViewRenderPlan(manager, this, view, camera)
+        if (previousFrame != null) {
+            child.occlusionDetail = previousFrame.occlusionDetail.also {
+                previousFrame.occlusionDetail = child.occlusionDetail
+            }
+        }
         children.add(child)
         return child
     }
 
-    fun addPortals(maxRecursions: Int) {
+    fun addPortals(maxRecursions: Int, previousFrame: RenderPass?) {
         if (maxRecursions <= 0) return
+
+        if (occlusionDetail.occluded) return
+
         val parentPortal = portalDetail?.parent
-        world.getEntities(AbstractPortalEntity::class.java) {
+        world.portalManager.loadedPortals.forEach {
+            val portal = it.portal
+
             // portal must be visible (i.e. must not be frustum culled)
-            it!!.canBeSeen(camera.frustum)
-                    // its view must have been loaded (otherwise there's nothing to render)
-                    && it.agent.view != null
-                    // it must not be our parent (the portal from which this world is being viewed)
-                    // that is, it must either link to a different world or to a different place than our parent portal
-                    && (it.agent.view != parentPortal?.agent?.view || it.remotePosition != parentPortal?.localPosition)
-                    // it must not be occluded by blocks
-                    && !manager.getOcclusionQuery(it).occluded
-        }.forEach { portal ->
+            if (!it.canBeSeen(camera.frustum)) return@forEach
+            // its view must have been loaded (otherwise there's nothing to render)
+            it.view ?: return@forEach
+            // it must not be our parent (the portal from which this world is being viewed)
+            if (parentPortal?.isTarget(portal) == true) return@forEach
+
+            val childPreviousFrame = previousFrame?.children?.find { it.portalDetail?.parent == portal }
+
             val rotation = portal.remoteRotation - portal.localRotation
             val cameraRot = camera.rotation + Vec3d(0.0, rotation.degrees.toDouble(), 0.0)
             val cameraPos = (portal.localToRemoteMatrix * camera.position.toPoint()).toMC()
             val frustum = PortalCamera(portal, cameraPos, camera.frustum)
             val camera = Camera(frustum, cameraPos, cameraRot)
-            val plan = addChild(portal.agent.view!!, camera)
-            plan.portalDetail = PortalDetail(portal)
-            plan.addPortals(maxRecursions - 1)
+            val plan = addChild(it.view!!, camera, childPreviousFrame)
+            val cameraSide = portal.localFacing.axis.toFacing(camera.position - portal.localPosition.to3dMid())
+            plan.portalDetail = PortalDetail(portal, cameraSide)
+            plan.addPortals(maxRecursions - 1, childPreviousFrame)
         }
     }
 
     private val details = mutableMapOf<Class<*>, Any>()
+    init {
+        occlusionDetail = OcclusionDetail(OcclusionQuery())
+    }
 
     override fun <T> set(type: Class<T>, detail: T?) {
         details[type] = detail as Any
@@ -324,7 +345,7 @@ class ViewRenderPlan(
      */
     private fun renderDeps(partialTicks: Float) {
         children.forEach {
-            it.portalDetail?.parent?.onUpdate()
+            (it.portalDetail?.parent as? AbstractPortalEntity)?.onUpdate() // FIXME replace with proper camera entity management
             it.render(partialTicks, 0)
         }
     }
@@ -428,7 +449,11 @@ class ViewRenderPlan(
      */
     fun render(partialTicks: Float, finishTimeNano: Long) {
         try {
-            if (RenderPassEvent.Prepare(partialTicks, this).post().isCanceled) return
+            val prepareEvent = RenderPassEvent.Prepare(partialTicks, this)
+            if (occlusionDetail.occluded) {
+                prepareEvent.isCanceled = true
+            }
+            if (prepareEvent.post().isCanceled) return
             renderDeps(partialTicks)
             if (RenderPassEvent.Before(partialTicks, this).post().isCanceled) return
             renderSelf(partialTicks, finishTimeNano)

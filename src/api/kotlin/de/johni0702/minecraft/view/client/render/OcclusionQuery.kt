@@ -1,4 +1,4 @@
-package de.johni0702.minecraft.betterportals.client
+package de.johni0702.minecraft.view.client.render
 
 import de.johni0702.minecraft.betterportals.common.popOrNull
 import org.lwjgl.opengl.GL11

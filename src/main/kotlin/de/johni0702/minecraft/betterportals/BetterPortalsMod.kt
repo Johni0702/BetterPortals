@@ -1,9 +1,8 @@
 package de.johni0702.minecraft.betterportals
 
 import com.google.common.util.concurrent.ListenableFutureTask
-import de.johni0702.minecraft.betterportals.client.renderer.RenderEndPortal
-import de.johni0702.minecraft.betterportals.client.renderer.RenderNetherPortal
-import de.johni0702.minecraft.betterportals.client.renderer.RenderOneWayPortal
+import de.johni0702.minecraft.betterportals.client.compat.registerOptifineCompat
+import de.johni0702.minecraft.betterportals.client.render.*
 import de.johni0702.minecraft.betterportals.client.renderer.ViewRenderManager
 import de.johni0702.minecraft.betterportals.client.tile.renderer.BetterEndPortalTileRenderer
 import de.johni0702.minecraft.view.client.ClientViewManager
@@ -200,15 +199,23 @@ class BetterPortalsMod: ViewAPI, BetterPortalsAPI {
     internal class ClientProxy : CommonProxy(), ClientViewAPI {
         override fun preInit(mod: BetterPortalsMod) {
             if (BPConfig.enableNetherPortals) {
-                RenderingRegistry.registerEntityRenderingHandler(NetherPortalEntity::class.java, ::RenderNetherPortal)
+                RenderingRegistry.registerEntityRenderingHandler(NetherPortalEntity::class.java) {
+                    RenderPortalEntity(it, FramedPortalRenderer())
+                }
             }
             if (BPConfig.enableEndPortals) {
                 ClientRegistry.bindTileEntitySpecialRenderer(TileEntityEndPortal::class.java, BetterEndPortalTileRenderer())
-                RenderingRegistry.registerEntityRenderingHandler(EndEntryPortalEntity::class.java, ::RenderEndPortal)
-                RenderingRegistry.registerEntityRenderingHandler(EndExitPortalEntity::class.java, ::RenderEndPortal)
+                RenderingRegistry.registerEntityRenderingHandler(EndEntryPortalEntity::class.java) {
+                    RenderOneWayPortalEntity(it, OneWayFramedPortalRenderer())
+                }
+                RenderingRegistry.registerEntityRenderingHandler(EndExitPortalEntity::class.java) {
+                    RenderOneWayPortalEntity(it, OneWayFramedPortalRenderer())
+                }
             }
             if (mod.hasTwilightForest) {
-                RenderingRegistry.registerEntityRenderingHandler(TFPortalEntity::class.java, { RenderOneWayPortal(it) })
+                RenderingRegistry.registerEntityRenderingHandler(TFPortalEntity::class.java) {
+                    RenderOneWayPortalEntity(it, OneWayFramedPortalRenderer())
+                }
             }
         }
 
@@ -220,6 +227,8 @@ class BetterPortalsMod: ViewAPI, BetterPortalsAPI {
             synchronized(mc.scheduledTasks) {
                 mc.scheduledTasks = ViewDemuxingTaskQueue(mc, mc.scheduledTasks)
             }
+
+            registerOptifineCompat()
         }
 
         override fun sync(world: World?, runnable: () -> Unit) {

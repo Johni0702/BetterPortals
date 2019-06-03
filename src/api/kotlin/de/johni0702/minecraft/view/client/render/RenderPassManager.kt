@@ -27,6 +27,12 @@ interface RenderPassManager {
      * May be `null` when not rendering.
      */
     val current: RenderPass?
+
+    /**
+     * The [RenderPass] of the previous frame.
+     * For reference only, should not be modified.
+     */
+    val previous: RenderPass?
 }
 
 /**

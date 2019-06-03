@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.betterportals.common.entity
 
+import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.PortalManager
 import de.johni0702.minecraft.betterportals.common.portalManager
 import de.johni0702.minecraft.betterportals.common.pos
@@ -15,10 +16,10 @@ import net.minecraft.util.Rotation
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 
-open class OneWayPortalEntityPortalAgent(
+open class OneWayPortalEntityPortalAgent<out E: OneWayPortalEntity>(
         manager: PortalManager,
-        override val entity: OneWayPortalEntity
-) : PortalEntityPortalAgent(manager, entity) {
+        entity: E
+) : PortalEntityPortalAgent<E>(manager, entity) {
     override fun checkTeleportees() {
         if (entity.isTailEnd) return // Cannot use portal from the tail end
         super.checkTeleportees()
@@ -32,6 +33,8 @@ open class OneWayPortalEntityPortalAgent(
         }
         return success
     }
+
+    override fun canBeSeen(camera: ICamera): Boolean = (!entity.isTailEnd || entity.isTravelingInProgress) && super.canBeSeen(camera)
 }
 
 /**
@@ -45,7 +48,7 @@ abstract class OneWayPortalEntity(
          * Not to be confused with the exit portal which spawns after the dragon fight; its tail end is in the overworld.
          * A pair of one-way portals cannot be entered from the tail end.
          */
-        var isTailEnd: Boolean,
+        override var isTailEnd: Boolean,
 
         world: World, plane: EnumFacing.Plane, relativeBlocks: Set<BlockPos>,
         localDimension: Int, localPosition: BlockPos, localRotation: Rotation,
@@ -54,7 +57,7 @@ abstract class OneWayPortalEntity(
         world, plane, relativeBlocks,
         localDimension, localPosition, localRotation,
         remoteDimension,remotePosition, remoteRotation
-) {
+), PortalEntity.OneWay<FinitePortal.Mutable> {
     override val agent = OneWayPortalEntityPortalAgent(world.portalManager, this)
 
     override fun writePortalToNBT(): NBTTagCompound =
@@ -90,6 +93,8 @@ abstract class OneWayPortalEntity(
                 }
             }
         }
+    override val isTailEndVisible: Boolean
+        get() = isTravelingInProgress
 
     /**
      * The type of blocks which form the fake, client-side frame at the tail end of the portal.
@@ -107,6 +112,4 @@ abstract class OneWayPortalEntity(
             }
         }
     }
-
-    override fun canBeSeen(camera: ICamera): Boolean = (!isTailEnd || isTravelingInProgress) && super.canBeSeen(camera)
 }

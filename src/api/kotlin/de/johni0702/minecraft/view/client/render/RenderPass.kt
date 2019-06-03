@@ -45,8 +45,11 @@ interface RenderPass {
 
     /**
      * Create a new render pass, add it as a dependency to this pass and then return it for further configuration.
+     *
+     * Optionally, a render pass from a previous frame can be passed which allows tracking of certain information
+     * (e.g. occlusion queries) access multiple frames.
      */
-    fun addChild(view: ClientView, camera: Camera): RenderPass
+    fun addChild(view: ClientView, camera: Camera, previousFrame: RenderPass?): RenderPass
 
     /**
      * Set detail of given type.

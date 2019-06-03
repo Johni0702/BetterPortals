@@ -1,6 +1,11 @@
 package de.johni0702.minecraft.betterportals.client.compat
 
+import de.johni0702.minecraft.betterportals.LOGGER
+import de.johni0702.minecraft.view.client.render.RenderPassEvent
 import net.minecraft.launchwrapper.Launch
+import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.fml.common.eventhandler.EventPriority
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 
 class OptifineReflection {
     private val Shaders = Class.forName("net.optifine.shaders.Shaders")!!
@@ -15,4 +20,21 @@ val Optifine = if (Launch.classLoader.getClassBytes("optifine.OptiFineForgeTweak
     OptifineReflection()
 } else {
     null
+}
+
+fun registerOptifineCompat() {
+    val optifine = Optifine ?: return
+
+    LOGGER.info("Optifine detected. See-through portals will be disabled while Shaders are active.")
+
+    MinecraftForge.EVENT_BUS.register(object {
+        @SubscribeEvent(priority = EventPriority.LOW)
+        fun preRenderView(event: RenderPassEvent.Prepare) {
+            // TODO: OF might allow portals to be rendered with shaders if the shader pack uses the same shaders for
+            //       each dimension. should we enable that, we also need to stop using shaders to draw portal surfaces
+            if (optifine.shadersActive) {
+                event.isCanceled = true
+            }
+        }
+    })
 }

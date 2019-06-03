@@ -21,10 +21,10 @@ import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
 
-open class PortalEntityPortalAgent(
+open class PortalEntityPortalAgent<out E: AbstractPortalEntity>(
         manager: PortalManager,
-        open val entity: AbstractPortalEntity
-) : PortalAgent<FixedLocationTicket>(
+        val entity: E
+) : PortalAgent<FixedLocationTicket, E>(
         manager,
         PortalEntityAccessor.getId(entity),
         entity,
@@ -57,7 +57,7 @@ abstract class AbstractPortalEntity(
         override var remoteDimension: Int?,
         override var remotePosition: BlockPos,
         override var remoteRotation: Rotation
-) : Entity(world), PortalEntity, FinitePortal.Mutable, IEntityAdditionalSpawnData {
+) : Entity(world), PortalEntity<FinitePortal.Mutable>, FinitePortal.Mutable, IEntityAdditionalSpawnData {
 
     override fun getRenderBoundingBox(): AxisAlignedBB = localBoundingBox
     override var localPosition = localPosition
@@ -214,9 +214,4 @@ abstract class AbstractPortalEntity(
             }
         }
     }
-
-    @SideOnly(Side.CLIENT)
-    open fun canBeSeen(camera: ICamera): Boolean =
-            camera.isBoundingBoxInFrustum(renderBoundingBox)
-                    && localBlocks.any { camera.isBoundingBoxInFrustum(AxisAlignedBB(it)) }
 }

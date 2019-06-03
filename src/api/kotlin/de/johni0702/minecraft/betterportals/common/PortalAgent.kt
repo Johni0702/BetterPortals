@@ -7,6 +7,7 @@ import net.minecraft.block.material.Material
 import net.minecraft.client.entity.AbstractClientPlayer
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP
+import net.minecraft.client.renderer.culling.ICamera
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityList
 import net.minecraft.entity.player.EntityPlayer
@@ -27,12 +28,12 @@ interface PortalAccessor<T: CanMakeMainView> {
     /**
      * Collection of all, currently loaded portals known to this accessor.
      */
-    val loadedPortals: Iterable<PortalAgent<T>>
+    val loadedPortals: Iterable<PortalAgent<T, *>>
 
     /**
      * Retrieve an agent by id. See [PortalAgent.id].
      */
-    fun findById(id: ResourceLocation): PortalAgent<T>?
+    fun findById(id: ResourceLocation): PortalAgent<T, *>?
 }
 
 interface PortalManager {
@@ -42,7 +43,7 @@ interface PortalManager {
     /**
      * Collection of all, currently loaded portals.
      */
-    val loadedPortals: Iterable<PortalAgent<*>>
+    val loadedPortals: Iterable<PortalAgent<*, *>>
 
     /**
      * Registers a new source for [loadedPortals].
@@ -52,7 +53,7 @@ interface PortalManager {
     /**
      * Retrieve an agent by id. See [PortalAccessor.findById].
      */
-    fun findById(id: ResourceLocation): PortalAgent<*>?
+    fun findById(id: ResourceLocation): PortalAgent<*, *>?
 
     /**
      * Called immediately after the client player uses a portal to inform the server of that action.
@@ -61,7 +62,7 @@ interface PortalManager {
      * Passing an agent which is not in [loadedPortals] is an error.
      */
     @SideOnly(Side.CLIENT)
-    fun clientUsePortal(agent: PortalAgent<*>)
+    fun clientUsePortal(agent: PortalAgent<*, *>)
 
     /**
      * Called right before a non-player entity uses a portal to ensure clients are prepared for it.
@@ -69,7 +70,7 @@ interface PortalManager {
      *
      * Passing an agent which is not in [loadedPortals] is an error.
      */
-    fun serverBeforeUsePortal(agent: PortalAgent<*>, oldEntity: Entity, trackingPlayers: Iterable<EntityPlayerMP>)
+    fun serverBeforeUsePortal(agent: PortalAgent<*, *>, oldEntity: Entity, trackingPlayers: Iterable<EntityPlayerMP>)
 
     /**
      * Called right after a non-player entity uses a portal to allow clients to properly display the transition.
@@ -77,17 +78,17 @@ interface PortalManager {
      *
      * Passing an agent which is not in [loadedPortals] is an error.
      */
-    fun serverAfterUsePortal(agent: PortalAgent<*>, newEntity: Entity, trackingPlayers: Iterable<EntityPlayerMP>)
+    fun serverAfterUsePortal(agent: PortalAgent<*, *>, newEntity: Entity, trackingPlayers: Iterable<EntityPlayerMP>)
 
     /**
      * Link the given portal agent to the given view on the client.
      */
-    fun linkPortal(agent: PortalAgent<*>, player: EntityPlayerMP, ticket: CanMakeMainView)
+    fun linkPortal(agent: PortalAgent<*, *>, player: EntityPlayerMP, ticket: CanMakeMainView)
 
     /**
      * Unlink the given portal agent on the client.
      */
-    fun unlinkPortal(agent: PortalAgent<*>, player: EntityPlayerMP)
+    fun unlinkPortal(agent: PortalAgent<*, *>, player: EntityPlayerMP)
 
     /**
      * Whether to (by default) prevent the next fall damage after passing through a vertical portal.
@@ -97,7 +98,7 @@ interface PortalManager {
 
 val World.portalManager get() = BetterPortalsAPI.instance.getPortalManager(this)
 
-open class PortalAgent<T: CanMakeMainView>(
+open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         val manager: PortalManager,
         /**
          * A unique (per world/manager) id for this agent.
@@ -105,16 +106,16 @@ open class PortalAgent<T: CanMakeMainView>(
          * registered must be able to resolve it via [PortalAccessor.findById] on either side.
          */
         open val id: ResourceLocation,
-        val portal: Portal.Mutable,
+        val portal: P,
         val allocateTicket: (ServerView) -> T?
 ) {
     val world get() = manager.world
     open val preventFallAfterVerticalPortal get() = manager.preventFallAfterVerticalPortal
 
-    open fun isLinked(other: PortalAgent<*>): Boolean =
+    open fun isLinked(other: PortalAgent<*, *>): Boolean =
             other.portal.isTarget(portal) && portal.isTarget(other.portal)
 
-    open fun getRemoteAgent(): PortalAgent<T>? {
+    open fun getRemoteAgent(): PortalAgent<T, P>? {
         val remoteWorld = if (world.isRemote) {
             (view ?: return null).camera.world
         } else {
@@ -123,7 +124,7 @@ open class PortalAgent<T: CanMakeMainView>(
         remoteWorld.getChunkFromBlockCoords(portal.remotePosition) // make sure the portal is loaded
         val remotePortal = remoteWorld.portalManager.loadedPortals.find { isLinked(it) }
         @Suppress("UNCHECKED_CAST")
-        return remotePortal as PortalAgent<T>?
+        return remotePortal as PortalAgent<T, P>?
     }
 
     private var lastTickPos = mutableMapOf<Entity, Vec3d>()
@@ -525,4 +526,9 @@ open class PortalAgent<T: CanMakeMainView>(
         remotePortal.onClientUpdate()
         return true
     }
+
+    @SideOnly(Side.CLIENT)
+    open fun canBeSeen(camera: ICamera): Boolean =
+            camera.isBoundingBoxInFrustum(portal.localBoundingBox)
+                    && portal.localDetailedBounds.any { camera.isBoundingBoxInFrustum(it) }
 }

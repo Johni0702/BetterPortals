@@ -55,7 +55,7 @@ class TransferToDimensionRenderer(
         fromView.camera.deriveClientPosRotFrom(mainPlan.view.camera, cameraPosOffset, cameraYawOffset)
         val cameraRot = mainPlan.camera.rotation + Vec3d(0.0, cameraYawOffset.toDouble(), 0.0)
         val camera = Camera(mainPlan.camera.frustum, fromView.camera.pos, cameraRot)
-        val plan = mainPlan.addChild(fromView, camera)
+        val plan = mainPlan.addChild(fromView, camera, null)
         plan.render(partialTicks, 0)
         framebuffer = plan.framebuffer
     }
