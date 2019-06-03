@@ -13,7 +13,8 @@ class PortalCamera(
         private val portal: Portal,
         private val pos: Vec3d,
         private val inner: Frustum
-): Frustum() {
+// Note: we **MUST NOT** use the no-args constructor of Frustum since it breaks the global clipping helper
+): Frustum(ClippingHelper()) {
     private val clippingHelper = ClippingHelper()
 
     override fun setPosition(x: Double, y: Double, z: Double) {
