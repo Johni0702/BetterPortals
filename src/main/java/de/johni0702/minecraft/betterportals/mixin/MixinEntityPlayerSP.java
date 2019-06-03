@@ -1,7 +1,7 @@
 package de.johni0702.minecraft.betterportals.mixin;
 
 import com.mojang.authlib.GameProfile;
-import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity;
+import de.johni0702.minecraft.betterportals.common.PortalManagerImpl;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.util.math.BlockPos;
@@ -23,6 +23,6 @@ public abstract class MixinEntityPlayerSP extends AbstractClientPlayer {
             cancellable = true
     )
     private void isOpenBlockSpaceCheckPortals(BlockPos pos, CallbackInfoReturnable<Boolean> ci) {
-        ci.setReturnValue(AbstractPortalEntity.EventHandler.INSTANCE.onIsOpenBlockSpace(this, pos));
+        ci.setReturnValue(PortalManagerImpl.EventHandler.INSTANCE.onIsOpenBlockSpace(this, pos));
     }
 }

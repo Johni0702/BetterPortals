@@ -3,6 +3,7 @@ package de.johni0702.minecraft.betterportals.common
 import de.johni0702.minecraft.betterportals.client.deriveClientPosRotFrom
 import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.view.server.*
+import net.minecraft.block.material.Material
 import net.minecraft.client.entity.AbstractClientPlayer
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP
@@ -13,6 +14,7 @@ import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.ResourceLocation
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
@@ -137,6 +139,96 @@ open class PortalAgent<T: CanMakeMainView>(
         val entityPos = lastTickPos[entity] ?: (entity.pos + entity.eyeOffset)
         return portal.localFacing.axis.toFacing(entityPos - portal.localPosition.to3d())
     }
+
+    /**
+     * Called to compute collision boxes for the given entity in and around this portal (especially for adding those
+     * in the remote dimension, which vanilla does not know about, and removing those on the hidden side, which the
+     * entity should not interact with).
+     * Only those BBs which intersect with `queryAABB` need to be added but *any* incorrect ones should be removed.
+     *
+     * This method is only called for selected portals (those which intersect with either entity BB or queryAABB).
+     */
+    open fun modifyAABBs(
+            entity: Entity,
+            queryAABB: AxisAlignedBB,
+            aabbList: MutableList<AxisAlignedBB>,
+            queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>
+    ) {
+        val remotePortal = getRemoteAgent()
+        if (remotePortal == null) {
+            // Remote portal hasn't yet been loaded, treat all portal blocks as solid to prevent passing
+            portal.localDetailedBounds.forEach {
+                if (it.intersects(queryAABB)) {
+                    aabbList.add(it)
+                }
+            }
+            return
+        }
+
+        // otherwise, we need to remove all collision boxes on the other, local side of the portal
+        // to prevent the entity from colliding with them
+        val entitySide = getEntitySide(entity)
+        val hiddenSide = entitySide.opposite
+        val hiddenAABB = portal.localBoundingBox
+                .offset(hiddenSide.directionVec.to3d())
+                .expand(hiddenSide.directionVec.to3d() * Double.POSITIVE_INFINITY)
+        aabbList.removeIf { it.intersects(hiddenAABB) }
+
+        // and instead add collision boxes from the remote world
+        if (!hiddenAABB.intersects(queryAABB)) return // unless we're not even interested in those
+        val remoteAABB = with(portal) {
+            // Reduce the AABB which we're looking for in the first place to the hidden section
+            val aabb = hiddenAABB.intersect(queryAABB)
+            // and transform it to remote space in order to lookup collision boxes over there
+            aabb.min.fromLocal().toRemote().toAxisAlignedBB(aabb.max.fromLocal().toRemote())
+        }
+        val remoteCollisions = queryRemote(remotePortal.world, remoteAABB)
+
+        // finally transform any collision boxes back to local space and add them to the result
+        remoteCollisions.mapTo(aabbList) { aabb ->
+            with(portal) { aabb.min.fromRemote().toLocal().toAxisAlignedBB(aabb.max.fromRemote().toLocal()) }
+        }
+    }
+
+    /**
+     * Called to determine if the given `queryAABB` (usually a shrunken entity BBs) is in the given material.
+     * This differs from the vanilla method in that it takes into account blocks in the remote dimension, which vanilla
+     * does not know about, and ignores those on the hidden side, which the entity should not interact with.
+     *
+     * This method is only called for selected portals (those which intersect with the entity BB).
+     */
+    fun isInMaterial(entity: Entity, queryAABB: AxisAlignedBB, material: Material): Boolean? {
+        val world = entity.world
+
+        val remotePortal = getRemoteAgent() ?: return null
+
+        val portalPos = portal.localPosition.to3dMid()
+        val entitySide = getEntitySide(entity)
+        val hiddenSide = entitySide.opposite
+        val entityHalf = AxisAlignedBB_INFINITE.with(entitySide.opposite, portalPos[entitySide.axis])
+        val hiddenHalf = AxisAlignedBB_INFINITE.with(hiddenSide.opposite, portalPos[hiddenSide.axis])
+
+        // For sanity, pretend there are no recursive portals
+
+        // Split BB into local and remote side
+        if (queryAABB.intersects(entityHalf)) {
+            val localAABB = queryAABB.intersect(entityHalf)
+            if (world.isMaterialInBB(localAABB, material)) {
+                return true
+            }
+        }
+        if (queryAABB.intersects(hiddenHalf)) {
+            val aabb = queryAABB.intersect(hiddenHalf)
+            val remoteAABB = with(portal) {
+                aabb.min.fromLocal().toRemote().toAxisAlignedBB(aabb.max.fromLocal().toRemote())
+            }
+            if (remotePortal.world.isMaterialInBB(remoteAABB, material)) {
+                return true
+            }
+        }
+        return false
+    }
+
 
     /**
      * Checks if any entities have moved through the portal surface by comparing their positions to the previous call

@@ -1,6 +1,6 @@
 package de.johni0702.minecraft.betterportals.mixin;
 
-import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity;
+import de.johni0702.minecraft.betterportals.common.PortalManagerImpl;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,7 +18,7 @@ public abstract class MixinEntity {
             )
     )
     private void beforeCollidesWithAnyBlock(double x, double y, double z, CallbackInfoReturnable<Boolean> ci) {
-        AbstractPortalEntity.EventHandler.INSTANCE.setCollisionBoxesEntity((Entity) (Object) this);
+        PortalManagerImpl.EventHandler.INSTANCE.setCollisionBoxesEntity((Entity) (Object) this);
     }
 
     @Inject(
@@ -30,12 +30,12 @@ public abstract class MixinEntity {
             )
     )
     private void afterCollidesWithAnyBlock(double x, double y, double z, CallbackInfoReturnable<Boolean> ci) {
-        AbstractPortalEntity.EventHandler.INSTANCE.setCollisionBoxesEntity(null);
+        PortalManagerImpl.EventHandler.INSTANCE.setCollisionBoxesEntity(null);
     }
 
     @Inject(method = "isInLava", at = @At("HEAD"), cancellable = true)
     private void isInLava(CallbackInfoReturnable<Boolean> ci) {
-        Boolean result = AbstractPortalEntity.EventHandler.INSTANCE.isInMaterial((Entity) (Object) this, Material.LAVA);
+        Boolean result = PortalManagerImpl.EventHandler.INSTANCE.isInMaterial((Entity) (Object) this, Material.LAVA);
         if (result != null) {
             ci.setReturnValue(result);
         }
