@@ -33,8 +33,6 @@ abstract class PortalRenderer<in P: Portal> {
      * Renders the given portal at the given position relative to the camera.
      */
     open fun render(portal: P, pos: Vec3d, partialTicks: Float) {
-        GlStateManager.disableAlpha() // ._. someone forgot to disable this, thanks (happens if chat GUI is opened)
-
         val renderPass = ClientViewAPI.instance.getRenderPassManager(mc).current ?: return
 
         viewFacing = portal.localFacing.axis.toFacing(renderPass.camera.position - portal.localPosition.to3dMid())
@@ -59,6 +57,7 @@ abstract class PortalRenderer<in P: Portal> {
 
     protected open fun renderPortal(portal: P, pos: Vec3d, framebuffer: Framebuffer?, renderPass: RenderPass) {
         if (framebuffer == null) {
+            GlStateManager.disableTexture2D()
             GlStateManager.color(0f, 0f, 0f)
         } else {
             shader.addSamplerTexture("sampler", framebuffer)
@@ -69,6 +68,7 @@ abstract class PortalRenderer<in P: Portal> {
         renderPortalSurface(portal, pos, renderPass)
         if (framebuffer == null) {
             GlStateManager.color(1f, 1f, 1f)
+            GlStateManager.enableTexture2D()
         } else {
             shader.endShader()
         }

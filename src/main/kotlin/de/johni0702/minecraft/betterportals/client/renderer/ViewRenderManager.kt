@@ -12,6 +12,7 @@ import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
 import de.johni0702.minecraft.view.client.render.*
 import net.minecraft.client.Minecraft
+import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.util.math.AxisAlignedBB
@@ -73,7 +74,7 @@ class ViewRenderManager : RenderPassManager {
         }
 
         mc.mcProfiler.startSection("determineVisiblePortals")
-        val viewEntity = mc.renderViewEntity ?: mc.player
+        var viewEntity = mc.renderViewEntity ?: mc.player
         var view = BetterPortalsMod.viewManager.mainView
         (view as ClientViewImpl).captureState(mc) // capture main view camera
         val entityPos = viewEntity.syncPos + viewEntity.eyeOffset
@@ -132,6 +133,13 @@ class ViewRenderManager : RenderPassManager {
                 cameraPos = (portal.localToRemoteMatrix * cameraPos.toPoint()).toMC()
                 cameraYaw += (portal.remoteRotation - portal.localRotation).degrees.toDouble()
                 pos = (portal.localToRemoteMatrix * hitVec.toPoint()).toMC()
+                val prevViewEntity = viewEntity
+                viewEntity = portal.agent.view!!.camera
+                if (prevViewEntity is EntityPlayerSP) {
+                    viewEntity.deriveClientPosRotFrom(prevViewEntity, portal)
+                } else {
+                    viewEntity.derivePosRotFrom(prevViewEntity, portal)
+                }
                 parentPortal = portal
             } else if (!hitVisualPosition) {
                 hitVisualPosition = true

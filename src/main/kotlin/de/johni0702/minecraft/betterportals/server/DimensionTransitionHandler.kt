@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.betterportals.server
 
+import de.johni0702.minecraft.betterportals.common.forgeCapabilities
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.net.TransferToDimension
 import de.johni0702.minecraft.betterportals.net.sendTo
@@ -29,8 +30,15 @@ object DimensionTransitionHandler {
 
         // Create a new view entity in the destination dimension
         val view = viewManager.createView(world, player.pos) {
+            // Some teleporter require capabilities attached to the player but not the view entity (e.g. Cavern II)
+            val oldCapabilities = forgeCapabilities
+            forgeCapabilities = player.forgeCapabilities
+
             // Let the teleporter position the view entity
             playerList.transferEntityToWorld(this, player.dimension, world, world, teleporter)
+
+            // Reset view entity capabilities since we're going to swap in the player soon enough anyway
+            forgeCapabilities = oldCapabilities
         }
 
         // Start transaction to allow the handler of TransferToDimension to update the camera in the target dimension before switching to it
