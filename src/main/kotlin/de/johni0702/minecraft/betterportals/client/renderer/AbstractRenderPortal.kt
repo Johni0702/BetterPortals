@@ -124,8 +124,6 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
         val viewFacing = portalFacing.axis.toFacing(player.getPositionEyes(partialTicks) - entity.pos)
 
         open fun render() {
-            GlStateManager.disableAlpha() // ._. someone forgot to disable this, thanks (happens if chat GUI is opened)
-
             if (entity.isDead) {
                 return
             }
@@ -159,9 +157,11 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
         }
 
         private fun renderPortalInactive() {
+            GlStateManager.disableTexture2D()
             GlStateManager.color(0f, 0f, 0f)
             renderPortalFromInside()
             GlStateManager.color(1f, 1f, 1f)
+            GlStateManager.enableTexture2D()
         }
 
         private fun renderPortalFromInside() {
