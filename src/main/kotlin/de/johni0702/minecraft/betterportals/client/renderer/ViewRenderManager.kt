@@ -68,7 +68,7 @@ class ViewRenderManager {
         }
 
         mc.mcProfiler.startSection("determineVisiblePortals")
-        val viewEntity = mc.renderViewEntity ?: mc.player
+        var viewEntity = mc.renderViewEntity ?: mc.player
         var view = BetterPortalsMod.viewManager.mainView
         (view as ClientViewImpl).captureState(mc) // capture main view camera
         val entityPos = viewEntity.syncPos + viewEntity.eyeOffset
@@ -126,6 +126,9 @@ class ViewRenderManager {
                 cameraPos = (portal.localToRemoteMatrix * cameraPos.toPoint()).toMC()
                 cameraYaw += (portal.remoteRotation - portal.localRotation).degrees.toDouble()
                 pos = (portal.localToRemoteMatrix * hitVec.toPoint()).toMC()
+                val prevViewEntity = viewEntity
+                viewEntity = portal.view!!.camera
+                Utils.transformPosition(prevViewEntity, viewEntity, portal)
                 parentPortal = portal
             } else if (!hitVisualPosition) {
                 hitVisualPosition = true
