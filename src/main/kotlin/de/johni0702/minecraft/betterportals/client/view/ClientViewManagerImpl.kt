@@ -321,10 +321,6 @@ internal class ClientViewManagerImpl : ClientViewManager {
         if (!mc.framebuffer.isStencilEnabled) {
             mc.framebuffer.enableStencil()
         }
-        // Disable portal animation
-        mc.player?.timeInPortal = 0f
-        mc.player?.prevTimeInPortal = 0f
-        mc.player?.timeUntilPortal = 200
     }
 
     private inner class EventHandler {
