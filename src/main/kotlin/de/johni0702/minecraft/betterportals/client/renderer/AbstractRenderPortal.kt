@@ -186,7 +186,7 @@ abstract class AbstractRenderPortal<T : AbstractPortalEntity>(renderManager: Ren
             }
 
             GL11.glEnable(GL11.GL_POLYGON_OFFSET_FILL)
-            GL11.glPolygonOffset(-1f, -1f)
+            GL11.glPolygonOffset(1f, 1f)
             tessellator.draw()
             GL11.glPolygonOffset(0f, 0f)
             GL11.glDisable(GL11.GL_POLYGON_OFFSET_FILL)
