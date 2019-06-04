@@ -24,6 +24,7 @@ import net.minecraft.world.WorldServer
 import net.minecraft.world.chunk.BlockStateContainer
 import net.minecraft.world.chunk.BlockStatePaletteHashMap
 import net.minecraft.world.chunk.BlockStatePaletteLinear
+import net.minecraftforge.common.capabilities.CapabilityDispatcher
 import net.minecraftforge.fml.common.eventhandler.EventBus
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 import javax.vecmath.*
@@ -250,3 +251,8 @@ private class EventBusRegistration<in T>(
     }
 
 }
+
+private val forgeCapabilitiesField = Entity::class.java.getDeclaredField("capabilities").apply { isAccessible = true }
+var Entity.forgeCapabilities: CapabilityDispatcher
+    get() = forgeCapabilitiesField.get(this) as CapabilityDispatcher
+    set(value) = forgeCapabilitiesField.set(this, value)
