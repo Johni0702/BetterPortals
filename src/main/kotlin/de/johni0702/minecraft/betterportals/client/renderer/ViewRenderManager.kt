@@ -6,6 +6,7 @@ import de.johni0702.minecraft.betterportals.client.*
 import de.johni0702.minecraft.betterportals.client.compat.Optifine
 import de.johni0702.minecraft.betterportals.client.view.ClientView
 import de.johni0702.minecraft.betterportals.client.view.ClientViewImpl
+import de.johni0702.minecraft.betterportals.client.view.ViewEntity
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
 import net.minecraft.client.Minecraft
@@ -142,6 +143,8 @@ class ViewRenderManager {
         mc.mcProfiler.endSection()
 
         // Capture camera properties (rotation, fov)
+        // FIXME we probably want to capture fov of the main view as it contains the player, not the one of the root
+        //  render pass which merely has a camera entity (might be the cause of issue #1)
         GlStateManager.pushMatrix()
         eventHandler.capture = true
         eventHandler.mainCameraYaw = cameraYaw.toFloat()
@@ -217,7 +220,10 @@ class ViewRenderManager {
         fun onFOVSetup(event: EntityViewRenderEvent.FOVModifier) {
             if (capture) {
                 fov = event.fov
-            } else {
+            } else if (Minecraft.getMinecraft().player is ViewEntity) {
+                // MC uses a different fov for rendering the hand than for the rest but we can't know which the current
+                // event is meant for. Since the hand is only rendered for non-view entities (i.e. the main view) and
+                // the same view is also the one which we record the fov from, we just never modify the fov for it.
                 event.fov = fov
             }
         }
