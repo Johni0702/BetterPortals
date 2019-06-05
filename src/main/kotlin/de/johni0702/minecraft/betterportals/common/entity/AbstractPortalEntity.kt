@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.betterportals.common.entity
 
 import de.johni0702.minecraft.betterportals.BPConfig
+import de.johni0702.minecraft.betterportals.BetterPortalsMod
 import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.client.UtilsClient
 import de.johni0702.minecraft.betterportals.client.view.ClientView
@@ -10,7 +11,6 @@ import de.johni0702.minecraft.betterportals.server.view.ServerView
 import de.johni0702.minecraft.betterportals.server.view.viewManager
 import io.netty.buffer.ByteBuf
 import net.minecraft.block.material.Material
-import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.AbstractClientPlayer
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP
@@ -93,28 +93,28 @@ abstract class AbstractPortalEntity(
     }
 
     private var lastTickPos = mutableMapOf<Entity, Vec3d>()
-    private var thisTickPos = mutableMapOf<Entity, Vec3d>()
     protected open fun checkTeleportees() {
         val facingVec = localFacing.directionVec.to3d().abs() * 2
         val largerBB = localBoundingBox.grow(facingVec)
         val finerBBs = localBlocks.map { AxisAlignedBB(it).grow(facingVec) }
+        val seenEntities = mutableSetOf<Entity>()
         world.getEntitiesWithinAABBExcludingEntity(this, largerBB).forEach {
+            if (!seenEntities.add(it)) return@forEach
+
             val entityBB = it.entityBoundingBox
             if (finerBBs.any { entityBB.intersects(it) }) {
                 checkTeleportee(it)
             }
         }
-        lastTickPos = thisTickPos.also {
-            thisTickPos = lastTickPos
-            thisTickPos.clear()
-        }
+        lastTickPos.keys.removeIf { !seenEntities.contains(it) }
     }
 
     protected open fun checkTeleportee(entity: Entity) {
         val portalPos = pos
         val entityPos = entity.pos + entity.eyeOffset
-        thisTickPos[entity] = entityPos
-        val entityPrevPos = lastTickPos[entity] ?: return
+        val entityPrevPos = lastTickPos[entity].also {
+            lastTickPos[entity] = entityPos
+        } ?: return
         val relPos = entityPos - portalPos
         val prevRelPos = entityPrevPos - portalPos
         val from = localAxis.toFacing(relPos)
@@ -126,8 +126,6 @@ abstract class AbstractPortalEntity(
     }
 
     protected open fun teleportEntity(entity: Entity, from: EnumFacing) {
-        thisTickPos.remove(entity)
-
         if (entity.isRiding || entity.isBeingRidden) {
             return // just do nothing for now, not even dismounting works as one would hope
         }
@@ -168,6 +166,10 @@ abstract class AbstractPortalEntity(
             // TODO Vanilla does an update here, not sure if that's necessary?
             //remoteWorld.updateEntityWithOptionalForce(newEntity, false)
             remoteWorld.resetUpdateEntityTick()
+
+            // make sure the remote portal has the current position
+            // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
+            remotePortal.checkTeleportee(newEntity)
 
             // Inform other clients that the teleportation has happened
             trackingPlayers.forEach { it.viewManager.flushPackets() }
@@ -212,10 +214,11 @@ abstract class AbstractPortalEntity(
         @SubscribeEvent
         fun onClientTick(event: TickEvent.ClientTickEvent) {
             if (event.phase != TickEvent.Phase.END) return
-            val world = Minecraft.getMinecraft().world
-            if (world != null) {
-                tickWorld(world)
-            }
+            // We need to tick all views to properly update the lastTickPos map.
+            // However, actual teleportation will only happen in the main view, since it's
+            // the only one containing the player.
+            // But worlds will be switched in case there is a teleport, so we map them into a list first.
+            BetterPortalsMod.viewManagerImpl.views.mapNotNull { it.world }.forEach { tickWorld(it) }
         }
 
         private fun tickWorld(world: World) {
@@ -579,6 +582,10 @@ abstract class AbstractPortalEntity(
 
         view.makeMainView()
         Net.INSTANCE.sendToServer(UsePortal(entityId))
+
+        // make sure the remote portal has the current position
+        // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
+        remotePortal.checkTeleportee(player)
 
         remotePortal.onClientUpdate()
         return true
