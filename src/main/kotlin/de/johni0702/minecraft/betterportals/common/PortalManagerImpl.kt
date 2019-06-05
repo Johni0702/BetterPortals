@@ -1,11 +1,11 @@
 package de.johni0702.minecraft.betterportals.common
 
 import de.johni0702.minecraft.betterportals.BPConfig
+import de.johni0702.minecraft.betterportals.BetterPortalsMod
 import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.net.*
 import de.johni0702.minecraft.view.server.CanMakeMainView
 import net.minecraft.block.material.Material
-import net.minecraft.client.Minecraft
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.util.ResourceLocation
@@ -90,10 +90,11 @@ class PortalManagerImpl(override val world: World) : PortalManager {
         @SubscribeEvent
         fun onClientTick(event: TickEvent.ClientTickEvent) {
             if (event.phase != TickEvent.Phase.END) return
-            val world = Minecraft.getMinecraft().world
-            if (world != null) {
-                tickWorld(world)
-            }
+            // We need to tick all views to properly update the lastTickPos map.
+            // However, actual teleportation will only happen in the main view, since it's
+            // the only one containing the player.
+            // But worlds will be switched in case there is a teleport, so we map them into a list first.
+            BetterPortalsMod.viewManagerImpl.views.mapNotNull { it.world }.forEach { tickWorld(it) }
         }
 
         private fun tickWorld(world: World) {

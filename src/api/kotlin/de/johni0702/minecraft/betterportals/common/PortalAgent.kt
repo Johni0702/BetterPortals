@@ -128,7 +128,6 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
     }
 
     private var lastTickPos = mutableMapOf<Entity, Vec3d>()
-    private var thisTickPos = mutableMapOf<Entity, Vec3d>()
 
     /**
      * Returns the side of the portal on which the entity resides.
@@ -241,32 +240,31 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         val facingVec = portal.localFacing.directionVec.to3d().abs() * 2
         val largerBB = portal.localBoundingBox.grow(facingVec)
         val finerBBs = portal.localDetailedBounds.map { it.grow(facingVec) }
+        val seenEntities = mutableSetOf<Entity>()
         world.getEntitiesWithinAABB(Entity::class.java, largerBB).forEach {
             if (it is Portal) return@forEach
+            if (!seenEntities.add(it)) return@forEach
+
             val entityBB = it.entityBoundingBox
             if (finerBBs.any(entityBB::intersects)) {
                 checkTeleportee(it)
             }
         }
-        lastTickPos = thisTickPos.also {
-            thisTickPos = lastTickPos
-            thisTickPos.clear()
-        }
+        lastTickPos.keys.removeIf { !seenEntities.contains(it) }
     }
 
     /**
-     * Checks if the given entity has moved through the portal since the last time [checkTeleportees] has been called.
+     * Checks if the given entity has moved through the portal since the last time it has been called.
      * If it has, [teleport] is called with it.
-     *
-     * There's little point in calling this outside of [checkTeleportees].
      *
      * May teleport some entities and as such **must not** be called while ticking the world.
      */
     protected open fun checkTeleportee(entity: Entity) {
         val portalPos = portal.localPosition.to3dMid()
         val entityPos = entity.pos + entity.eyeOffset
-        thisTickPos[entity] = entityPos
-        val entityPrevPos = lastTickPos[entity] ?: return
+        val entityPrevPos = lastTickPos[entity].also {
+            lastTickPos[entity] = entityPos
+        } ?: return
         val relPos = entityPos - portalPos
         val prevRelPos = entityPrevPos - portalPos
         val from = portal.localAxis.toFacing(relPos)
@@ -285,8 +283,6 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
      * May teleport some entities and as such **must not** be called while ticking the world.
      */
     protected open fun teleport(entity: Entity, from: EnumFacing) {
-        thisTickPos.remove(entity)
-
         if (entity.isRiding || entity.isBeingRidden) {
             return // just do nothing for now, not even dismounting works as one would hope
         }
@@ -337,6 +333,10 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         // TODO Vanilla does an update here, not sure if that's necessary?
         //remoteWorld.updateEntityWithOptionalForce(newEntity, false)
         remoteWorld.resetUpdateEntityTick()
+
+        // make sure the remote portal has the current position
+        // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
+        remotePortal.checkTeleportee(newEntity)
 
         // Inform other clients that the teleportation has happened
         trackingPlayers.forEach { it.viewManager.flushPackets() }
@@ -522,6 +522,10 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
 
         view.makeMainView()
         manager.clientUsePortal(this)
+
+        // make sure the remote portal has the current position
+        // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
+        remotePortal.checkTeleportee(player)
 
         remotePortal.onClientUpdate()
         return true
