@@ -254,6 +254,16 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
     }
 
     /**
+     * Updates the entity's position which is used for comparision in [checkTeleportee].
+     *
+     * This method must be called on the remote portal right after portal usage to prevent the entity from ending
+     * up on incorrect sides or immediately teleporting back.
+     */
+    protected open fun updateEntityPosWithoutTeleport(entity: Entity) {
+        lastTickPos[entity] = entity.pos + entity.eyeOffset
+    }
+
+    /**
      * Checks if the given entity has moved through the portal since the last time it has been called.
      * If it has, [teleport] is called with it.
      *
@@ -336,7 +346,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
 
         // make sure the remote portal has the current position
         // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
-        remotePortal.checkTeleportee(newEntity)
+        remotePortal.updateEntityPosWithoutTeleport(newEntity)
 
         // Inform other clients that the teleportation has happened
         trackingPlayers.forEach { it.viewManager.flushPackets() }
@@ -525,7 +535,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
 
         // make sure the remote portal has the current position
         // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
-        remotePortal.checkTeleportee(player)
+        remotePortal.updateEntityPosWithoutTeleport(player)
 
         remotePortal.onClientUpdate()
         return true
