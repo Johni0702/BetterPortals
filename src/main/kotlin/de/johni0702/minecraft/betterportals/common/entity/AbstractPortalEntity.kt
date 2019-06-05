@@ -109,6 +109,10 @@ abstract class AbstractPortalEntity(
         lastTickPos.keys.removeIf { !seenEntities.contains(it) }
     }
 
+    protected open fun updateEntityPosWithoutTeleport(entity: Entity) {
+        lastTickPos[entity] = entity.pos + entity.eyeOffset
+    }
+
     protected open fun checkTeleportee(entity: Entity) {
         val portalPos = pos
         val entityPos = entity.pos + entity.eyeOffset
@@ -169,7 +173,7 @@ abstract class AbstractPortalEntity(
 
             // make sure the remote portal has the current position
             // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
-            remotePortal.checkTeleportee(newEntity)
+            remotePortal.updateEntityPosWithoutTeleport(newEntity)
 
             // Inform other clients that the teleportation has happened
             trackingPlayers.forEach { it.viewManager.flushPackets() }
@@ -585,7 +589,7 @@ abstract class AbstractPortalEntity(
 
         // make sure the remote portal has the current position
         // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
-        remotePortal.checkTeleportee(player)
+        remotePortal.updateEntityPosWithoutTeleport(player)
 
         remotePortal.onClientUpdate()
         return true
