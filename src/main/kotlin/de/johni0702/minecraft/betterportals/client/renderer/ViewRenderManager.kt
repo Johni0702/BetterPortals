@@ -396,6 +396,16 @@ class ViewRenderPlan(
             return framebuffer
         }
 
+        if (CURRENT != this) {
+            val prev = CURRENT
+            CURRENT = this
+            try {
+                return renderSelf(partialTicks, finishTimeNano)
+            } finally {
+                CURRENT = prev
+            }
+        }
+
         if (view.manager.activeView != view) {
             return view.withView { renderSelf(partialTicks, finishTimeNano) }
         }
@@ -459,10 +469,7 @@ class ViewRenderPlan(
         RenderPassEvent.Start(partialTicks, this).post()
 
         // Actually render the world
-        val prevRenderPlan = ViewRenderPlan.CURRENT
-        ViewRenderPlan.CURRENT = this
         mc.entityRenderer.renderWorld(partialTicks, finishTimeNano)
-        ViewRenderPlan.CURRENT = prevRenderPlan
 
         RenderPassEvent.End(partialTicks, this).post()
 
