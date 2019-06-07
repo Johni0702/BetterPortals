@@ -14,6 +14,7 @@ import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
 import de.johni0702.minecraft.view.client.render.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
+import net.minecraft.client.renderer.GLAllocation
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.util.math.AxisAlignedBB
@@ -235,6 +236,8 @@ class ViewRenderManager : RenderPassManager {
         var mainCameraPitch = 0.toFloat()
         var mainCameraRoll = 0.toFloat()
         var fogOffset = 0.toFloat()
+        private var projectionMatrix = GLAllocation.createDirectFloatBuffer(16)
+        private var modelViewMatrix = GLAllocation.createDirectFloatBuffer(16)
         private var yaw = 0.toFloat()
         private var pitch = 0.toFloat()
         private var roll = 0.toFloat()
@@ -242,11 +245,21 @@ class ViewRenderManager : RenderPassManager {
         @SubscribeEvent(priority = EventPriority.LOWEST)
         fun onCameraSetup(event: EntityViewRenderEvent.CameraSetup) {
             if (capture) {
+                GL11.glGetFloat(GL11.GL_PROJECTION_MATRIX, projectionMatrix)
+                GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, modelViewMatrix)
+                projectionMatrix.flip().limit(16) // limit(16) required as glGetFloat has no clue
+                modelViewMatrix.flip().limit(16)
                 yaw = event.yaw
                 pitch = event.pitch
                 roll = event.roll
             } else {
                 val plan = ViewRenderPlan.CURRENT ?: return
+                GL11.glMatrixMode(GL11.GL_PROJECTION)
+                GL11.glLoadMatrix(projectionMatrix)
+                GL11.glMatrixMode(GL11.GL_MODELVIEW)
+                GL11.glLoadMatrix(modelViewMatrix)
+                projectionMatrix.rewind()
+                modelViewMatrix.rewind()
                 event.yaw = yaw - mainCameraYaw + plan.camera.rotation.y.toFloat()
                 event.pitch = pitch - mainCameraPitch + plan.camera.rotation.x.toFloat()
                 event.roll = roll - mainCameraRoll + plan.camera.rotation.z.toFloat()
