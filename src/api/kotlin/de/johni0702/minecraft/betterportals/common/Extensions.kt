@@ -210,8 +210,8 @@ val AxisAlignedBB.planeAxis get() = when {
 /**
  * Calculates interception point of a line segment given by `start` and `end` with a zero-volume (i.e. plane) AABB.
  *
- * As opposed to [AxisAlignedBB.calculateIntercept], this method works even if one of the points is very close to
- * (or on) to the plane.
+ * As opposed to [AxisAlignedBB.calculateIntercept], this method works even if the `end` point is very close to
+ * (or on) the plane. If `start` is on the plane and `end` is not, `null` will be returned.
  * It is an error to call this method on a non-plane AABB (i.e. one of [sizeX], [sizeY] or [sizeZ] must be `== 0.0`).
  */
 fun AxisAlignedBB.calculatePlaneIntercept(start: Vec3d, end: Vec3d): Vec3d? {
@@ -220,7 +220,7 @@ fun AxisAlignedBB.calculatePlaneIntercept(start: Vec3d, end: Vec3d): Vec3d? {
     val diffAxis = diff[axis]
     if (diffAxis == 0.0 || diffAxis == -0.0) return null
     val delta = (min[axis] - start[axis]) / diffAxis
-    if (delta < 0.0 || delta > 1.0) return null
+    if (delta <= 0.0 || delta > 1.0) return null
     val result = start + diff * delta
     return if (intersectsWithExcept(axis, result)) result else null
 }
@@ -412,6 +412,33 @@ fun Entity.derivePosRotFrom(from: Entity, matrix: Matrix4d, yawOffset: Float) {
     to.isSprinting = from.isSprinting
 }
 
+fun World.findPortal(start: Vec3d, end: Vec3d): Triple<World, Vec3d, PortalAgent<*, *>?> {
+    return portalManager.loadedPortals.filter { agent ->
+        val portal = agent.portal
+        val vec = portal.localFacing.directionVec.to3d() * 0.5
+        val negVec = vec * -1
+        agent.portal.localBoundingBox.contract(vec).contract(negVec).calculatePlaneIntercept(start, end) != null
+    }.flatMap { agent ->
+        val portal = agent.portal
+        val vec = portal.localFacing.directionVec.to3d() * 0.5
+        val negVec = vec * -1
+        portal.localDetailedBounds.mapNotNull {
+            it.contract(vec).contract(negVec).calculatePlaneIntercept(start, end)?.let { hitVec ->
+                Triple(agent.view?.camera?.world ?: return@let null, hitVec, agent)
+            }
+        }
+    }.minBy {
+        it.second.squareDistanceTo(start)
+    } ?: Triple(this, end, null)
+}
+
+tailrec fun World.rayTracePortals(start: Vec3d, end: Vec3d): World {
+    val result = findPortal(start, end)
+    val agent = result.third ?: return this
+    val newStart = (agent.portal.localToRemoteMatrix * result.second.toPoint()).toMC()
+    return result.first.rayTracePortals(newStart, end)
+}
+
 fun World.rayTraceBlocksWithPortals(
         start: Vec3d,
         end: Vec3d,
@@ -419,34 +446,15 @@ fun World.rayTraceBlocksWithPortals(
         ignoreBlockWithoutBoundingBox: Boolean = false,
         returnLastUncollidableBlock: Boolean = false
 ): RayTraceResult? {
-    val result = portalManager.loadedPortals.filter { agent ->
-        agent.portal.localBoundingBox.calculateIntercept(start, end) != null
-    }.flatMap { agent ->
-        val portal = agent.portal
-        portal.localDetailedBounds.mapNotNull {
-            it.calculateIntercept(start, end)?.let { entry ->
-                it.calculateIntercept(end, start)?.let { exit ->
-                    val entrySide = portal.localAxis.toFacing(portal.localPosition.to3dMid() - entry.hitVec)
-                    val exitSide = portal.localAxis.toFacing(portal.localPosition.to3dMid() - exit.hitVec)
-                    if (entrySide != exitSide) {
-                        Triple(agent, entry.hitVec, exit.hitVec)
-                    } else {
-                        null
-                    }
-                }
-            }
-        }
-    }.minBy {
-        it.second.squareDistanceTo(start)
-    } ?: return rayTraceBlocks(start, end, stopOnLiquid, ignoreBlockWithoutBoundingBox, returnLastUncollidableBlock)
+    val result = findPortal(start, end)
+    val agent = result.third
+            ?: return rayTraceBlocks(start, end, stopOnLiquid, ignoreBlockWithoutBoundingBox, returnLastUncollidableBlock)
+    val localWorld = result.first
+    val hitVec = result.second
 
-    val agent = result.first
-    val portalEntry = result.second
-    val portalExit = result.third
-
-    val localResult = rayTraceBlocks(
+    val localResult = localWorld.rayTraceBlocks(
             start,
-            portalEntry,
+            hitVec,
             stopOnLiquid,
             ignoreBlockWithoutBoundingBox,
             returnLastUncollidableBlock
@@ -460,7 +468,7 @@ fun World.rayTraceBlocksWithPortals(
 
     val portal = agent.portal
     val remotePortalExit = with(portal) {
-        portalExit.fromLocal().toRemote()
+        hitVec.fromLocal().toRemote()
     }
     val remoteEnd = with(portal) {
         end.fromLocal().toRemote()

@@ -8,10 +8,12 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.EntityRenderer;
+import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -61,6 +63,9 @@ public abstract class MixinEntityRenderer {
             )
     )
     private RayTraceResult rayTraceBlocksWithPortals(WorldClient world, Vec3d start, Vec3d end) {
-        return ExtensionsKt.rayTraceBlocksWithPortals(world, start, end, false, false, false);
+        Entity viewEntity = mc.getRenderViewEntity();
+        Vec3d eyePos = viewEntity.getPositionVector().addVector(0, viewEntity.getEyeHeight(), 0);
+        World localWorld = ExtensionsKt.rayTracePortals(world, eyePos, start);
+        return ExtensionsKt.rayTraceBlocksWithPortals(localWorld, start, end, false, false, false);
     }
 }
