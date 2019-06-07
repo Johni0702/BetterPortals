@@ -11,6 +11,7 @@ import de.johni0702.minecraft.betterportals.client.view.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterEndPortal
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterNetherPortal
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterTFPortal
+import de.johni0702.minecraft.betterportals.common.blocks.TileEntityBetterEndPortal
 import de.johni0702.minecraft.betterportals.common.entity.EndEntryPortalEntity
 import de.johni0702.minecraft.betterportals.common.entity.EndExitPortalEntity
 import de.johni0702.minecraft.betterportals.common.entity.NetherPortalEntity
@@ -20,7 +21,6 @@ import de.johni0702.minecraft.betterportals.net.Net
 import net.minecraft.block.Block
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
-import net.minecraft.tileentity.TileEntityEndPortal
 import net.minecraft.util.ResourceLocation
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
@@ -161,7 +161,7 @@ class BetterPortalsMod {
                 RenderingRegistry.registerEntityRenderingHandler(NetherPortalEntity::class.java, ::RenderNetherPortal)
             }
             if (BPConfig.enableEndPortals) {
-                ClientRegistry.bindTileEntitySpecialRenderer(TileEntityEndPortal::class.java, BetterEndPortalTileRenderer())
+                ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBetterEndPortal::class.java, BetterEndPortalTileRenderer())
                 RenderingRegistry.registerEntityRenderingHandler(EndEntryPortalEntity::class.java, ::RenderEndPortal)
                 RenderingRegistry.registerEntityRenderingHandler(EndExitPortalEntity::class.java, ::RenderEndPortal)
             }

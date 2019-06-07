@@ -17,7 +17,10 @@ import net.minecraft.block.state.pattern.FactoryBlockPattern
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Blocks
+import net.minecraft.tileentity.TileEntity
+import net.minecraft.tileentity.TileEntityEndPortal
 import net.minecraft.util.EnumBlockRenderType
+import net.minecraft.util.EnumFacing
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
@@ -47,6 +50,7 @@ class BlockBetterEndPortal : BlockEndPortal(Material.PORTAL) {
         setResistance(6000000f)
     }
 
+    override fun createNewTileEntity(worldIn: World, meta: Int): TileEntity = TileEntityBetterEndPortal()
     override fun getRenderType(state: IBlockState): EnumBlockRenderType = EnumBlockRenderType.INVISIBLE
     override fun getBoundingBox(state: IBlockState, source: IBlockAccess, pos: BlockPos): AxisAlignedBB = EMPTY_AABB
     override fun onEntityCollidedWithBlock(worldIn: World, pos: BlockPos, state: IBlockState, entityIn: Entity) {
@@ -112,4 +116,8 @@ class BlockBetterEndPortal : BlockEndPortal(Material.PORTAL) {
             return
         }
     }
+}
+
+class TileEntityBetterEndPortal : TileEntityEndPortal() {
+    override fun shouldRenderFace(side: EnumFacing): Boolean = false
 }
