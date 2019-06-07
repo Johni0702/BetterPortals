@@ -6,6 +6,7 @@ import de.johni0702.minecraft.betterportals.LOGGER
 import de.johni0702.minecraft.betterportals.net.*
 import de.johni0702.minecraft.view.server.CanMakeMainView
 import net.minecraft.block.material.Material
+import net.minecraft.client.Minecraft
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.util.ResourceLocation
@@ -90,6 +91,7 @@ class PortalManagerImpl(override val world: World) : PortalManager {
         @SubscribeEvent
         fun onClientTick(event: TickEvent.ClientTickEvent) {
             if (event.phase != TickEvent.Phase.END) return
+            if (Minecraft.getMinecraft().player == null) return
             // We need to tick all views to properly update the lastTickPos map.
             // However, actual teleportation will only happen in the main view, since it's
             // the only one containing the player.
