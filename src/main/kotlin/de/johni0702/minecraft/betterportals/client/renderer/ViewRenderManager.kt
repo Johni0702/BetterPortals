@@ -122,8 +122,6 @@ class ViewRenderManager : RenderPassManager {
         }
         GlStateManager.popMatrix()
 
-        var parentPortal: AbstractPortalEntity? = null
-
         // Ray trace from the entity (eye) position backwards to the camera position, following any portals which therefore
         // the camera must be looking through.
         // First back through time from the actual entity position to the interpolated (visual) position in this frame
@@ -138,8 +136,6 @@ class ViewRenderManager : RenderPassManager {
                 // FIXME handle one-way portals
                 // Ignore portals which haven't yet been loaded
                 view != null
-                        // or have already been used in the previous iteration
-                        && (view.camera.world != parentPortal?.world || it.localPosition != parentPortal?.remotePosition)
             }.flatMap { portal ->
                 // For each portal, find the point intercepting the line between entity and camera
                 val vec = portal.localFacing.directionVec.to3d() * 0.5
@@ -175,7 +171,6 @@ class ViewRenderManager : RenderPassManager {
                 } else {
                     viewEntity.derivePosRotFrom(prevViewEntity, portal)
                 }
-                parentPortal = portal
             } else if (!hitVisualPosition) {
                 hitVisualPosition = true
                 pos = target
