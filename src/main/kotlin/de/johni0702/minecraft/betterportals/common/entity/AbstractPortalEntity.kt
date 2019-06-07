@@ -11,6 +11,7 @@ import de.johni0702.minecraft.betterportals.server.view.ServerView
 import de.johni0702.minecraft.betterportals.server.view.viewManager
 import io.netty.buffer.ByteBuf
 import net.minecraft.block.material.Material
+import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.AbstractClientPlayer
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP
@@ -218,6 +219,7 @@ abstract class AbstractPortalEntity(
         @SubscribeEvent
         fun onClientTick(event: TickEvent.ClientTickEvent) {
             if (event.phase != TickEvent.Phase.END) return
+            if (Minecraft.getMinecraft().player == null) return
             // We need to tick all views to properly update the lastTickPos map.
             // However, actual teleportation will only happen in the main view, since it's
             // the only one containing the player.
