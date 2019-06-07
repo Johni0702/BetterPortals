@@ -35,7 +35,7 @@ abstract class PortalRenderer<in P: Portal> {
     open fun render(portal: P, pos: Vec3d, partialTicks: Float) {
         val renderPass = ClientViewAPI.instance.getRenderPassManager(mc).current ?: return
 
-        viewFacing = portal.localFacing.axis.toFacing(renderPass.camera.position - portal.localPosition.to3dMid())
+        viewFacing = portal.localFacing.axis.toFacing(renderPass.camera.viewPosition - portal.localPosition.to3dMid())
 
         val parentPortal = renderPass.portalDetail?.parent
         if (parentPortal?.isTarget(portal) == true) {

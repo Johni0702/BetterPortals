@@ -36,6 +36,8 @@ interface Portal {
 
     fun BlockPos.toRemote(): BlockPos = rotate(remoteRotation).add(remotePosition)
     fun BlockPos.toLocal(): BlockPos = rotate(localRotation).add(localPosition)
+    fun BlockPos.fromRemote(): BlockPos = subtract(remotePosition).rotate(remoteRotation.reverse)
+    fun BlockPos.fromLocal(): BlockPos = subtract(localPosition).rotate(localRotation.reverse)
 
     fun Vec3d.toSpace(pos: BlockPos, rotation: Rotation): Vec3d =
             subtract(0.5, 0.0, 0.5).rotate(rotation).addVector(0.5, 0.0, 0.5).add(pos.to3d())

@@ -16,6 +16,8 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.renderer.GLAllocation
 import net.minecraft.client.renderer.GlStateManager
+import net.minecraft.client.renderer.Matrix4f
+import net.minecraft.client.renderer.culling.ClippingHelperImpl
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.Vec3d
@@ -26,6 +28,7 @@ import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import org.lwjgl.opengl.GL11
+import org.lwjgl.util.vector.Quaternion
 
 class ViewRenderManager : RenderPassManager {
     override val root: RenderPass?
@@ -81,10 +84,43 @@ class ViewRenderManager : RenderPassManager {
         (view as ClientViewImpl).captureState(mc) // capture main view camera
         val entityPos = viewEntity.syncPos + viewEntity.eyeOffset
         val interpEntityPos = viewEntity.getPositionEyes(partialTicks)
-        // TODO do third person camera
-        var cameraPos = interpEntityPos
-        var cameraYaw = viewEntity.prevRotationYaw + (viewEntity.rotationYaw - viewEntity.prevRotationYaw) * partialTicks.toDouble()
-        var cameraPitch = viewEntity.prevRotationPitch + (viewEntity.rotationPitch - viewEntity.prevRotationPitch) * partialTicks.toDouble()
+        val cameraYaw = viewEntity.prevRotationYaw + (viewEntity.rotationYaw - viewEntity.prevRotationYaw) * partialTicks.toDouble()
+        val cameraPitch = viewEntity.prevRotationPitch + (viewEntity.rotationPitch - viewEntity.prevRotationPitch) * partialTicks.toDouble()
+
+        // Capture main view camera settings
+        GlStateManager.pushMatrix()
+        var camera = view.withView {
+            eventHandler.capture = true
+            mc.entityRenderer.setupCameraTransform(partialTicks, 0)
+            eventHandler.capture = false
+
+            val buf = GLAllocation.createDirectFloatBuffer(16)
+            GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, buf)
+            buf.flip().limit(16)
+            val mat = Matrix4f().apply { load(buf) }
+            val inv = mat.inverse
+            val viewPosOffset = Vec3d(inv.m30.toDouble(), inv.m31.toDouble(), inv.m32.toDouble())
+            val viewRot = Quaternion.setFromMatrix(mat, Quaternion()).apply { normalise() }.toPitchYawRoll()
+
+            val feetPos = interpEntityPos - viewEntity.eyeOffset
+            val viewPos = feetPos + viewPosOffset
+
+            eventHandler.mainCameraYaw = cameraYaw.toFloat()
+            eventHandler.mainCameraPitch = cameraPitch.toFloat()
+
+            val frustum = Frustum(ClippingHelperImpl().apply { init() }).apply {
+                with(feetPos) { setPosition(x, y, z) }
+            }
+            Camera(
+                    frustum,
+                    feetPos,
+                    interpEntityPos,
+                    viewPos,
+                    Vec3d(cameraPitch, cameraYaw, 0.0),
+                    viewRot
+            )
+        }
+        GlStateManager.popMatrix()
 
         var parentPortal: AbstractPortalEntity? = null
 
@@ -132,8 +168,7 @@ class ViewRenderManager : RenderPassManager {
                 // behind the one we're looking through.
                 view = portal.agent.view!!
                 target = (portal.localToRemoteMatrix * target.toPoint()).toMC()
-                cameraPos = (portal.localToRemoteMatrix * cameraPos.toPoint()).toMC()
-                cameraYaw += (portal.remoteRotation - portal.localRotation).degrees.toDouble()
+                camera = camera.transformed(portal.localToRemoteMatrix)
                 pos = (portal.localToRemoteMatrix * hitVec.toPoint()).toMC()
                 val prevViewEntity = viewEntity
                 viewEntity = portal.agent.view!!.camera
@@ -146,30 +181,13 @@ class ViewRenderManager : RenderPassManager {
             } else if (!hitVisualPosition) {
                 hitVisualPosition = true
                 pos = target
-                target = cameraPos
+                target = camera.viewPosition
             } else {
                 break
             }
         }
 
         mc.mcProfiler.endSection()
-
-        // Capture camera properties (rotation, fov)
-        // FIXME we probably want to capture fov of the main view as it contains the player, not the one of the root
-        //  render pass which merely has a camera entity (might be the cause of issue #1)
-        GlStateManager.pushMatrix()
-        eventHandler.capture = true
-        eventHandler.mainCameraYaw = cameraYaw.toFloat()
-        eventHandler.mainCameraPitch = cameraPitch.toFloat()
-        val camera = view.withView {
-            mc.entityRenderer.setupCameraTransform(partialTicks, 0)
-            val entity = mc.renderViewEntity!!
-            val entityPos = entity.lastTickPos + (entity.pos - entity.lastTickPos) * partialTicks.toDouble()
-            val frustum = Frustum().apply { setPosition(entityPos.x, entityPos.y, entityPos.z) }
-            Camera(frustum, cameraPos, Vec3d(cameraPitch, cameraYaw, 0.0))
-        }
-        eventHandler.capture = false
-        GlStateManager.popMatrix()
 
         val maxRecursions = if (BPConfig.seeThroughPortals) 5 else 0
 
@@ -260,9 +278,9 @@ class ViewRenderManager : RenderPassManager {
                 GL11.glLoadMatrix(modelViewMatrix)
                 projectionMatrix.rewind()
                 modelViewMatrix.rewind()
-                event.yaw = yaw - mainCameraYaw + plan.camera.rotation.y.toFloat()
-                event.pitch = pitch - mainCameraPitch + plan.camera.rotation.x.toFloat()
-                event.roll = roll - mainCameraRoll + plan.camera.rotation.z.toFloat()
+                event.yaw = yaw - mainCameraYaw + plan.camera.eyeRotation.y.toFloat()
+                event.pitch = pitch - mainCameraPitch + plan.camera.eyeRotation.x.toFloat()
+                event.roll = roll - mainCameraRoll + plan.camera.eyeRotation.z.toFloat()
             }
         }
 
@@ -330,6 +348,8 @@ class ViewRenderPlan(
 
         if (occlusionDetail.occluded) return
 
+        with(camera.feetPosition) { camera.frustum.setPosition(x, y, z) }
+
         val parentPortal = portalDetail?.parent
         world.portalManager.loadedPortals.forEach {
             val portal = it.portal
@@ -343,13 +363,11 @@ class ViewRenderPlan(
 
             val childPreviousFrame = previousFrame?.children?.find { it.portalDetail?.parent == portal }
 
-            val rotation = portal.remoteRotation - portal.localRotation
-            val cameraRot = camera.rotation + Vec3d(0.0, rotation.degrees.toDouble(), 0.0)
-            val cameraPos = (portal.localToRemoteMatrix * camera.position.toPoint()).toMC()
-            val frustum = PortalCamera(portal, cameraPos, camera.frustum)
-            val camera = Camera(frustum, cameraPos, cameraRot)
-            val plan = addChild(it.view!!, camera, childPreviousFrame)
-            val cameraSide = portal.localFacing.axis.toFacing(camera.position - portal.localPosition.to3dMid())
+            val childCamera = camera.transformed(portal.localToRemoteMatrix).let {
+                it.withFrustum(PortalCamera(portal, it.viewPosition, it.frustum))
+            }
+            val plan = addChild(it.view!!, childCamera, childPreviousFrame)
+            val cameraSide = portal.localFacing.axis.toFacing(camera.viewPosition - portal.localPosition.to3dMid())
             plan.portalDetail = PortalDetail(portal, cameraSide)
             plan.addPortals(maxRecursions - 1, childPreviousFrame)
         }
@@ -439,7 +457,7 @@ class ViewRenderPlan(
             // so we need to clip away the remote world on the camera side of the portal, otherwise blocks in the
             // Remote World which are between the camera and the portal will show up in the final composed render.
             val portalPos = parentPortal.remotePosition.to3dMid()
-            val cameraSide = parentPortal.remoteAxis.toFacing(camera.position - portalPos)
+            val cameraSide = parentPortal.remoteAxis.toFacing(camera.viewPosition - portalPos)
             // Position clipping plane on the camera side of the portal such that the portal frame is fully rendered
             val planePos = parentPortal.remotePosition.to3dMid() + cameraSide.directionVec.to3d().scale(0.5)
             // glClipPlane uses the current ModelView matrix to transform the given coordinates to view space
@@ -447,14 +465,14 @@ class ViewRenderPlan(
             mc.entityRenderer.setupCameraTransform(partialTicks, 0)
             // setupCameraTransform configures world space with the origin at the camera's feet.
             // planePos however is currently absolute world space, so we need to convert it
-            val relPlanePos = planePos - camera.position + mc.renderViewEntity!!.eyeOffset
+            val relPlanePos = planePos - camera.feetPosition
             glClipPlane(GL11.GL_CLIP_PLANE5, cameraSide.directionVec.to3d().scale(-1.0), relPlanePos)
             GL11.glEnable(GL11.GL_CLIP_PLANE5) // FIXME don't hard-code clipping plane id
 
             // Reduce fog by distance between camera and portal, we will later re-apply this distance worth of fog
             // to the rendered portal but then with the fog of the correct dimension.
             // This won't give quite correct results for large portals but far better ones than using the incorrect fog.
-            val dist = (camera.position - portalPos).lengthVector().toFloat()
+            val dist = (camera.viewPosition - portalPos).lengthVector().toFloat()
             when (GlStateManager.FogMode.values().find { it.capabilityId == GlStateManager.fogState.mode }) {
                 GlStateManager.FogMode.LINEAR -> manager.fogOffset = dist
                 // TODO

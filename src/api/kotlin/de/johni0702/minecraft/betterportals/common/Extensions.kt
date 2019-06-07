@@ -22,15 +22,20 @@ import net.minecraft.world.chunk.BlockStatePaletteLinear
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.Event
 import net.minecraftforge.fml.common.eventhandler.EventBus
+import org.lwjgl.util.vector.Quaternion
 import javax.vecmath.*
-import kotlin.math.max
+import kotlin.math.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
+import net.minecraft.client.renderer.Matrix4f as McMatrix4f
+import org.lwjgl.util.vector.Matrix3f as LwjglMatrix3f
+import org.lwjgl.util.vector.Vector4f as LwjglVector4f
 
 // Generic
 fun <T> MutableList<T>.removeAtOrNull(index: Int) = if (isEmpty()) null else removeAt(index)
 fun <T> MutableList<T>.popOrNull() = removeAtOrNull(0)
 fun <T> MutableList<T>.takeLast() = removeAt(lastIndex)
+fun Matrix4d.inverse() = Mat4d.inverse(this)
 operator fun Matrix4d.times(other: Matrix4d) = Matrix4d().also { it.mul(this, other) }
 operator fun Matrix4d.times(other: Vector3d) = Vector3d().also { transform(other, it) }
 operator fun Matrix4d.times(other: Point3d) = Point3d().also { transform(other, it) }
@@ -53,6 +58,10 @@ object Mat4d {
 }
 
 // MC
+val Float.radians get() = toDouble().radians.toFloat()
+val Float.degrees get() = toDouble().degrees.toFloat()
+val Double.radians get() = Math.toRadians(this)
+val Double.degrees get() = Math.toDegrees(this)
 val EnumFacing.Plane.axes get() = EnumFacing.Axis.values().filter { it.plane == this }
 val EnumFacing.Plane.perpendicularAxes get() = opposite.axes
 val EnumFacing.Plane.opposite get() = when(this) {
@@ -87,6 +96,58 @@ fun Vec3d.toBlockPos() = BlockPos(this)
 fun Vector3d.toMC() = Vec3d(x, y, z)
 fun Vector4d.toMC() = Vec3d(x, y, z)
 fun Point3d.toMC() = Vec3d(x, y, z)
+fun Vec3d.toQuaternion(): Quaternion {
+    val pitch = x.radians
+    val yaw = (y + 180).radians
+    val roll = z.radians
+
+    val cy = cos(yaw * 0.5)
+    val sy = sin(yaw * 0.5)
+    val cp = cos(pitch * 0.5)
+    val sp = sin(pitch * 0.5)
+    val cr = cos(roll * 0.5)
+    val sr = sin(roll * 0.5)
+
+    val w = (cy * cp * cr + sy * sp * sr).toFloat()
+    val x = (cy * cp * sr - sy * sp * cr).toFloat()
+    val y = (sy * cp * sr + cy * sp * cr).toFloat()
+    val z = (sy * cp * cr - cy * sp * sr).toFloat()
+    return Quaternion(-y, -z, x, w)
+}
+operator fun Quaternion.times(other: Quaternion): Quaternion = Quaternion.mul(this, other, null)
+fun Quaternion.toPitchYawRoll(): Vec3d {
+    val x = this.z
+    val y = -this.x
+    val z = -this.y
+
+    val sinRCosP = 2.0 * (w * x + y * z)
+    val cosRCosP = 1.0 - 2.0 * (x * x + y * y)
+    val roll = atan2(sinRCosP, cosRCosP).degrees
+
+    val sinP = 2.0 * (w * y - z * x)
+    val pitch = if (abs(sinP) >= 1) sign(sinP) * 90 else asin(sinP).degrees
+
+    // yaw (z-axis rotation)
+    val sinYCosP = 2.0 * (w * z + x * y)
+    val cosYCosP = 1.0 - 2.0 * (y * y + z * z)
+    val yaw = atan2(sinYCosP, cosYCosP).degrees
+
+    return Vec3d(pitch, (yaw + 360) % 360 - 180, roll)
+}
+val McMatrix4f.inverse get() = McMatrix4f.invert(this, null)
+fun Matrix4d.toJX4f() = Matrix4f(this)
+fun Matrix4f.toLwjgl3f() = LwjglMatrix3f().also {
+    it.m00 = m00
+    it.m01 = m01
+    it.m02 = m02
+    it.m10 = m10
+    it.m11 = m11
+    it.m12 = m12
+    it.m20 = m20
+    it.m21 = m21
+    it.m22 = m22
+}
+fun LwjglMatrix3f.extractRotation(): Quaternion = Quaternion.setFromMatrix(this, Quaternion())
 operator fun Vec3d.get(axis: EnumFacing.Axis) = when(axis) {
     EnumFacing.Axis.X -> x
     EnumFacing.Axis.Y -> y
@@ -150,8 +211,8 @@ fun NBTTagCompound.setXYZ(pos: BlockPos): NBTTagCompound {
 }
 fun NBTTagCompound.getXYZ(): BlockPos = BlockPos(getInteger("x"), getInteger("y"), getInteger("z"))
 
-inline fun <reified E : Enum<E>> PacketBuffer.readEnum(): E = readEnumValue(E::class.java)
-inline fun <reified E : Enum<E>> PacketBuffer.writeEnum(value: E): PacketBuffer = writeEnumValue(value)
+inline fun <reified T : Enum<T>> PacketBuffer.readEnum(): T = readEnumValue(T::class.java)
+inline fun <reified T : Enum<T>> PacketBuffer.writeEnum(value: T): PacketBuffer = writeEnumValue(value)
 
 @Suppress("UNCHECKED_CAST") // Why forge? why?
 fun EntityTracker.getTracking(entity: Entity): Set<EntityPlayerMP> = getTrackingPlayers(entity) as Set<EntityPlayerMP>
@@ -315,4 +376,77 @@ fun Entity.derivePosRotFrom(from: Entity, matrix: Matrix4d, yawOffset: Float) {
     to.prevDistanceWalkedModified = from.prevDistanceWalkedModified
     to.isSneaking = from.isSneaking
     to.isSprinting = from.isSprinting
+}
+
+fun World.rayTraceBlocksWithPortals(
+        start: Vec3d,
+        end: Vec3d,
+        stopOnLiquid: Boolean = false,
+        ignoreBlockWithoutBoundingBox: Boolean = false,
+        returnLastUncollidableBlock: Boolean = false
+): RayTraceResult? {
+    val result = portalManager.loadedPortals.filter { agent ->
+        agent.portal.localBoundingBox.calculateIntercept(start, end) != null
+    }.flatMap { agent ->
+        val portal = agent.portal
+        portal.localDetailedBounds.mapNotNull {
+            it.calculateIntercept(start, end)?.let { entry ->
+                it.calculateIntercept(end, start)?.let { exit ->
+                    val entrySide = portal.localAxis.toFacing(portal.localPosition.to3dMid() - entry.hitVec)
+                    val exitSide = portal.localAxis.toFacing(portal.localPosition.to3dMid() - exit.hitVec)
+                    if (entrySide != exitSide) {
+                        Triple(agent, entry.hitVec, exit.hitVec)
+                    } else {
+                        null
+                    }
+                }
+            }
+        }
+    }.minBy {
+        it.second.squareDistanceTo(start)
+    } ?: return rayTraceBlocks(start, end, stopOnLiquid, ignoreBlockWithoutBoundingBox, returnLastUncollidableBlock)
+
+    val agent = result.first
+    val portalEntry = result.second
+    val portalExit = result.third
+
+    val localResult = rayTraceBlocks(
+            start,
+            portalEntry,
+            stopOnLiquid,
+            ignoreBlockWithoutBoundingBox,
+            returnLastUncollidableBlock
+    )
+    val remoteWorld = agent.view?.camera?.world ?: return localResult
+    localResult?.let {
+        if (it.typeOfHit != RayTraceResult.Type.MISS) {
+            return it
+        }
+    }
+
+    val portal = agent.portal
+    val remotePortalExit = with(portal) {
+        portalExit.fromLocal().toRemote()
+    }
+    val remoteEnd = with(portal) {
+        end.fromLocal().toRemote()
+    }
+    val remoteResult = remoteWorld.rayTraceBlocksWithPortals(
+            remotePortalExit,
+            remoteEnd,
+            stopOnLiquid,
+            ignoreBlockWithoutBoundingBox,
+            returnLastUncollidableBlock
+    ) ?: return null
+    val localHitVec = with(portal) { remoteResult.hitVec.fromRemote().toLocal() }
+    return if (remoteResult.typeOfHit == RayTraceResult.Type.ENTITY) {
+        RayTraceResult(remoteResult.entityHit, localHitVec)
+    } else {
+        RayTraceResult(
+                remoteResult.typeOfHit,
+                localHitVec,
+                (portal.localRotation - portal.remoteRotation).rotate(remoteResult.sideHit),
+                with(portal) { remoteResult.blockPos.fromRemote().toLocal() }
+        )
+    }
 }

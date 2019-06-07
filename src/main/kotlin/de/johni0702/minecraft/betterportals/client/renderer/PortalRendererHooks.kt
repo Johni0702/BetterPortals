@@ -19,7 +19,7 @@ object PortalRendererHooks {
             // then we do not want to render entities on the wrong remote side of said portal
             val portal = instance.portalDetail?.parent ?: return@let null
             val portalPos = portal.remotePosition.to3dMid()
-            val facing = portal.remoteFacing.axis.toFacing(instance.camera.position - portalPos)
+            val facing = portal.remoteFacing.axis.toFacing(instance.camera.viewPosition - portalPos)
             // We need to take the top most y of the entity because otherwise when looking throw a horizontal portal
             // from the below, we might see the head of entities whose feet are below the portal y
             // Same goes the other way around
@@ -57,7 +57,7 @@ object PortalRendererHooks {
             val playerPos = Vec3d(staticPlayerX, staticPlayerY, staticPlayerZ)
             val relPortalPos = portalPos - playerPos
             // Note: playerPos will break in 3rd person but we only use it as fallback
-            val cameraPos = ViewRenderPlan.CURRENT?.camera?.position ?: playerPos
+            val cameraPos = ViewRenderPlan.CURRENT?.camera?.viewPosition ?: playerPos
             val cameraSide = portalFacing.axis.toFacing(cameraPos - portalPos)
             val planeOffset = cameraSide.directionVec.to3d().scale(-0.5)
             val planePos = relPortalPos + planeOffset
