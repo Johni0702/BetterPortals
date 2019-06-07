@@ -464,7 +464,7 @@ class ViewRenderPlan(
         mc.entityRenderer.renderWorld(partialTicks, finishTimeNano)
         ViewRenderPlan.CURRENT = prevRenderPlan
 
-        RenderPassEvent.Start(partialTicks, this).post()
+        RenderPassEvent.End(partialTicks, this).post()
 
         manager.fogOffset = 0f
         GlStateManager.popMatrix()
