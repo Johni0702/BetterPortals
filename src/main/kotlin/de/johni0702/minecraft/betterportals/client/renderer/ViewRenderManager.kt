@@ -146,13 +146,11 @@ class ViewRenderManager : RenderPassManager {
                 val negVec = vec * -1
                 portal.localBlocks.map {
                     // contract BB to only detect changes crossing 0.5 on the portal axis instead of hitting anywhere in the block
-                    val trace = AxisAlignedBB(it).contract(vec).contract(negVec).calculateIntercept(pos, target)
+                    val trace = AxisAlignedBB(it).contract(vec).contract(negVec).calculatePlaneIntercept(pos, target)
                     Pair(portal, trace)
-                }.filter {
-                    it.second != null
-                }.map { (portal, trace) ->
+                }.mapNotNull { (portal, hitVec) ->
                     // and calculate its distance to the entity
-                    val hitVec = trace!!.hitVec
+                    hitVec ?: return@mapNotNull null
                     Pair(Pair(portal, hitVec), (hitVec - pos).lengthSquared())
                 }
             }.minBy {

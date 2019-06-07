@@ -23,6 +23,7 @@ import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.Event
 import net.minecraftforge.fml.common.eventhandler.EventBus
 import org.lwjgl.util.vector.Quaternion
+import java.lang.IllegalArgumentException
 import javax.vecmath.*
 import kotlin.math.*
 import kotlin.properties.ReadWriteProperty
@@ -195,6 +196,39 @@ val AxisAlignedBB.sizeZ get() = maxZ - minZ
 val AxisAlignedBB.maxSideLength get() = max(sizeX, max(sizeY, sizeZ))
 val AxisAlignedBB.min get() = Vec3d(minX, minY, minZ)
 val AxisAlignedBB.max get() = Vec3d(maxX, maxY, maxZ)
+/**
+ * For an AABB which is a plane (i.e. one of [sizeX], [sizeY] or [sizeZ] must be `== 0.0`), returns which axis
+ * is perpendicular to the plane.
+ * Returns `null` for non-plane AABBs.
+ */
+val AxisAlignedBB.planeAxis get() = when {
+    sizeX == 0.0 -> EnumFacing.Axis.X
+    sizeY == 0.0 -> EnumFacing.Axis.Y
+    sizeZ == 0.0 -> EnumFacing.Axis.Z
+    else -> null
+}
+/**
+ * Calculates interception point of a line segment given by `start` and `end` with a zero-volume (i.e. plane) AABB.
+ *
+ * As opposed to [AxisAlignedBB.calculateIntercept], this method works even if one of the points is very close to
+ * (or on) to the plane.
+ * It is an error to call this method on a non-plane AABB (i.e. one of [sizeX], [sizeY] or [sizeZ] must be `== 0.0`).
+ */
+fun AxisAlignedBB.calculatePlaneIntercept(start: Vec3d, end: Vec3d): Vec3d? {
+    val axis = planeAxis ?: throw IllegalArgumentException("AABB is not a plane")
+    val diff = end - start
+    val diffAxis = diff[axis]
+    if (diffAxis == 0.0 || diffAxis == -0.0) return null
+    val delta = (min[axis] - start[axis]) / diffAxis
+    if (delta < 0.0 || delta > 1.0) return null
+    val result = start + diff * delta
+    return if (intersectsWithExcept(axis, result)) result else null
+}
+fun AxisAlignedBB.intersectsWithExcept(axis: EnumFacing.Axis, vec: Vec3d): Boolean = when(axis) {
+    EnumFacing.Axis.X -> intersectsWithYZ(vec)
+    EnumFacing.Axis.Y -> intersectsWithXZ(vec)
+    EnumFacing.Axis.Z -> intersectsWithXY(vec)
+}
 // Note: the obvious choice of constructor is @SideOnly(Client)
 fun Vec3d.toAxisAlignedBB(other: Vec3d) = AxisAlignedBB(x, y, z, other.x, other.y, other.z)
 fun Collection<BlockPos>.toAxisAlignedBB(): AxisAlignedBB =
