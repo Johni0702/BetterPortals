@@ -5,7 +5,6 @@ import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.view.server.FixedLocationTicket
 import io.netty.buffer.ByteBuf
 import net.minecraft.client.entity.EntityPlayerSP
-import net.minecraft.client.renderer.culling.ICamera
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.nbt.NBTTagCompound
