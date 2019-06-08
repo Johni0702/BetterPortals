@@ -432,11 +432,14 @@ fun World.findPortal(start: Vec3d, end: Vec3d): Triple<World, Vec3d, PortalAgent
     } ?: Triple(this, end, null)
 }
 
-tailrec fun World.rayTracePortals(start: Vec3d, end: Vec3d): World {
-    val result = findPortal(start, end)
-    val agent = result.third ?: return this
-    val newStart = (agent.portal.localToRemoteMatrix * result.second.toPoint()).toMC()
-    return result.first.rayTracePortals(newStart, end)
+fun World.rayTracePortals(start: Vec3d, end: Vec3d): Pair<World, Matrix4d> {
+    fun aux(world: World, start: Vec3d, end: Vec3d, mat: Matrix4d): Pair<World, Matrix4d> {
+        val result = world.findPortal(start, end)
+        val agent = result.third ?: return Pair(this, mat)
+        val newStart = (agent.portal.localToRemoteMatrix * result.second.toPoint()).toMC()
+        return aux(result.first, newStart, end, mat * agent.portal.localToRemoteMatrix)
+    }
+    return aux(this, start, end, Mat4d.id())
 }
 
 fun World.rayTraceBlocksWithPortals(
@@ -449,10 +452,9 @@ fun World.rayTraceBlocksWithPortals(
     val result = findPortal(start, end)
     val agent = result.third
             ?: return rayTraceBlocks(start, end, stopOnLiquid, ignoreBlockWithoutBoundingBox, returnLastUncollidableBlock)
-    val localWorld = result.first
     val hitVec = result.second
 
-    val localResult = localWorld.rayTraceBlocks(
+    val localResult = rayTraceBlocks(
             start,
             hitVec,
             stopOnLiquid,

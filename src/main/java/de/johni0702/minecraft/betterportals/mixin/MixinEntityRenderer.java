@@ -3,7 +3,7 @@ package de.johni0702.minecraft.betterportals.mixin;
 import de.johni0702.minecraft.betterportals.client.PostSetupFogEvent;
 import de.johni0702.minecraft.betterportals.client.renderer.ViewRenderManager;
 import de.johni0702.minecraft.betterportals.client.renderer.ViewRenderPlan;
-import de.johni0702.minecraft.betterportals.common.ExtensionsKt;
+import kotlin.Pair;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -22,6 +22,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import javax.vecmath.Matrix4d;
+
+import static de.johni0702.minecraft.betterportals.common.ExtensionsKt.*;
 
 @Mixin(EntityRenderer.class)
 public abstract class MixinEntityRenderer {
@@ -62,10 +66,13 @@ public abstract class MixinEntityRenderer {
                     target = "Lnet/minecraft/client/multiplayer/WorldClient;rayTraceBlocks(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/RayTraceResult;"
             )
     )
-    private RayTraceResult rayTraceBlocksWithPortals(WorldClient world, Vec3d start, Vec3d end) {
+    private RayTraceResult doRayTraceBlocksWithPortals(WorldClient world, Vec3d start, Vec3d end) {
         Entity viewEntity = mc.getRenderViewEntity();
         Vec3d eyePos = viewEntity.getPositionVector().addVector(0, viewEntity.getEyeHeight(), 0);
-        World localWorld = ExtensionsKt.rayTracePortals(world, eyePos, start);
-        return ExtensionsKt.rayTraceBlocksWithPortals(localWorld, start, end, false, false, false);
+        Pair<World, Matrix4d> result = rayTracePortals(world, eyePos, start);
+        World localWorld = result.getFirst();
+        start = toMC(times(result.getSecond(), toPoint(start)));
+        end = toMC(times(result.getSecond(), toPoint(end)));
+        return rayTraceBlocksWithPortals(localWorld, start, end, false, false, false);
     }
 }
