@@ -502,3 +502,15 @@ fun World.rayTraceBlocksWithPortals(
         )
     }
 }
+
+operator fun <T, V> ThreadLocal<V>.provideDelegate(thisRef: T, prop: KProperty<*>): ReadWriteProperty<T, V?> = object : ReadWriteProperty<T, V?> {
+    override fun getValue(thisRef: T, property: KProperty<*>): V? = get()
+
+    override fun setValue(thisRef: T, property: KProperty<*>, value: V?) {
+        if (value != null) {
+            set(value)
+        } else {
+            remove()
+        }
+    }
+}

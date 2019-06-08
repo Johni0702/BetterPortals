@@ -79,7 +79,7 @@ class PortalManagerImpl(override val world: World) : PortalManager {
 
     internal object EventHandler {
         var registered by MinecraftForge.EVENT_BUS
-        var collisionBoxesEntity: Entity? = null
+        var collisionBoxesEntity by ThreadLocal<Entity>()
 
         @SubscribeEvent
         fun onWorldTick(event: TickEvent.WorldTickEvent) {

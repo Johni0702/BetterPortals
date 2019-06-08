@@ -1,13 +1,17 @@
 package de.johni0702.minecraft.betterportals.mixin;
 
 import de.johni0702.minecraft.betterportals.server.DimensionTransitionHandler;
+import de.johni0702.minecraft.betterportals.server.view.ViewAdvancements;
 import de.johni0702.minecraft.betterportals.server.view.ViewEntity;
+import de.johni0702.minecraft.betterportals.server.view.ViewStatsManager;
+import net.minecraft.advancements.PlayerAdvancements;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.Packet;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.PlayerList;
+import net.minecraft.stats.StatisticsManagerServer;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ITeleporter;
@@ -17,6 +21,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * The player list has some methods used to send packet to all online players.
@@ -68,5 +73,19 @@ public abstract class MixinPlayerList {
     private void betterPortalPlayerToDimension(EntityPlayerMP player, int dimensionIn, ITeleporter teleporter, CallbackInfo ci) {
         DimensionTransitionHandler.INSTANCE.transferPlayerToDimension((PlayerList)(Object)this, player, dimensionIn, teleporter);
         ci.cancel();
+    }
+
+    @Inject(method = "getPlayerAdvancements", at = @At("HEAD"), cancellable = true)
+    private void getPlayerAdvancementsForViewEntity(EntityPlayerMP player, CallbackInfoReturnable<PlayerAdvancements> ci) {
+        if (player instanceof ViewEntity) {
+            ci.setReturnValue(new ViewAdvancements(mcServer, player));
+        }
+    }
+
+    @Inject(method = "getPlayerStatsFile", at = @At("HEAD"), cancellable = true)
+    private void getPlayerStatsForViewEntity(EntityPlayer player, CallbackInfoReturnable<StatisticsManagerServer> ci) {
+        if (player instanceof ViewEntity) {
+            ci.setReturnValue(new ViewStatsManager());
+        }
     }
 }

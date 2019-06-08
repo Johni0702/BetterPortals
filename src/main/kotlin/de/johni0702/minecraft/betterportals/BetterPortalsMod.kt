@@ -2,31 +2,34 @@ package de.johni0702.minecraft.betterportals
 
 import com.google.common.util.concurrent.ListenableFutureTask
 import de.johni0702.minecraft.betterportals.client.compat.registerOptifineCompat
-import de.johni0702.minecraft.betterportals.client.render.*
+import de.johni0702.minecraft.betterportals.client.render.FramedPortalRenderer
+import de.johni0702.minecraft.betterportals.client.render.OneWayFramedPortalRenderer
+import de.johni0702.minecraft.betterportals.client.render.RenderOneWayPortalEntity
+import de.johni0702.minecraft.betterportals.client.render.RenderPortalEntity
 import de.johni0702.minecraft.betterportals.client.renderer.ViewRenderManager
 import de.johni0702.minecraft.betterportals.client.tile.renderer.BetterEndPortalTileRenderer
-import de.johni0702.minecraft.view.client.ClientViewManager
 import de.johni0702.minecraft.betterportals.client.view.ClientViewManagerImpl
 import de.johni0702.minecraft.betterportals.client.view.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterEndPortal
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterNetherPortal
 import de.johni0702.minecraft.betterportals.common.blocks.BlockBetterTFPortal
+import de.johni0702.minecraft.betterportals.common.blocks.TileEntityBetterEndPortal
 import de.johni0702.minecraft.betterportals.common.entity.*
 import de.johni0702.minecraft.betterportals.net.Net
 import de.johni0702.minecraft.view.client.ClientViewAPI
+import de.johni0702.minecraft.view.client.ClientViewManager
 import de.johni0702.minecraft.view.client.render.RenderPassManager
 import de.johni0702.minecraft.view.common.ViewAPI
 import de.johni0702.minecraft.view.server.ServerView
-import de.johni0702.minecraft.view.server.ServerViewManager
 import de.johni0702.minecraft.view.server.ServerViewAPI
+import de.johni0702.minecraft.view.server.ServerViewManager
 import de.johni0702.minecraft.view.server.viewManager
 import net.minecraft.block.Block
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.network.NetHandlerPlayServer
-import net.minecraft.tileentity.TileEntityEndPortal
 import net.minecraft.util.ResourceLocation
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
@@ -204,7 +207,7 @@ class BetterPortalsMod: ViewAPI, BetterPortalsAPI {
                 }
             }
             if (BPConfig.enableEndPortals) {
-                ClientRegistry.bindTileEntitySpecialRenderer(TileEntityEndPortal::class.java, BetterEndPortalTileRenderer())
+                ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBetterEndPortal::class.java, BetterEndPortalTileRenderer())
                 RenderingRegistry.registerEntityRenderingHandler(EndEntryPortalEntity::class.java) {
                     RenderOneWayPortalEntity(it, OneWayFramedPortalRenderer())
                 }
