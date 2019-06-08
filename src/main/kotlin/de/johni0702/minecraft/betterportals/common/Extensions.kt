@@ -252,6 +252,18 @@ private class EventBusRegistration<in T>(
 
 }
 
+operator fun <T, V> ThreadLocal<V>.provideDelegate(thisRef: T, prop: KProperty<*>): ReadWriteProperty<T, V?> = object : ReadWriteProperty<T, V?> {
+    override fun getValue(thisRef: T, property: KProperty<*>): V? = get()
+
+    override fun setValue(thisRef: T, property: KProperty<*>, value: V?) {
+        if (value != null) {
+            set(value)
+        } else {
+            remove()
+        }
+    }
+}
+
 private val forgeCapabilitiesField = Entity::class.java.getDeclaredField("capabilities").apply { isAccessible = true }
 var Entity.forgeCapabilities: CapabilityDispatcher
     get() = forgeCapabilitiesField.get(this) as CapabilityDispatcher

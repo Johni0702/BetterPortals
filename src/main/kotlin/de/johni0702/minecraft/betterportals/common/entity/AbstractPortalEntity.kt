@@ -207,7 +207,7 @@ abstract class AbstractPortalEntity(
 
     internal object EventHandler {
         var registered by MinecraftForge.EVENT_BUS
-        var collisionBoxesEntity: Entity? = null
+        var collisionBoxesEntity by ThreadLocal<Entity>()
 
         @SubscribeEvent
         fun onWorldTick(event: TickEvent.WorldTickEvent) {
