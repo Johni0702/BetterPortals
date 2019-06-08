@@ -137,7 +137,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
      */
     fun getEntitySide(entity: Entity): EnumFacing {
         val entityPos = lastTickPos[entity] ?: (entity.pos + entity.eyeOffset)
-        return portal.localFacing.axis.toFacing(entityPos - portal.localPosition.to3d())
+        return portal.localFacing.axis.toFacing(entityPos - portal.localPosition.to3dMid())
     }
 
     /**
