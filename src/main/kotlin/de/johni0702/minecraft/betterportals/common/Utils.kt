@@ -38,5 +38,13 @@ object Utils {
         e1.motionX = e2.motionX.also { e2.motionX = e1.motionX }
         e1.motionY = e2.motionY.also { e2.motionY = e1.motionY }
         e1.motionZ = e2.motionZ.also { e2.motionZ = e1.motionZ }
+
+        e1.chasingPosX = e2.chasingPosX.also { e2.chasingPosX = e1.chasingPosX }
+        e1.chasingPosY = e2.chasingPosY.also { e2.chasingPosY = e1.chasingPosY }
+        e1.chasingPosZ = e2.chasingPosZ.also { e2.chasingPosZ = e1.chasingPosZ }
+
+        e1.prevChasingPosX = e2.prevChasingPosX.also { e2.prevChasingPosX = e1.prevChasingPosX }
+        e1.prevChasingPosY = e2.prevChasingPosY.also { e2.prevChasingPosY = e1.prevChasingPosY }
+        e1.prevChasingPosZ = e2.prevChasingPosZ.also { e2.prevChasingPosZ = e1.prevChasingPosZ }
     }
 }
