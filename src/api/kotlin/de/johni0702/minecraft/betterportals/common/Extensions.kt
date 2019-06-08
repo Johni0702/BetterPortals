@@ -121,17 +121,25 @@ fun Quaternion.toPitchYawRoll(): Vec3d {
     val y = -this.x
     val z = -this.y
 
-    val sinRCosP = 2.0 * (w * x + y * z)
-    val cosRCosP = 1.0 - 2.0 * (x * x + y * y)
-    val roll = atan2(sinRCosP, cosRCosP).degrees
-
     val sinP = 2.0 * (w * y - z * x)
-    val pitch = if (abs(sinP) >= 1) sign(sinP) * 90 else asin(sinP).degrees
+    val roll: Double
+    val pitch: Double
+    val yaw: Double
+    if (abs(sinP) >= 0.999999) {
+        roll = 0.0
+        pitch = sign(sinP) * 90
+        yaw = 2.0 * atan2(z, w).degrees
+    } else {
+        val sinRCosP = 2.0 * (w * x + y * z)
+        val cosRCosP = 1.0 - 2.0 * (x * x + y * y)
+        roll = atan2(sinRCosP, cosRCosP).degrees
 
-    // yaw (z-axis rotation)
-    val sinYCosP = 2.0 * (w * z + x * y)
-    val cosYCosP = 1.0 - 2.0 * (y * y + z * z)
-    val yaw = atan2(sinYCosP, cosYCosP).degrees
+        pitch = asin(sinP).degrees
+
+        val sinYCosP = 2.0 * (w * z + x * y)
+        val cosYCosP = 1.0 - 2.0 * (y * y + z * z)
+        yaw = atan2(sinYCosP, cosYCosP).degrees
+    }
 
     return Vec3d(pitch, (yaw + 360) % 360 - 180, roll)
 }
