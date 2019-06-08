@@ -321,6 +321,17 @@ class ViewRenderPlan(
             return view.withView { renderSelf(partialTicks, finishTimeNano) }
         }
         val mc = Minecraft.getMinecraft()
+
+        // Render GUI only in main view
+        if (!mc.gameSettings.hideGUI && !view.isMainView) {
+            mc.gameSettings.hideGUI = true
+            try {
+                return renderSelf(partialTicks, finishTimeNano)
+            } finally {
+                mc.gameSettings.hideGUI = false
+            }
+        }
+
         val framebuffer = manager.allocFramebuffer()
 
         world.profiler.startSection("renderView" + view.id)
