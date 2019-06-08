@@ -422,12 +422,13 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             val localView = player.view ?: return
             remotePortal.views[viewManager] = allocateTicket(localView) ?: return
 
-            // preferably an existing view close by (64 blocks, ignoring y axis)
+            // preferably an existing view close by (half server view distance, ignoring y axis)
             viewManager.views
                     .asSequence()
                     .filter { it.camera.world == remoteWorld }
                     .map { it to it.camera.pos.withoutY().distanceTo(portal.remotePosition.to3d().withoutY()) }
-                    .filter { it.second < 64 } // Arbitrarily chosen limit for max distance between cam and portal
+                    // at most half of server view distance between cam and portal
+                    .filter { it.second < world.minecraftServer!!.playerList.entityViewDistance / 2 }
                     .sortedBy { it.second }
                     .fold(null as T?) { acc, view ->
                         acc ?: allocateTicket(view.first)
@@ -452,16 +453,6 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
 
     @SideOnly(Side.CLIENT)
     var view: ClientView? = null
-
-    @SideOnly(Side.CLIENT)
-    protected open fun onClientUpdate() {
-        val player = world.getPlayers(EntityPlayerSP::class.java) { true }[0]
-        view?.let { view ->
-            if (!view.isMainView) {
-                view.camera.deriveClientPosRotFrom(player, portal)
-            }
-        }
-    }
 
     @SideOnly(Side.CLIENT)
     private var portalUser: Entity? = null
@@ -537,7 +528,6 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
         remotePortal.updateEntityPosWithoutTeleport(player)
 
-        remotePortal.onClientUpdate()
         return true
     }
 

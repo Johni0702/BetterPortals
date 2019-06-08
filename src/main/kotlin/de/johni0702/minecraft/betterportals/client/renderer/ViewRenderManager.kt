@@ -437,6 +437,24 @@ class ViewRenderPlan(
 
         world.profiler.startSection("renderView" + view.id)
 
+        // Inject the entity from which the world will be rendered
+        // We do not spawn it into the world as we don't need it there (until some third-party mod does)
+        if (mc.player is ViewEntity) {
+            val cameraEntity = ViewCameraEntity(mc.world)
+            with(camera) {
+                cameraEntity.pos = feetPosition
+                cameraEntity.prevPos = feetPosition
+                cameraEntity.lastTickPos = feetPosition
+                cameraEntity.eyeHeight = (eyePosition.y - feetPosition.y).toFloat()
+                cameraEntity.rotationYaw = eyeRotation.y.toFloat()
+                cameraEntity.prevRotationYaw = eyeRotation.y.toFloat()
+                cameraEntity.rotationPitch = eyeRotation.x.toFloat()
+                cameraEntity.prevRotationPitch = eyeRotation.x.toFloat()
+            }
+            mc.renderViewEntity = cameraEntity
+        }
+
+        // Bind framebuffer and temporarily replace MC's one
         val framebufferMc = mc.framebufferMc
         mc.framebufferMc = framebuffer
         framebuffer.bindFramebuffer(false)
@@ -494,6 +512,10 @@ class ViewRenderPlan(
         mc.entityRenderer.renderWorld(partialTicks, finishTimeNano)
 
         RenderPassEvent.End(partialTicks, this).post()
+
+        if (mc.player is ViewEntity) {
+            mc.renderViewEntity = mc.player
+        }
 
         manager.fogOffset = 0f
         GlStateManager.popMatrix()
