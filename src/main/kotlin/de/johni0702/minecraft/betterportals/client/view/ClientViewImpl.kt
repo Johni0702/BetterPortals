@@ -10,7 +10,6 @@ import net.minecraft.client.gui.GuiBossOverlay
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.particle.ParticleManager
 import net.minecraft.client.renderer.*
-import net.minecraft.client.renderer.entity.RenderManager
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher
 import net.minecraft.entity.Entity
 import net.minecraft.network.*
@@ -31,13 +30,22 @@ internal class ClientViewImpl(
     override val camera: EntityPlayerSP get() = player!!
 
     private var itemRenderer: ItemRenderer? = null
-    private var renderManager: RenderManager? = null
     private var renderGlobal: RenderGlobal? = null
     private var entityRenderer: EntityRenderer? = null
     private var particleManager: ParticleManager? = null
     private var pointedEntity: Entity? = null
     private var objectMouseOver: RayTraceResult? = null
     private var guiBossOverlay: GuiBossOverlay? = null
+
+    // RenderManager
+    private var renderPosX = 0.0
+    private var renderPosY = 0.0
+    private var renderPosZ = 0.0
+    private var playerViewX = 0f
+    private var playerViewY = 0f
+    private var viewerPosX = 0.0
+    private var viewerPosY = 0.0
+    private var viewerPosZ = 0.0
 
     // ClippingHelper
     private val frustum = Array(6) { FloatArray(4) }
@@ -69,7 +77,14 @@ internal class ClientViewImpl(
         particleManager = mc.effectRenderer
         renderGlobal = mc.renderGlobal
         entityRenderer = mc.entityRenderer
-        renderManager = mc.renderManager
+        renderPosX = mc.renderManager.renderPosX
+        renderPosY = mc.renderManager.renderPosY
+        renderPosZ = mc.renderManager.renderPosZ
+        playerViewX = mc.renderManager.playerViewX
+        playerViewY = mc.renderManager.playerViewY
+        viewerPosX = mc.renderManager.viewerPosX
+        viewerPosY = mc.renderManager.viewerPosY
+        viewerPosZ = mc.renderManager.viewerPosZ
         world = mc.world
         player = mc.player
         netManager = mc.connection?.netManager
@@ -104,7 +119,17 @@ internal class ClientViewImpl(
         mc.effectRenderer = particleManager
         mc.renderGlobal = renderGlobal
         mc.entityRenderer = entityRenderer
-        mc.renderManager = renderManager
+        mc.renderManager.renderPosX = renderPosX
+        mc.renderManager.renderPosY = renderPosY
+        mc.renderManager.renderPosZ = renderPosZ
+        mc.renderManager.playerViewX = playerViewX
+        mc.renderManager.playerViewY = playerViewY
+        mc.renderManager.viewerPosX = viewerPosX
+        mc.renderManager.viewerPosY = viewerPosY
+        mc.renderManager.viewerPosZ = viewerPosZ
+        mc.renderManager.world = world
+        mc.renderManager.renderViewEntity = player
+        mc.renderManager.pointedEntity = pointedEntity
         mc.player = player
         mc.world = world
         val connection = mc.connection
@@ -196,7 +221,6 @@ internal class ClientViewImpl(
             } else {
                 LOGGER.debug("Reusing stored view")
                 view = ClientViewImpl(manager, viewId, world, camera, channel, networkManager)
-                view.renderManager = oldView.renderManager
                 view.itemRenderer = oldView.itemRenderer
                 view.renderGlobal = oldView.renderGlobal
                 view.entityRenderer = oldView.entityRenderer
@@ -204,11 +228,9 @@ internal class ClientViewImpl(
             }
 
             view.withView {
-                if (view.renderManager == null) {
+                if (view.itemRenderer == null) {
                     // Need to initialize the newly create view state while it's active since several of the components
                     // get their own dependencies implicitly via the Minecraft instance
-                    view.renderManager = RenderManager(mc.textureManager, mc.renderItem)
-                    mc.renderManager = view.renderManager // Implicitly passed to RenderGlobal and ItemRenderer via mc
                     view.itemRenderer = ItemRenderer(mc)
                     mc.itemRenderer = view.itemRenderer // Implicitly passed to EntityRenderer via mc
                     view.renderGlobal = RenderGlobal(mc)
