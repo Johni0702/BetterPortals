@@ -14,6 +14,7 @@ import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndEntryP
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndExitPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.NetherPortalEntity
 import net.minecraft.block.Block
+import net.minecraft.tileentity.TileEntity
 import net.minecraft.util.ResourceLocation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraftforge.common.MinecraftForge
@@ -54,7 +55,10 @@ fun initVanilla(
 
     registerBlocks {
         if (enableNetherPortals) register(BlockBetterNetherPortal(mod))
-        if (enableEndPortals) register(BlockBetterEndPortal())
+        if (enableEndPortals) {
+            register(BlockBetterEndPortal())
+            TileEntity.register("end_portal", TileEntityBetterEndPortal::class.java)
+        }
     }
 
     init {
