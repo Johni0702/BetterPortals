@@ -21,6 +21,7 @@ import de.johni0702.minecraft.betterportals.net.Net
 import net.minecraft.block.Block
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
+import net.minecraft.tileentity.TileEntity
 import net.minecraft.util.ResourceLocation
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
@@ -64,7 +65,10 @@ class BetterPortalsMod {
     fun registerBlocks(event: RegistryEvent.Register<Block>) {
         with(event.registry) {
             if (BPConfig.enableNetherPortals) register(BlockBetterNetherPortal())
-            if (BPConfig.enableEndPortals) register(BlockBetterEndPortal())
+            if (BPConfig.enableEndPortals) {
+                register(BlockBetterEndPortal())
+                TileEntity.register("end_portal", TileEntityBetterEndPortal::class.java)
+            }
             if (hasTwilightForest) {
                 register(BlockBetterTFPortal())
             }
