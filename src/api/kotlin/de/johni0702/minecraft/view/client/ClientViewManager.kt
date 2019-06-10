@@ -29,5 +29,7 @@ interface ClientViewManager : ViewManager {
 
 /**
  * The client-side view manager responsible for this instance of the Minecraft client.
+ * May be `null` when no view manager is currently present (e.g. while still in the main menu or not yet fully
+ * connected).
  */
 val Minecraft.viewManager get() = ClientViewAPI.instance.getViewManager(this)

@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "package": "de.johni0702.minecraft.betterportals.impl.mixin",
+  "mixins": [
+    "MixinEntity",
+    "MixinPlayerList",
+    "MixinWorld"
+  ],
+  "server": [],
+  "client": [
+    "MixinEntityPlayerSP",
+    "MixinEntityRenderer",
+    "MixinRenderManager"
+  ],
+  "compatibilityLevel": "JAVA_8",
+  "minVersion": "0.6.11",
+  "refmap": "mixins.betterportals.refmap.json"
+}

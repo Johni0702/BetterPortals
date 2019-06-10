@@ -2,6 +2,7 @@ package de.johni0702.minecraft.view.client.render
 
 import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.view.client.ClientViewAPI
+import net.minecraft.client.Minecraft
 import net.minecraftforge.fml.common.eventhandler.Event
 
 /**
@@ -34,6 +35,8 @@ interface RenderPassManager {
      */
     val previous: RenderPass?
 }
+
+val Minecraft.renderPassManager get() = ClientViewAPI.instance.getRenderPassManager(this)
 
 /**
  * Emitted to determine the [root][RenderPassManager.root] node of the render pass tree.

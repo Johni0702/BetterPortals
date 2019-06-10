@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "package": "de.johni0702.minecraft.view.impl.mixin",
+  "plugin": "de.johni0702.minecraft.view.impl.BetterPortalsMixinConfigPlugin",
+  "mixins": [
+    "MixinNetHandlerPlayerServer",
+    "MixinPlayerList",
+    "MixinServerWorldEventHandler"
+  ],
+  "server": [],
+  "client": [
+    "MixinActiveRenderInfo",
+    "MixinEntityRenderer",
+    "MixinEntityRenderer_NoOF",
+    "MixinEntityRenderer_OF",
+    "MixinRenderGlobal"
+  ],
+  "compatibilityLevel": "JAVA_8",
+  "minVersion": "0.6.11",
+  "refmap": "mixins.betterportals.view.refmap.json"
+}
