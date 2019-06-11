@@ -10,6 +10,7 @@ import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.renderer.culling.ICamera
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityList
+import net.minecraft.entity.item.EntityMinecart
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.nbt.NBTTagCompound
@@ -340,6 +341,15 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         newEntity.derivePosRotFrom(entity, portal)
 
         remoteWorld.forceSpawnEntity(newEntity)
+
+        // We need to tick the entity tracker entry of the new entity right now:
+        // Above spawn call has sent out the entity's current position to players but the tracker won't store
+        // the entity's current position until it's ticked. If we do not tick it now, the remote world may update
+        // the new entity before ticking the tracker which will then store an updated position leading to incorrect
+        // delta updates being sent to players and ultimately a desynced entity on the client.
+        // AFAICT this is a vanilla bug. Though I'd imagine it's far more difficult to observe there.
+        remoteWorld.entityTracker.entries.find { it.trackedEntity == newEntity }?.updatePlayerList(remoteWorld.playerEntities)
+
         // TODO Vanilla does an update here, not sure if that's necessary?
         //remoteWorld.updateEntityWithOptionalForce(newEntity, false)
         remoteWorld.resetUpdateEntityTick()
@@ -495,6 +505,12 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             newEntity.otherPlayerMPYaw = yaw.toDouble()
             newEntity.otherPlayerMPPitch = pitch.toDouble()
             newEntity.otherPlayerMPPosRotationIncrements = 3 // and sudden jumps
+        }
+        if (newEntity is EntityMinecart) {
+            newEntity.minecartPos = pos // preserve minecart pos to prevent desync
+            newEntity.minecartYaw = yaw.toDouble()
+            newEntity.minecartPitch = pitch.toDouble()
+            newEntity.turnProgress = 3 // and sudden jumps
         }
         if (newEntity is AbstractClientPlayer && entity is AbstractClientPlayer) {
             newEntity.ticksElytraFlying = entity.ticksElytraFlying
