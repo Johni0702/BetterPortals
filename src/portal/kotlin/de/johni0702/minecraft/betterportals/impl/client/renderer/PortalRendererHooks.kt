@@ -17,21 +17,20 @@ internal object PortalRendererHooks {
 
     fun beforeRender(entity: Entity): Boolean {
         if (entity is Portal) return true
+        val entityAABB = entity.renderBoundingBox
+        val entityPos = entity.syncPos + entity.eyeOffset
+
         val portal = currentRenderPass?.let { instance ->
             // If we're not rendering our own world (i.e. if we're looking through a portal)
             // then we do not want to render entities on the wrong remote side of said portal
             val portal = instance.portalDetail?.parent ?: return@let null
             val portalPos = portal.remotePosition.to3dMid()
-            val facing = portal.remoteFacing.axis.toFacing(instance.camera.viewPosition - portalPos)
-            // We need to take the top most y of the entity because otherwise when looking throw a horizontal portal
-            // from the below, we might see the head of entities whose feet are below the portal y
-            // Same goes the other way around
-            val entityBottomPos = entity.syncPos
-            val entityTopPos = entityBottomPos + Vec3d(0.0, entity.entityBoundingBox.sizeY, 0.0)
-            val relativeBottomPosition = entityBottomPos.subtract(portalPos)
-            val relativeTopPosition = entityTopPos.subtract(portalPos)
-            if (relativeBottomPosition.dotProduct(facing.directionVec.to3d()) > 0
-                    && relativeTopPosition.dotProduct(facing.directionVec.to3d()) > 0) return false
+            val portalFacing = portal.remoteFacing
+            val cameraFacing = portalFacing.axis.toFacing(instance.camera.viewPosition - portalPos)
+            val entityFacing = portalFacing.axis.toFacing(entityPos - portalPos)
+            // The AABB of some entities is too small. Growing it on the portal axis will solve that and should be OK.
+            val largeEntityAABB = entityAABB.grow(portalFacing.directionVec.to3d().abs() * 100)
+            if (cameraFacing == entityFacing && portal.remoteDetailedBounds.any { it.intersects(largeEntityAABB) }) return false
             return@let portal
         }
 
@@ -39,7 +38,6 @@ internal object PortalRendererHooks {
         // might be looking at right now (i.e. on the other side of any portals in our world)
         // Actually, we do still want to render it outside the portal frame but only on the right side,
         // because there it'll be visible when looking at the portal from the side.
-        val entityAABB = entity.renderBoundingBox
         val inPortals = entity.world.portalManager.loadedPortals.filter {
             // ignore the remote end of our current portal
             portal?.isTarget(it.portal) != true
@@ -51,7 +49,6 @@ internal object PortalRendererHooks {
         // FIXME can't deal with entities which are in more than one portal at the same time
         inPortals.firstOrNull()?.let { agent ->
             val it = agent.portal
-            val entityPos = entity.syncPos + entity.eyeOffset
             val portalPos = it.localPosition.to3dMid()
             val relEntityPos = entityPos - it.localPosition.to3dMid()
             val portalFacing = it.localFacing
