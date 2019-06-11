@@ -14,6 +14,7 @@ import net.minecraft.entity.item.EntityMinecart
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.network.play.server.SPacketSetPassengers
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.ResourceLocation
 import net.minecraft.util.math.AxisAlignedBB
@@ -24,6 +25,7 @@ import net.minecraftforge.common.ForgeHooks
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
 import org.apache.logging.log4j.Logger
+import java.lang.IllegalArgumentException
 
 interface PortalAccessor<T: CanMakeMainView> {
     /**
@@ -137,7 +139,8 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
      * which the entity entered the portal), not the actual side one would get by naively comparing coordinates.
      */
     fun getEntitySide(entity: Entity): EnumFacing {
-        val entityPos = lastTickPos[entity] ?: (entity.pos + entity.eyeOffset)
+        val riddenEntity = entity.lowestRidingEntity
+        val entityPos = lastTickPos[riddenEntity] ?: (riddenEntity.pos + riddenEntity.eyeOffset)
         return portal.localFacing.axis.toFacing(entityPos - portal.localPosition.to3dMid())
     }
 
@@ -244,6 +247,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         val seenEntities = mutableSetOf<Entity>()
         world.getEntitiesWithinAABB(Entity::class.java, largerBB).forEach {
             if (it is Portal) return@forEach
+            if (it.isRiding) return@forEach
             if (!seenEntities.add(it)) return@forEach
 
             val entityBB = it.entityBoundingBox
@@ -292,13 +296,19 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
      * For non-player entities on the server-side, it calls [teleportNonPlayerEntity].
      *
      * May teleport some entities and as such **must not** be called while ticking the world.
+     *
+     * Supports vehicles with passengers as long as the vehicle is not a player.
+     * It is an error to call this for any passenger.
      */
     protected open fun teleport(entity: Entity, from: EnumFacing) {
-        if (entity.isRiding || entity.isBeingRidden) {
-            return // just do nothing for now, not even dismounting works as one would hope
+        if (entity.isRiding) {
+            throw IllegalArgumentException("Entity $entity is a passenger.")
         }
 
         if (entity is EntityPlayer) {
+            if (entity.isBeingRidden) {
+                return // not supported for now (too complicated for too little gain, not even possible in vanilla)
+            }
             if (world.isRemote) teleportPlayer(entity, from)
         } else {
             if (!world.isRemote) teleportNonPlayerEntity(entity, from)
@@ -313,6 +323,8 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
      * Teleport the given entity (which has entered the portal from the given side) to the remote end.
      *
      * May teleport some entities and as such **must not** be called while ticking the world.
+     *
+     * Supports non-player vehicles with passengers which may be players or other entities.
      */
     protected open fun teleportNonPlayerEntity(entity: Entity, from: EnumFacing) {
         val remotePortal = getRemoteAgent()!!
@@ -321,46 +333,105 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
 
         if (!ForgeHooks.onTravelToDimension(entity, remotePortal.portal.localDimension)) return
 
-        val newEntity = EntityList.newEntity(entity.javaClass, remoteWorld) ?: return
+        val remoteEntity = EntityList.newEntity(entity.javaClass, remoteWorld) ?: return
+        val remoteEntities = mutableMapOf(entity to remoteEntity)
+        val passengers = entity.recursivePassengers
+        passengers.associateWithTo(remoteEntities) {
+            it as? EntityPlayerMP ?: EntityList.newEntity(it.javaClass, remoteWorld) ?: return
+        }
 
         // Inform other clients that the entity is going to be teleported
+        // Don't bother informing those that don't track the bottom most entity, they can't react to it anyway
         val trackingPlayers = localWorld.entityTracker.getTracking(entity).filterTo(mutableSetOf()) {
             views.containsKey(it.viewManager)
         }
         trackingPlayers.forEach { it.viewManager.beginTransaction() }
-        manager.serverBeforeUsePortal(this, entity, trackingPlayers)
 
-        localWorld.removeEntityDangerously(entity)
-        localWorld.resetUpdateEntityTick()
+        fun transfer(entity: Entity): Entity? {
+            val newPassengers = entity.passengers.mapNotNull { transfer(it) }
 
-        entity.dimension = remotePortal.portal.localDimension
-        entity.isDead = false
-        newEntity.readFromNBT(entity.writeToNBT(NBTTagCompound()))
-        entity.isDead = true
+            manager.serverBeforeUsePortal(this, entity, trackingPlayers)
 
-        newEntity.derivePosRotFrom(entity, portal)
+            val newEntity = if (entity is EntityPlayerMP) {
+                val viewManager = entity.viewManager
+                val ticket = views[viewManager]
+                if (ticket == null) {
+                    manager.logger.warn("Player $entity is using portal $this as passenger but doesn't have a view for it!?")
+                    return null
+                }
+                val view = ticket.view
 
-        remoteWorld.forceSpawnEntity(newEntity)
+                val remoteTicket = remotePortal.views[viewManager]
+                if (remoteTicket == null) {
+                    manager.logger.warn("Player $entity is using portal $this but our remote doesn't have a ticket for it!?")
+                    return null
+                }
 
-        // We need to tick the entity tracker entry of the new entity right now:
-        // Above spawn call has sent out the entity's current position to players but the tracker won't store
-        // the entity's current position until it's ticked. If we do not tick it now, the remote world may update
-        // the new entity before ticking the tracker which will then store an updated position leading to incorrect
-        // delta updates being sent to players and ultimately a desynced entity on the client.
-        // AFAICT this is a vanilla bug. Though I'd imagine it's far more difficult to observe there.
-        remoteWorld.entityTracker.entries.find { it.trackedEntity == newEntity }?.updatePlayerList(remoteWorld.playerEntities)
+                // Update view position
+                view.camera.derivePosRotFrom(entity, portal)
 
-        // TODO Vanilla does an update here, not sure if that's necessary?
-        //remoteWorld.updateEntityWithOptionalForce(newEntity, false)
+                // Forcefully dismount player without changing its position
+                // We cannot just use dismountRidingEntity() as that'll send a position packet to the client.
+                // There's no need to remove them from their vehicle because it'll be killed in the transfer anyway.
+                entity.ridingEntity = null
+
+                // Swap views
+                trackingPlayers.remove(entity)
+                trackingPlayers.add(view.camera)
+                view.makeMainView(ticket)
+
+                entity
+            } else {
+                val newEntity = remoteEntities[entity] ?: return null
+
+                localWorld.removeEntityDangerously(entity)
+                localWorld.resetUpdateEntityTick()
+
+                entity.dimension = remotePortal.portal.localDimension
+                entity.isDead = false
+                newEntity.readFromNBT(entity.writeToNBT(NBTTagCompound()))
+                entity.isDead = true
+
+                newEntity.derivePosRotFrom(entity, portal)
+
+                remoteWorld.forceSpawnEntity(newEntity)
+
+                // We need to tick the entity tracker entry of the new entity right now:
+                // Above spawn call has sent out the entity's current position to players but the tracker won't store
+                // the entity's current position until it's ticked. If we do not tick it now, the remote world may update
+                // the new entity before ticking the tracker which will then store an updated position leading to incorrect
+                // delta updates being sent to players and ultimately a desynced entity on the client.
+                // AFAICT this is a vanilla bug. Though I'd imagine it's far more difficult to observe there.
+                remoteWorld.entityTracker.entries.find { it.trackedEntity == newEntity }?.updatePlayerList(remoteWorld.playerEntities)
+
+                // TODO Vanilla does an update here, not sure if that's necessary?
+                //remoteWorld.updateEntityWithOptionalForce(newEntity, false)
+
+                newEntity
+            }
+
+            if (newPassengers.isNotEmpty()) {
+                newPassengers.forEach { it.startRiding(newEntity, true) }
+                // Manually send passenger information to players
+                // Otherwise they'll only be sent the next time the entity tracker is ticked (after the transaction)
+                remoteWorld.entityTracker.entries.find { it.trackedEntity == newEntity }
+                        ?.sendToTrackingAndSelf(SPacketSetPassengers(newEntity))
+            }
+
+            // Inform other clients that the teleportation has happened
+            trackingPlayers.forEach { it.viewManager.flushPackets() }
+            manager.serverAfterUsePortal(this, newEntity, trackingPlayers)
+
+            return newEntity
+        }
+        transfer(entity)
+
         remoteWorld.resetUpdateEntityTick()
 
         // make sure the remote portal has the current position
         // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
-        remotePortal.updateEntityPosWithoutTeleport(newEntity)
+        remotePortal.updateEntityPosWithoutTeleport(remoteEntity)
 
-        // Inform other clients that the teleportation has happened
-        trackingPlayers.forEach { it.viewManager.flushPackets() }
-        manager.serverAfterUsePortal(this, newEntity, trackingPlayers)
         trackingPlayers.forEach { it.viewManager.endTransaction() }
     }
 
@@ -480,7 +551,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             manager.logger.warn("Got unexpected post portal usage message for $this by entity with new id $entityId")
             return
         }
-        if (!entity.isDead) {
+        if (!entity.isDead && entity !is EntityPlayerSP) {
             manager.logger.warn("Entity $entity is still alive post portal usage!")
         }
 

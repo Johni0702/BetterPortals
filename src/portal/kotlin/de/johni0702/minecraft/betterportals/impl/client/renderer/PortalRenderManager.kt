@@ -25,19 +25,29 @@ internal object PortalRenderManager {
 
     @SubscribeEvent
     fun determineRootPass(event: DetermineRootPassEvent) {
-        // Ray trace from the entity (eye) position backwards to the camera position, following any portals which therefore
-        // the camera must be looking through.
-        // First back through time from the actual entity position to the interpolated (visual) position in this frame
-        // (which may very well still be in the previous world, then through space from the visual position to where
-        // the camera is positioned.
+        // Determining the world of the camera is kind of tricky.
+        // The syncPos (server-position) of the vehicle which our view entity is riding in directly determines the world.
+        // So to determine the view at the camera, we need to trace backwards following any portals we encounter:
+        //   - Starting at the server-position of the vehicle (vehicleSyncPos)
+        //   - to the current client-side position of the vehicle (vehicleClientPos)
+        //      (only EntityMinecart and EntityOtherPlayerMP require this extra step, see Entity#syncPos)
+        //   - then to the frame-interpolated position of the vehicle (vehicleInterpPos)
+        //   - then up the entity stack to the frame-interpolated position of the view entity (camera.eyePosition)
+        //   - finally to the (potentially third-person mode) camera position (camera.viewPosition)
         val mc = Minecraft.getMinecraft()
         var view = event.view
         var camera = event.camera
         var viewEntity = mc.renderViewEntity ?: mc.player
-        val entityPos = viewEntity.syncPos + viewEntity.eyeOffset
-        var pos = entityPos
-        var target = camera.eyePosition
+        val vehicle = viewEntity.lowestRidingEntity
+        val vehicleSyncPos = vehicle.syncPos + vehicle.eyeOffset
+        val vehicleClientPos = vehicle.pos + vehicle.eyeOffset
+        // Note: must not use prevPos (or by extension getPositionEyes) since EntityMinecraft completely breaks it
+        var vehicleInterpPos = vehicle.lastTickPos + (vehicle.pos - vehicle.lastTickPos) * event.partialTicks.toDouble()
+        var pos = vehicleSyncPos
+        var target = vehicleClientPos
+        var hitClientPosition = if (vehicleSyncPos == vehicleClientPos) true.also { target = vehicleInterpPos } else false
         var hitVisualPosition = false
+        var hitPassenger = false
         while (true) {
             val hitInfo = view.camera.world.portalManager.loadedPortals.flatMap { agent ->
                 val portal = agent.portal
@@ -73,6 +83,7 @@ internal object PortalRenderManager {
                 // behind the one we're looking through.
                 view = agent.view!!
                 target = (portal.localToRemoteMatrix * target.toPoint()).toMC()
+                vehicleInterpPos = (portal.localToRemoteMatrix * vehicleInterpPos.toPoint()).toMC()
                 camera = camera.transformed(portal.localToRemoteMatrix)
                 pos = (portal.localToRemoteMatrix * hitVec.toPoint()).toMC()
                 val prevViewEntity = viewEntity
@@ -82,8 +93,21 @@ internal object PortalRenderManager {
                 } else {
                     viewEntity.derivePosRotFrom(prevViewEntity, portal)
                 }
+            } else if (!hitClientPosition) {
+                hitClientPosition = true
+                pos = target
+                target = vehicleInterpPos
             } else if (!hitVisualPosition) {
                 hitVisualPosition = true
+                pos = target
+                target = camera.eyePosition
+                if (viewEntity == vehicle) {
+                    // Skip right to next step if we aren't in any vehicle
+                    hitPassenger = true
+                    target = camera.viewPosition
+                }
+            } else if (!hitPassenger) {
+                hitPassenger = true
                 pos = target
                 target = camera.viewPosition
             } else {

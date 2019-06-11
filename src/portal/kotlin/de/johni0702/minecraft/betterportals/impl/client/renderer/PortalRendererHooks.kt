@@ -7,6 +7,7 @@ import de.johni0702.minecraft.view.client.render.renderPassManager
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher.*
 import net.minecraft.entity.Entity
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.Vec3d
 import org.lwjgl.opengl.GL11
 import kotlin.math.sign
@@ -17,8 +18,11 @@ internal object PortalRendererHooks {
 
     fun beforeRender(entity: Entity): Boolean {
         if (entity is Portal) return true
-        val entityAABB = entity.renderBoundingBox
-        val entityPos = entity.syncPos + entity.eyeOffset
+        val lowestEntity = entity.lowestRidingEntity
+        val entityAABB = generateSequence(entity) { it.ridingEntity }
+                .map { it.renderBoundingBox }
+                .reduce(AxisAlignedBB::union)
+        val entityPos = lowestEntity.syncPos + lowestEntity.eyeOffset
 
         val portal = currentRenderPass?.let { instance ->
             // If we're not rendering our own world (i.e. if we're looking through a portal)

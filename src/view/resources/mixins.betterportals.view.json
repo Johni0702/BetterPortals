@@ -13,7 +13,8 @@
     "MixinEntityRenderer",
     "MixinEntityRenderer_NoOF",
     "MixinEntityRenderer_OF",
-    "MixinRenderGlobal"
+    "MixinRenderGlobal",
+    "MixinWorldClient"
   ],
   "compatibilityLevel": "JAVA_8",
   "minVersion": "0.6.11",
