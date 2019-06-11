@@ -18,6 +18,7 @@ import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.renderer.culling.ICamera
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityList
+import net.minecraft.entity.item.EntityMinecart
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.nbt.NBTTagCompound
@@ -560,6 +561,12 @@ abstract class AbstractPortalEntity(
             newEntity.otherPlayerMPYaw = yaw.toDouble()
             newEntity.otherPlayerMPPitch = pitch.toDouble()
             newEntity.otherPlayerMPPosRotationIncrements = 3 // and sudden jumps
+        }
+        if (newEntity is EntityMinecart) {
+            newEntity.minecartPos = pos // preserve minecart pos to prevent desync
+            newEntity.minecartYaw = yaw.toDouble()
+            newEntity.minecartPitch = pitch.toDouble()
+            newEntity.turnProgress = 3 // and sudden jumps
         }
         if (newEntity is AbstractClientPlayer && entity is AbstractClientPlayer) {
             newEntity.ticksElytraFlying = entity.ticksElytraFlying

@@ -9,6 +9,7 @@ import net.minecraft.block.state.IBlockState
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityTracker
+import net.minecraft.entity.item.EntityMinecart
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTTagCompound
@@ -160,6 +161,7 @@ fun EntityTracker.getTracking(entity: Entity): Set<EntityPlayerMP> = getTracking
 
 val Entity.eyeOffset get() = Vec3d(0.0, eyeHeight.toDouble(), 0.0)
 val Entity.syncPos get() = when {
+    this is EntityMinecart && turnProgress > 0 -> minecartPos
     this is EntityOtherPlayerMP && otherPlayerMPPosRotationIncrements > 0 -> otherPlayerMPPos
     else -> pos
 }
@@ -175,6 +177,9 @@ var Entity.prevPos
 var EntityOtherPlayerMP.otherPlayerMPPos
     get() = Vec3d(otherPlayerMPX, otherPlayerMPY, otherPlayerMPZ)
     set(value) = with(value) { otherPlayerMPX = x; otherPlayerMPY = y; otherPlayerMPZ = z }
+var EntityMinecart.minecartPos
+    get() = Vec3d(minecartX, minecartY, minecartZ)
+    set(value) = with(value) { minecartX = x; minecartY = y; minecartZ = z }
 
 fun ChunkPos.add(x: Int, z: Int) = ChunkPos(this.x + x, this.z + z)
 
