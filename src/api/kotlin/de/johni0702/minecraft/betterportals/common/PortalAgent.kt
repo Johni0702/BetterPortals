@@ -541,6 +541,16 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
     @SideOnly(Side.CLIENT)
     fun beforeUsePortal(entity: Entity) {
         portalUser = entity
+
+        // If this is the client player, then a swap of main view (and view entities!) is soon to come.
+        // As such, by the time [afterUsePortal] is called, the portalUser in this world will be the view entity,
+        // not the player entity.
+        if (entity is EntityPlayerSP) {
+            portalUser = view?.camera
+            if (portalUser == null) {
+                manager.logger.warn("Got pre portal usage message for client player on $this even though no view is set")
+            }
+        }
     }
 
     @SideOnly(Side.CLIENT)
