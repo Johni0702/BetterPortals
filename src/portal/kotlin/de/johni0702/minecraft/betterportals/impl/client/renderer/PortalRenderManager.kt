@@ -1,6 +1,5 @@
 package de.johni0702.minecraft.betterportals.impl.client.renderer
 
-import de.johni0702.minecraft.betterportals.client.deriveClientPosRotFrom
 import de.johni0702.minecraft.betterportals.client.render.PortalDetail
 import de.johni0702.minecraft.betterportals.client.render.portalDetail
 import de.johni0702.minecraft.betterportals.common.*
@@ -12,7 +11,6 @@ import de.johni0702.minecraft.view.client.render.PopulateTreeEvent
 import de.johni0702.minecraft.view.client.render.RenderPass
 import de.johni0702.minecraft.view.client.render.RenderPassEvent
 import net.minecraft.client.Minecraft
-import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.common.MinecraftForge
@@ -37,7 +35,7 @@ internal object PortalRenderManager {
         val mc = Minecraft.getMinecraft()
         var view = event.view
         var camera = event.camera
-        var viewEntity = mc.renderViewEntity ?: mc.player
+        val viewEntity = mc.renderViewEntity ?: mc.player
         val vehicle = viewEntity.lowestRidingEntity
         val vehicleSyncPos = vehicle.syncPos + vehicle.eyeOffset
         val vehicleClientPos = vehicle.pos + vehicle.eyeOffset
@@ -86,13 +84,6 @@ internal object PortalRenderManager {
                 vehicleInterpPos = (portal.localToRemoteMatrix * vehicleInterpPos.toPoint()).toMC()
                 camera = camera.transformed(portal.localToRemoteMatrix)
                 pos = (portal.localToRemoteMatrix * hitVec.toPoint()).toMC()
-                val prevViewEntity = viewEntity
-                viewEntity = agent.view!!.camera
-                if (prevViewEntity is EntityPlayerSP) {
-                    viewEntity.deriveClientPosRotFrom(prevViewEntity, portal)
-                } else {
-                    viewEntity.derivePosRotFrom(prevViewEntity, portal)
-                }
             } else if (!hitClientPosition) {
                 hitClientPosition = true
                 pos = target
