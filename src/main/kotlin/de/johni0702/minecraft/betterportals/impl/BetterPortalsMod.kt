@@ -12,6 +12,8 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.resources.FolderResourcePack
 import net.minecraft.client.resources.IResourcePack
 import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.common.config.Config
+import net.minecraftforge.common.config.ConfigManager
 import net.minecraftforge.event.RegistryEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.SidedProxy
@@ -36,6 +38,8 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
     private val registerBlockCallbacks = mutableListOf<IForgeRegistry<Block>.() -> Unit>()
 
     init {
+        ConfigManager.sync(MOD_ID, Config.Type.INSTANCE);
+
         initView(
                 clientInit = { clientInitCallbacks.add(it) }
         )
