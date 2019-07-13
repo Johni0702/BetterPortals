@@ -334,7 +334,9 @@ internal class ViewRenderPlan(
 
         // Inject the entity from which the world will be rendered
         // We do not spawn it into the world as we don't need it there (until some third-party mod does)
-        if (mc.player is ViewEntity) {
+        val orgViewEntity = mc.renderViewEntity ?: mc.player
+        val interpEntityPos = orgViewEntity.getPositionEyes(partialTicks)
+        if (mc.player is ViewEntity || interpEntityPos != camera.eyePosition) {
             val cameraEntity = ViewCameraEntity(mc.world)
             with(camera) {
                 cameraEntity.pos = feetPosition
@@ -375,9 +377,7 @@ internal class ViewRenderPlan(
 
         RenderPassEvent.End(partialTicks, this).post()
 
-        if (mc.player is ViewEntity) {
-            mc.renderViewEntity = mc.player
-        }
+        mc.renderViewEntity = orgViewEntity
 
         GlStateManager.popMatrix()
         framebuffer.unbindFramebuffer()
