@@ -270,6 +270,6 @@ operator fun <T, V> ThreadLocal<V>.provideDelegate(thisRef: T, prop: KProperty<*
 }
 
 private val forgeCapabilitiesField = Entity::class.java.getDeclaredField("capabilities").apply { isAccessible = true }
-var Entity.forgeCapabilities: CapabilityDispatcher
-    get() = forgeCapabilitiesField.get(this) as CapabilityDispatcher
+var Entity.forgeCapabilities: CapabilityDispatcher?
+    get() = forgeCapabilitiesField.get(this) as CapabilityDispatcher?
     set(value) = forgeCapabilitiesField.set(this, value)
