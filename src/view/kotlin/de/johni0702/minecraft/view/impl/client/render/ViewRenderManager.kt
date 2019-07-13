@@ -12,6 +12,7 @@ import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.Matrix4f
 import net.minecraft.client.renderer.culling.ClippingHelperImpl
 import net.minecraft.client.renderer.culling.Frustum
+import net.minecraft.client.shader.Framebuffer
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 import net.minecraftforge.client.event.DrawBlockHighlightEvent
@@ -35,20 +36,20 @@ internal class ViewRenderManager : RenderPassManager {
     }
     private var frameWidth = 0
     private var frameHeight = 0
-    private val framebufferPool = mutableListOf<FramebufferD>()
+    private val framebufferPool = mutableListOf<Framebuffer>()
     private val eventHandler = EventHandler()
     init {
         eventHandler.registered = true
     }
     private val disposedOcclusionQueries = mutableListOf<OcclusionQuery>()
 
-    fun allocFramebuffer() = framebufferPool.popOrNull() ?: FramebufferD(frameWidth, frameHeight).apply {
+    fun allocFramebuffer() = framebufferPool.popOrNull() ?: Framebuffer(frameWidth, frameHeight, true).apply {
         if (!isStencilEnabled && Minecraft.getMinecraft().framebuffer.isStencilEnabled) {
             enableStencil()
         }
     }
 
-    fun releaseFramebuffer(framebuffer: FramebufferD) {
+    fun releaseFramebuffer(framebuffer: Framebuffer) {
         framebufferPool.add(framebuffer)
     }
 
@@ -247,7 +248,7 @@ internal class ViewRenderPlan(
         var PREVIOUS_FRAME: ViewRenderPlan? = null
     }
     val world: World = view.camera.world
-    override var framebuffer: FramebufferD? = null
+    override var framebuffer: Framebuffer? = null
 
     override val children = mutableListOf<ViewRenderPlan>()
 
@@ -288,7 +289,7 @@ internal class ViewRenderPlan(
      * Requires all dependencies to have previously been rendered (e.g. by calling [renderDeps]), otherwise their
      * portals will be empty.
      */
-    private fun renderSelf(partialTicks: Float, finishTimeNano: Long): FramebufferD {
+    private fun renderSelf(partialTicks: Float, finishTimeNano: Long): Framebuffer {
         // Optifine reloads its shader when the dimension changes, so for now, when shaders are enabled, we can only
         // render the main view.
         if (Optifine?.shadersActive == true && this != MAIN) {
