@@ -10,8 +10,10 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GLAllocation
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.Matrix4f
+import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.culling.ClippingHelperImpl
 import net.minecraft.client.renderer.culling.Frustum
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.client.shader.Framebuffer
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
@@ -22,6 +24,8 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import org.lwjgl.opengl.GL11
 import org.lwjgl.util.vector.Quaternion
+import kotlin.math.ceil
+import kotlin.math.sqrt
 
 internal class ViewRenderManager : RenderPassManager {
     override val root: RenderPass?
@@ -34,6 +38,7 @@ internal class ViewRenderManager : RenderPassManager {
     companion object {
         val INSTANCE = ViewRenderManager()
     }
+    private var debugView = System.getProperty("betterportals.debugview", "false")!!.toBoolean()
     private var frameWidth = 0
     private var frameHeight = 0
     private val framebufferPool = mutableListOf<Framebuffer>()
@@ -166,13 +171,18 @@ internal class ViewRenderManager : RenderPassManager {
         ViewRenderPlan.PREVIOUS_FRAME = plan
         mc.framebuffer.bindFramebuffer(true)
 
-        val framebuffer = plan.framebuffer ?: return
-
         mc.mcProfiler.startSection("renderFramebuffer")
-        framebuffer.framebufferRender(frameWidth, frameHeight)
+        if (debugView) {
+            plan.debugFramebuffer
+        } else {
+            plan.framebuffer
+        }?.framebufferRender(frameWidth, frameHeight)
         mc.mcProfiler.endSection()
 
-        releaseFramebuffer(framebuffer)
+        plan.framebuffer?.let { releaseFramebuffer(it) }
+        plan.framebuffer = null
+        plan.debugFramebuffer?.let { releaseFramebuffer(it) }
+        plan.debugFramebuffer = null
     }
 
     private inner class EventHandler {
@@ -249,6 +259,7 @@ internal class ViewRenderPlan(
     }
     val world: World = view.camera.world
     override var framebuffer: Framebuffer? = null
+    var debugFramebuffer: Framebuffer? = null
 
     override val children = mutableListOf<ViewRenderPlan>()
 
@@ -387,6 +398,65 @@ internal class ViewRenderPlan(
         return framebuffer
     }
 
+    private fun renderDebug() {
+        val finalFramebuffer = framebuffer ?: return
+        val total = 1 + children.size
+        val side = ceil(sqrt(total.toDouble())).toInt()
+        val tmp = manager.allocFramebuffer()
+
+        tmp.bindFramebuffer(false)
+        GlStateManager.colorMask(true, true, true, false)
+        GlStateManager.disableDepth()
+        GlStateManager.depthMask(false)
+        GlStateManager.matrixMode(GL11.GL_PROJECTION)
+        GlStateManager.loadIdentity()
+        GlStateManager.ortho(0.0, tmp.framebufferWidth.toDouble(), tmp.framebufferHeight.toDouble(), 0.0, 1000.0, 3000.0)
+        GlStateManager.matrixMode(GL11.GL_MODELVIEW)
+        GlStateManager.loadIdentity()
+        GlStateManager.translate(0.0F, 0.0F, -2000.0F)
+        GlStateManager.enableTexture2D()
+        GlStateManager.disableLighting()
+        GlStateManager.disableAlpha()
+        GlStateManager.disableBlend()
+        GlStateManager.enableColorMaterial()
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F)
+
+        var idx = 0
+        for (row in 0 until side) {
+            for (column in 0 until side) {
+                val fb = if (row == 0 && column == 0) {
+                    finalFramebuffer
+                } else {
+                    children.getOrNull(idx++)?.debugFramebuffer
+                }
+
+                fb?.bindFramebufferTexture()
+                val x0 = column.toDouble() * tmp.framebufferWidth / side
+                val y0 = row.toDouble() * tmp.framebufferHeight / side
+                val x1 = x0 + tmp.framebufferWidth / side
+                val y1 = y0 + tmp.framebufferHeight / side
+                val tw = tmp.framebufferWidth / tmp.framebufferTextureWidth.toDouble()
+                val th = tmp.framebufferHeight / tmp.framebufferTextureHeight.toDouble()
+                val tessellator = Tessellator.getInstance()
+                with(tessellator.buffer) {
+                    begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX_COLOR)
+                    pos(x0, y1, 0.0).tex(0.0, 0.0).color(255, 255, 255, 255).endVertex()
+                    pos(x1, y1, 0.0).tex(tw, 0.0).color(255, 255, 255, 255).endVertex()
+                    pos(x1, y0, 0.0).tex(tw, th).color(255, 255, 255, 255).endVertex()
+                    pos(x0, y0, 0.0).tex(0.0, th).color(255, 255, 255, 255).endVertex()
+                }
+                tessellator.draw()
+                fb?.unbindFramebufferTexture()
+            }
+        }
+
+        GlStateManager.depthMask(true)
+        GlStateManager.colorMask(true, true, true, true)
+        tmp.unbindFramebuffer()
+
+        debugFramebuffer = tmp
+    }
+
     /**
      * Render this view and all of its dependencies.
      */
@@ -401,10 +471,15 @@ internal class ViewRenderPlan(
             if (RenderPassEvent.Before(partialTicks, this).post().isCanceled) return
             renderSelf(partialTicks, finishTimeNano)
             RenderPassEvent.After(partialTicks, this).post()
+            renderDebug()
         } finally {
             children.forEach {
                 manager.releaseFramebuffer(it.framebuffer ?: return@forEach)
                 it.framebuffer = null
+            }
+            children.forEach {
+                manager.releaseFramebuffer(it.debugFramebuffer ?: return@forEach)
+                it.debugFramebuffer = null
             }
         }
     }
