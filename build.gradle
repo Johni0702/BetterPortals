@@ -17,7 +17,8 @@ apply plugin: 'org.spongepowered.mixin'
 
 ext {
     mixinDep = 'org.spongepowered:mixin:0.7.11-SNAPSHOT'
-    twilightforestDep = 'the-twilight-forest:twilightforest-1.12.2:3.6.345:universal'
+    twilightforestDepBase = 'the-twilight-forest:twilightforest-1.12.2:3.6.345'
+    twilightforestDep = "$twilightforestDepBase:universal"
 }
 
 version = determineVersion()
@@ -97,8 +98,13 @@ dependencies {
     viewCompile mixinDep
     portalCompile mixinDep
 
-    runtime twilightforestDep
-    twilightforestCompile twilightforestDep
+    // We want FG to deobf our mod-deps for us.
+    // However FG sucks and doesn't support non-standard source sets, so we need to use this workaround...
+    // Might need to run `./gradlew deobfCompileDummyTask` before importing into IDEA (doesn't happen automatically).
+
+    deobfCompile twilightforestDep
+    runtime "deobf.$twilightforestDepBase"
+    twilightforestCompile "deobf.$twilightforestDepBase"
 
     testCompile 'io.kotlintest:kotlintest-runner-junit5:3.0.4'
 }
