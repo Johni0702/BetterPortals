@@ -30,6 +30,11 @@ public class BPConfig {
     @Config.Comment("Whether to replace TwilightForest portals with BetterPortals ones. Experimental feature!")
     public static boolean enableExperimentalTwilightForestPortals = false;
 
+    @Config.RequiresMcRestart
+    @Config.Name("Enable Mekanism Teleporter Portals (Experimental!)")
+    @Config.Comment("Whether to replace Mekansm teleporter portals with BetterPortals ones. Experimental feature!")
+    public static boolean enableExperimentalMekanismPortals = false;
+
     @Config.Name("See-through portals")
     @Config.Comment("Whether the other side of portals will be visible. Disabling will improve performance.")
     public static boolean seeThroughPortals = true;

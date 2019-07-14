@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.BetterPortalsAPI
 import de.johni0702.minecraft.betterportals.impl.common.initPortal
+import de.johni0702.minecraft.betterportals.impl.mekanism.common.initMekanism
 import de.johni0702.minecraft.betterportals.impl.tf.common.initTwilightForest
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.initVanilla
 import de.johni0702.minecraft.view.common.ViewAPI
@@ -18,6 +19,7 @@ import net.minecraftforge.event.RegistryEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.SidedProxy
 import net.minecraftforge.fml.common.event.FMLInitializationEvent
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -35,6 +37,8 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
     internal val clientPreInitCallbacks = mutableListOf<() -> Unit>()
     internal val commonInitCallbacks = mutableListOf<() -> Unit>()
     internal val clientInitCallbacks = mutableListOf<() -> Unit>()
+    internal val commonPostInitCallbacks = mutableListOf<() -> Unit>()
+    internal val clientPostInitCallbacks = mutableListOf<() -> Unit>()
     private val registerBlockCallbacks = mutableListOf<IForgeRegistry<Block>.() -> Unit>()
 
     init {
@@ -68,6 +72,13 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 registerBlocks = { registerBlockCallbacks.add(it) },
                 enableTwilightForestPortals = BPConfig.enableExperimentalTwilightForestPortals
         )
+
+        initMekanism(
+                init = { commonInitCallbacks.add(it) },
+                postInit = { commonPostInitCallbacks.add(it) },
+                clientPostInit = { clientPostInitCallbacks.add(it) },
+                enableMekanismPortals = BPConfig.enableExperimentalMekanismPortals
+        )
     }
 
     @Mod.EventHandler
@@ -91,9 +102,15 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
         PROXY.init(this)
     }
 
+    @Mod.EventHandler
+    fun preInit(event: FMLPostInitializationEvent) {
+        PROXY.postInit(this)
+    }
+
     interface Proxy {
         fun preInit(mod: BetterPortalsMod)
         fun init(mod: BetterPortalsMod)
+        fun postInit(mod: BetterPortalsMod)
     }
 
     internal abstract class CommonProxy : Proxy {
@@ -101,6 +118,10 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
 
         override fun init(mod: BetterPortalsMod) {
             BetterPortalsMod.INSTANCE.commonInitCallbacks.forEach { it() }
+        }
+
+        override fun postInit(mod: BetterPortalsMod) {
+            BetterPortalsMod.INSTANCE.commonPostInitCallbacks.forEach { it() }
         }
     }
 
@@ -129,6 +150,11 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
         override fun init(mod: BetterPortalsMod) {
             BetterPortalsMod.INSTANCE.clientInitCallbacks.forEach { it() }
             super.init(mod)
+        }
+
+        override fun postInit(mod: BetterPortalsMod) {
+            super.postInit(mod)
+            BetterPortalsMod.INSTANCE.clientPostInitCallbacks.forEach { it() }
         }
     }
 
