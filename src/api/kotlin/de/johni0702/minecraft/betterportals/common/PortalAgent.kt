@@ -469,7 +469,9 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         manager.serverBeforeUsePortal(this, player, trackingPlayers)
 
         // Swap views
-        view.makeMainView(ticket)
+        if (!view.isMainView) {
+            view.makeMainView(ticket)
+        }
 
         // Inform other clients that the teleportation has happened
         trackingPlayers.forEach { it.viewManager.flushPackets() }
@@ -624,6 +626,8 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         // make sure the remote portal has the current position
         // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
         remotePortal.updateEntityPosWithoutTeleport(player)
+        // also update the position for this portal in case we stayed within the same view
+        updateEntityPosWithoutTeleport(player)
 
         return true
     }
