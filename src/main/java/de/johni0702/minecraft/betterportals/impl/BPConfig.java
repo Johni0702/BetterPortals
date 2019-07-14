@@ -11,29 +11,25 @@ import static de.johni0702.minecraft.betterportals.impl.BetterPortalsModKt.MOD_I
 @Config(modid = MOD_ID)
 @Mod.EventBusSubscriber(modid = MOD_ID)
 public class BPConfig {
-    @Config.RequiresMcRestart
-    @Config.Name("Enable Nether Portals")
-    @Config.Comment("Whether to replace vanilla nether portals with BetterPortals ones.")
-    public static boolean enableNetherPortals = true;
+    @Config.Name("Vanilla Nether Portals")
+    @Config.Comment("Configuration for vanilla nether portals.")
+    public static PortalConfig netherPortals = new PortalConfig();
 
-    @Config.RequiresMcRestart
-    @Config.Name("Enable End Portals")
-    @Config.Comment("Whether to replace vanilla end portals with BetterPortals ones.")
-    public static boolean enableEndPortals = true;
+    @Config.Name("Vanilla End Portals")
+    @Config.Comment("Configuration for vanilla end portals")
+    public static PortalConfig endPortals = new PortalConfig();
+
+    @Config.Name("TwilightForest Portals")
+    @Config.Comment("Configuration for TwilightForest portals.")
+    public static PortalConfig twilightForestPortals = new PortalConfig();
+
+    @Config.Name("Mekanism Teleporter")
+    @Config.Comment("Configuration for Mekanism Teleporter portals.")
+    public static PortalConfig mekanismPortals = new PortalConfig();
 
     @Config.Name("Prevent Fall Damage")
     @Config.Comment("Whether to prevent the next fall damage after a player has passed through a lying portal.")
     public static boolean preventFallDamage = true;
-
-    @Config.RequiresMcRestart
-    @Config.Name("Enable TwilightForest Portals")
-    @Config.Comment("Whether to replace TwilightForest portals with BetterPortals ones.")
-    public static boolean enableTwilightForestPortals = true;
-
-    @Config.RequiresMcRestart
-    @Config.Name("Enable Mekanism Teleporter Portals")
-    @Config.Comment("Whether to replace Mekansm teleporter portals with BetterPortals ones.")
-    public static boolean enableMekanismPortals = true;
 
     @Config.Name("See-through portals")
     @Config.Comment("Whether the other side of portals will be visible. Disabling will improve performance.")

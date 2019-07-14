@@ -61,8 +61,8 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 init = { commonInitCallbacks.add(it) },
                 clientPreInit = { clientPreInitCallbacks.add(it) },
                 registerBlocks = { registerBlockCallbacks.add(it) },
-                enableNetherPortals = BPConfig.enableNetherPortals,
-                enableEndPortals = BPConfig.enableEndPortals
+                enableNetherPortals = BPConfig.netherPortals.enabled,
+                enableEndPortals = BPConfig.endPortals.enabled
         )
 
         initTwilightForest(
@@ -70,14 +70,14 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 init = { commonInitCallbacks.add(it) },
                 clientPreInit = { clientPreInitCallbacks.add(it) },
                 registerBlocks = { registerBlockCallbacks.add(it) },
-                enableTwilightForestPortals = BPConfig.enableTwilightForestPortals
+                enableTwilightForestPortals = BPConfig.twilightForestPortals.enabled
         )
 
         initMekanism(
                 init = { commonInitCallbacks.add(it) },
                 postInit = { commonPostInitCallbacks.add(it) },
                 clientPostInit = { clientPostInitCallbacks.add(it) },
-                enableMekanismPortals = BPConfig.enableMekanismPortals
+                enableMekanismPortals = BPConfig.mekanismPortals.enabled
         )
     }
 
