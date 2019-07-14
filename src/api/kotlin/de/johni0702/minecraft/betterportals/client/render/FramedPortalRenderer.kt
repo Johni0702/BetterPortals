@@ -19,7 +19,7 @@ open class FramedPortalRenderer<in P: FinitePortal>(
         val textureOpacity: () -> Double = { 0.0 },
         private val portalSprite: () -> TextureAtlasSprite? = { null }
 ) : PortalRenderer<P>() {
-    override fun renderPortalSurface(portal: P, pos: Vec3d, renderPass: RenderPass) {
+    override fun renderPortalSurface(portal: P, pos: Vec3d, renderPass: RenderPass, haveContent: Boolean) {
         val offset = pos - Vec3d(0.5, 0.5, 0.5)
 
         val tessellator = Tessellator.getInstance()
@@ -29,11 +29,20 @@ open class FramedPortalRenderer<in P: FinitePortal>(
             val blocks = portal.relativeBlocks.map { it.rotate(portal.localRotation) }
             blocks.forEach { pos ->
                 setTranslation(offset.x + pos.x, offset.y + pos.y, offset.z + pos.z)
-                EnumFacing.VALUES.forEach facing@ { facing ->
-                    if (blocks.contains(pos.offset(facing))) return@facing
-                    if (facing == viewFacing) return@facing
+                if (haveContent) {
+                    // When we have remote content for the portal, then render as much as possible as to minimize
+                    // entity rendering artifacts inside the portal in the remote world (since they're only rendered
+                    // where we draw the portal surface).
+                    EnumFacing.VALUES.forEach facing@{ facing ->
+                        if (blocks.contains(pos.offset(facing))) return@facing
+                        if (facing == viewFacing) return@facing
 
-                    renderPartialPortalFace(this, facing)
+                        renderPartialPortalFace(this, facing)
+                    }
+                } else {
+                    // otherwise preserve as much of the local frame as feasible and only render black on the far side
+                    // to prevent the player from seeing that side.
+                    renderPartialPortalFace(this, viewFacing.opposite)
                 }
             }
 

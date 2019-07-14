@@ -71,7 +71,7 @@ abstract class PortalRenderer<in P: Portal> {
                     .set(framebuffer.framebufferWidth.toFloat(), framebuffer.framebufferHeight.toFloat())
             shader.useShader()
         }
-        renderPortalSurface(portal, pos, renderPass)
+        renderPortalSurface(portal, pos, renderPass, framebuffer != null)
         if (framebuffer == null) {
             GlStateManager.color(1f, 1f, 1f)
             GlStateManager.enableTexture2D()
@@ -80,7 +80,7 @@ abstract class PortalRenderer<in P: Portal> {
         }
     }
 
-    protected abstract fun renderPortalSurface(portal: P, pos: Vec3d, renderPass: RenderPass)
+    protected abstract fun renderPortalSurface(portal: P, pos: Vec3d, renderPass: RenderPass, haveContent: Boolean)
 
     open fun renderTransparent(portal: P, pos: Vec3d, partialTicks: Float) {
         if (isRemoteEnd(portal)) {
