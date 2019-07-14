@@ -1,11 +1,11 @@
 package de.johni0702.minecraft.betterportals.impl.vanilla.common
 
 import de.johni0702.minecraft.betterportals.client.render.FramedPortalRenderer
-import de.johni0702.minecraft.betterportals.client.render.OneWayFramedPortalRenderer
 import de.johni0702.minecraft.betterportals.client.render.RenderOneWayPortalEntity
 import de.johni0702.minecraft.betterportals.client.render.RenderPortalEntity
 import de.johni0702.minecraft.betterportals.common.entity.PortalEntityAccessor
 import de.johni0702.minecraft.betterportals.common.portalManager
+import de.johni0702.minecraft.betterportals.impl.vanilla.client.renderer.EndPortalRenderer
 import de.johni0702.minecraft.betterportals.impl.vanilla.client.tile.renderer.BetterEndPortalTileRenderer
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.blocks.BlockBetterEndPortal
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.blocks.BlockBetterNetherPortal
@@ -14,6 +14,7 @@ import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndEntryP
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndExitPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.NetherPortalEntity
 import net.minecraft.block.Block
+import net.minecraft.client.Minecraft
 import net.minecraft.tileentity.TileEntity
 import net.minecraft.util.ResourceLocation
 import net.minecraft.util.math.AxisAlignedBB
@@ -34,21 +35,26 @@ fun initVanilla(
         init: (() -> Unit) -> Unit,
         registerBlocks: (IForgeRegistry<Block>.() -> Unit) -> Unit,
         enableNetherPortals: Boolean,
-        enableEndPortals: Boolean) {
+        enableEndPortals: Boolean,
+        opacityNetherPortals: () -> Double,
+        opacityEndPortals: () -> Double
+) {
 
     clientPreInit {
         if (enableNetherPortals) {
             RenderingRegistry.registerEntityRenderingHandler(NetherPortalEntity::class.java) {
-                RenderPortalEntity(it, FramedPortalRenderer())
+                RenderPortalEntity(it, FramedPortalRenderer(opacityNetherPortals, {
+                    Minecraft.getMinecraft().textureMapBlocks.getAtlasSprite("minecraft:blocks/portal")
+                }))
             }
         }
         if (enableEndPortals) {
             ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBetterEndPortal::class.java, BetterEndPortalTileRenderer())
             RenderingRegistry.registerEntityRenderingHandler(EndEntryPortalEntity::class.java) {
-                RenderOneWayPortalEntity(it, OneWayFramedPortalRenderer())
+                RenderOneWayPortalEntity(it, EndPortalRenderer(opacityEndPortals))
             }
             RenderingRegistry.registerEntityRenderingHandler(EndExitPortalEntity::class.java) {
-                RenderOneWayPortalEntity(it, OneWayFramedPortalRenderer())
+                RenderOneWayPortalEntity(it, EndPortalRenderer(opacityEndPortals))
             }
         }
     }

@@ -1,9 +1,9 @@
 package de.johni0702.minecraft.betterportals.impl.tf.common
 
-import de.johni0702.minecraft.betterportals.client.render.OneWayFramedPortalRenderer
 import de.johni0702.minecraft.betterportals.client.render.RenderOneWayPortalEntity
 import de.johni0702.minecraft.betterportals.common.entity.PortalEntityAccessor
 import de.johni0702.minecraft.betterportals.common.portalManager
+import de.johni0702.minecraft.betterportals.impl.tf.client.renderer.TFPortalRenderer
 import de.johni0702.minecraft.betterportals.impl.tf.common.blocks.BlockBetterTFPortal
 import de.johni0702.minecraft.betterportals.impl.tf.common.entity.TFPortalEntity
 import net.minecraft.block.Block
@@ -28,7 +28,8 @@ fun initTwilightForest(
         clientPreInit: (() -> Unit) -> Unit,
         init: (() -> Unit) -> Unit,
         registerBlocks: (IForgeRegistry<Block>.() -> Unit) -> Unit,
-        enableTwilightForestPortals: Boolean
+        enableTwilightForestPortals: Boolean,
+        opacityTwilightForestPortals: () -> Double
 ) {
     if (!enableTwilightForestPortals || !hasTwilightForest) {
         return
@@ -36,7 +37,7 @@ fun initTwilightForest(
 
     clientPreInit {
         RenderingRegistry.registerEntityRenderingHandler(TFPortalEntity::class.java) {
-            RenderOneWayPortalEntity(it, OneWayFramedPortalRenderer())
+            RenderOneWayPortalEntity(it, TFPortalRenderer(opacityTwilightForestPortals))
         }
     }
 

@@ -3,10 +3,14 @@ package de.johni0702.minecraft.betterportals.client.render
 import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.entity.PortalEntity
 import net.minecraft.client.renderer.BufferBuilder
+import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.Vec3d
 
-open class OneWayFramedPortalRenderer<in P: FinitePortal> : FramedPortalRenderer<P>() {
+open class OneWayFramedPortalRenderer<in P: FinitePortal>(
+        textureOpacity: () -> Double = { 0.0 },
+        portalSprite: () -> TextureAtlasSprite? = { null }
+) : FramedPortalRenderer<P>(textureOpacity, portalSprite) {
     /**
      * Whether to render the tail/exit end of a pair of portals.
      * See [PortalEntity.OneWay.isTailEnd].
@@ -41,5 +45,11 @@ open class OneWayFramedPortalRenderer<in P: FinitePortal> : FramedPortalRenderer
         // For the tail end of the portal, skip drawing unless the player has just passed through it and is still close
         if (isTailEnd && !isTailEndVisible) return
         super.render(portal, pos, partialTicks)
+    }
+
+    override fun renderTransparent(portal: P, pos: Vec3d, partialTicks: Float) {
+        // For the tail end of the portal, skip drawing unless the player has just passed through it and is still close
+        if (isTailEnd && !isTailEndVisible) return
+        super.renderTransparent(portal, pos, partialTicks)
     }
 }

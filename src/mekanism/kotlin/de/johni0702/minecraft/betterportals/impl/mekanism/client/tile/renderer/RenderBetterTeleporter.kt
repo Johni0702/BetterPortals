@@ -4,12 +4,15 @@ import de.johni0702.minecraft.betterportals.client.render.FramedPortalRenderer
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.tile.LinkedTeleporterPortal
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.tile.TileEntityBetterTeleporter
 import de.johni0702.minecraft.view.client.render.RenderPass
+import mekanism.api.EnumColor
 import mekanism.client.render.tileentity.RenderTeleporter
 import mekanism.common.tile.TileEntityTeleporter
 import net.minecraft.client.shader.Framebuffer
+import net.minecraft.util.ResourceLocation
 import net.minecraft.util.math.Vec3d
+import org.lwjgl.opengl.GL11
 
-class RenderBetterTeleporter : RenderTeleporter() {
+class RenderBetterTeleporter(private val opacity: () -> Double) : RenderTeleporter() {
     private var renderingSkipped = true
     private val portalRenderer = object : FramedPortalRenderer<LinkedTeleporterPortal>() {
         override fun renderPortal(portal: LinkedTeleporterPortal, pos: Vec3d, framebuffer: Framebuffer?, renderPass: RenderPass) {
@@ -17,6 +20,8 @@ class RenderBetterTeleporter : RenderTeleporter() {
             renderingSkipped = false
         }
     }
+
+    private var renderOpacity = 1.0
 
     override fun render(tileEntity: TileEntityTeleporter, x: Double, y: Double, z: Double, partialTick: Float, destroyStage: Int, alpha: Float) {
         if (tileEntity is TileEntityBetterTeleporter && tileEntity.active) {
@@ -29,6 +34,17 @@ class RenderBetterTeleporter : RenderTeleporter() {
                 }
             }
         }
-        super.render(tileEntity, x, y, z, partialTick, destroyStage, alpha)
+        val opacity = opacity()
+        if (opacity > 0) {
+            renderOpacity = opacity
+            super.render(tileEntity, x, y, z, partialTick, destroyStage, alpha)
+        }
+    }
+
+    // Simple hook to overwrite alpha depending on portal opacity setting
+    override fun bindTexture(location: ResourceLocation) {
+        val alpha = 0.75f * renderOpacity.toFloat()
+        with(EnumColor.PURPLE) { GL11.glColor4f(getColor(0), getColor(1), getColor(2), alpha) }
+        super.bindTexture(location)
     }
 }

@@ -24,10 +24,20 @@ abstract class PortalRenderer<in P: Portal> {
     /**
      * Side of the portal on which the camera resides.
      *
-     * Updated during [render] before any other method calls.
+     * Updated during [render] and [renderTransparent] before any other method calls.
      */
     protected var viewFacing = EnumFacing.UP
         private set
+
+    private fun isRemoteEnd(portal: P): Boolean {
+        val renderPass = ClientViewAPI.instance.getRenderPassManager(mc).current ?: return false
+
+        viewFacing = portal.localFacing.axis.toFacing(renderPass.camera.viewPosition - portal.localPosition.to3dMid())
+
+        val parentPortal = renderPass.portalDetail?.parent
+        // Skip rendering of portal if it's the remote to the portal we're looking through
+        return parentPortal?.isTarget(portal) == true
+    }
 
     /**
      * Renders the given portal at the given position relative to the camera.
@@ -35,11 +45,7 @@ abstract class PortalRenderer<in P: Portal> {
     open fun render(portal: P, pos: Vec3d, partialTicks: Float) {
         val renderPass = ClientViewAPI.instance.getRenderPassManager(mc).current ?: return
 
-        viewFacing = portal.localFacing.axis.toFacing(renderPass.camera.viewPosition - portal.localPosition.to3dMid())
-
-        val parentPortal = renderPass.portalDetail?.parent
-        if (parentPortal?.isTarget(portal) == true) {
-            // Skip rendering of portal if it's the remote to the portal we're currently in
+        if (isRemoteEnd(portal)) {
             return
         }
 
@@ -75,4 +81,14 @@ abstract class PortalRenderer<in P: Portal> {
     }
 
     protected abstract fun renderPortalSurface(portal: P, pos: Vec3d, renderPass: RenderPass)
+
+    open fun renderTransparent(portal: P, pos: Vec3d, partialTicks: Float) {
+        if (isRemoteEnd(portal)) {
+            return
+        }
+        doRenderTransparent(portal, pos, partialTicks)
+    }
+
+    open fun doRenderTransparent(portal: P, pos: Vec3d, partialTicks: Float) {
+    }
 }

@@ -23,6 +23,16 @@ open class RenderPortalEntity<E, P: Portal.Mutable, out R: PortalRenderer<P>>(
         portalRenderer.render(entity.agent.portal, Vec3d(x, y, z), partialTicks)
     }
 
+    override fun isMultipass(): Boolean = true
+
+    override fun renderMultipass(entity: E, x: Double, y: Double, z: Double, entityYaw: Float, partialTicks: Float) {
+        if (entity.isDead) {
+            return
+        }
+
+        portalRenderer.renderTransparent(entity.agent.portal, Vec3d(x, y, z), partialTicks)
+    }
+
     override fun doRenderShadowAndFire(entityIn: Entity, x: Double, y: Double, z: Double, yaw: Float, partialTicks: Float) {}
 
     override fun getEntityTexture(entity: E): ResourceLocation? = null

@@ -25,7 +25,8 @@ fun initMekanism(
         init: (() -> Unit) -> Unit,
         postInit: (() -> Unit) -> Unit,
         clientPostInit: (() -> Unit) -> Unit,
-        enableMekanismPortals: Boolean
+        enableMekanismPortals: Boolean,
+        opacityPortals: () -> Double
 ) {
     if (!enableMekanismPortals || !hasMekanism) {
         return
@@ -37,7 +38,7 @@ fun initMekanism(
     }
 
     clientPostInit {
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBetterTeleporter::class.java, RenderBetterTeleporter())
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBetterTeleporter::class.java, RenderBetterTeleporter(opacityPortals))
     }
 
     init {

@@ -17,4 +17,10 @@ open class RenderOneWayPortalEntity<E, P: FinitePortal.Mutable, out R: OneWayFra
         portalRenderer.isTailEndVisible = entity.isTailEndVisible
         super.doRender(entity, x, y, z, entityYaw, partialTicks)
     }
+
+    override fun renderMultipass(entity: E, x: Double, y: Double, z: Double, entityYaw: Float, partialTicks: Float) {
+        portalRenderer.isTailEnd = entity.isTailEnd
+        portalRenderer.isTailEndVisible = entity.isTailEndVisible
+        super.renderMultipass(entity, x, y, z, entityYaw, partialTicks)
+    }
 }
