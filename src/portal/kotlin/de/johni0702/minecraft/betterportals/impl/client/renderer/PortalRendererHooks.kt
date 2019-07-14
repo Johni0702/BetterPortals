@@ -18,6 +18,7 @@ internal object PortalRendererHooks {
 
     fun beforeRender(entity: Entity): Boolean {
         if (entity is Portal) return true
+        if (!entity.isAddedToWorld) return true // e.g. mobs rendered as part of tile entities (e.g. spawner)
         val lowestEntity = entity.lowestRidingEntity
         val entityAABB = generateSequence(entity) { it.ridingEntity }
                 .map { it.renderBoundingBox }
@@ -76,6 +77,7 @@ internal object PortalRendererHooks {
 
     fun afterRender(entity: Entity) {
         if (entity is Portal) return
+        if (!entity.isAddedToWorld) return // e.g. mobs rendered as part of tile entities (e.g. spawner)
         if (clippingStack.removeAt(clippingStack.size - 1)) {
             GL11.glDisable(GL11.GL_CLIP_PLANE4)
         }
