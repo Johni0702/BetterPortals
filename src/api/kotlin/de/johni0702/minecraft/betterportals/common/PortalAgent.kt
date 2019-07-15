@@ -233,6 +233,11 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         return false
     }
 
+    /**
+     * Determines whether the given entity may be teleported by this agent.
+     * Defaults to [Entity.isNonBoss].
+     */
+    protected open fun isEligibleForTeleportation(entity: Entity) = entity.isNonBoss
 
     /**
      * Checks if any entities have moved through the portal surface by comparing their positions to the previous call
@@ -249,6 +254,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             if (it is Portal) return@forEach
             if (it.isRiding) return@forEach
             if (!seenEntities.add(it)) return@forEach
+            if (!isEligibleForTeleportation(it)) return@forEach
 
             val entityBB = it.entityBoundingBox
             if (finerBBs.any(entityBB::intersects)) {
@@ -273,6 +279,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
      * If it has, [teleport] is called with it.
      *
      * May teleport some entities and as such **must not** be called while ticking the world.
+     * The given entity [isEligibleForTeleportation].
      */
     protected open fun checkTeleportee(entity: Entity) {
         val portalPos = portal.localPosition.to3dMid()
