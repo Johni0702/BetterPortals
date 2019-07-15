@@ -95,6 +95,7 @@ fun Vec3d.toJavaXPos() = Vector4d(x, y, z, 1.0)
 fun Vec3d.toJavaXVec() = Vector4d(x, y, z, 0.0)
 fun Vec3d.toPoint() = Point3d(x, y, z)
 fun Vec3d.toBlockPos() = BlockPos(this)
+fun Vec3d.approxEquals(other: Vec3d, delta: Double) = abs(x - other.x) <= delta && abs(y - other.y) <= delta && abs(z - other.z) <= delta
 fun Vector3d.toMC() = Vec3d(x, y, z)
 fun Vector4d.toMC() = Vec3d(x, y, z)
 fun Point3d.toMC() = Vec3d(x, y, z)

@@ -348,7 +348,8 @@ internal class ViewRenderPlan(
         // We do not spawn it into the world as we don't need it there (until some third-party mod does)
         val orgViewEntity = mc.renderViewEntity ?: mc.player
         val interpEntityPos = orgViewEntity.getPositionEyes(partialTicks)
-        if (mc.player is ViewEntity || interpEntityPos != camera.eyePosition) {
+        // Unless this is the first person view
+        if (mc.player is ViewEntity || mc.gameSettings.thirdPersonView > 0 || !interpEntityPos.approxEquals(camera.eyePosition, 1e-4)) {
             val cameraEntity = ViewCameraEntity(mc.world)
             with(camera) {
                 cameraEntity.pos = feetPosition
