@@ -27,6 +27,10 @@ public class BPConfig {
     @Config.Comment("Configuration for Mekanism Teleporter portals.")
     public static PortalConfig mekanismPortals = new PortalConfig();
 
+    @Config.Name("The Aether Portals")
+    @Config.Comment("Configuration for The Aether portals.")
+    public static PortalConfig aetherPortals = new PortalConfig();
+
     @Config.Name("Prevent Fall Damage")
     @Config.Comment("Whether to prevent the next fall damage after a player has passed through a lying portal.")
     public static boolean preventFallDamage = true;

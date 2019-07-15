@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.BetterPortalsAPI
+import de.johni0702.minecraft.betterportals.impl.aether.common.initAether
 import de.johni0702.minecraft.betterportals.impl.common.initPortal
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.initMekanism
 import de.johni0702.minecraft.betterportals.impl.tf.common.initTwilightForest
@@ -82,6 +83,15 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 clientPostInit = { clientPostInitCallbacks.add(it) },
                 enableMekanismPortals = BPConfig.mekanismPortals.enabled,
                 opacityPortals = { BPConfig.mekanismPortals.opacity }
+        )
+
+        initAether(
+                mod = this,
+                init = { commonInitCallbacks.add(it) },
+                clientPreInit = { clientPreInitCallbacks.add(it) },
+                registerBlocks = { registerBlockCallbacks.add(it) },
+                enableAetherPortals = BPConfig.aetherPortals.enabled,
+                opacityAetherPortals = { BPConfig.aetherPortals.opacity }
         )
     }
 

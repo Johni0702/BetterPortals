@@ -21,6 +21,8 @@ ext {
     twilightforestDep = "$twilightforestDepBase:universal"
     mekanismDepBase = 'mekanism:Mekanism:1.12.2'
     mekanismDep = "$mekanismDepBase:9.7.9.380" // yes, the classifier is the version (really, CF?!)...
+    aetherDepBase = 'the-aether:aether_legacy:1.12.2'
+    aetherDep = "$aetherDepBase:v1.4.4"
 }
 
 version = determineVersion()
@@ -53,12 +55,17 @@ sourceSets {
         compileClasspath += sourceSets.api.compileClasspath
         compileClasspath += sourceSets.api.output
     }
+    aether {
+        compileClasspath += sourceSets.api.compileClasspath
+        compileClasspath += sourceSets.api.output
+    }
     main {
         compileClasspath += sourceSets.view.output
         compileClasspath += sourceSets.portal.output
         compileClasspath += sourceSets.vanilla.output
         compileClasspath += sourceSets.twilightforest.output
         compileClasspath += sourceSets.mekanism.output
+        compileClasspath += sourceSets.aether.output
     }
 }
 
@@ -122,6 +129,10 @@ dependencies {
     deobfCompile 'industrial-craft:Industrialcraft-2-2.8.111:ex112:api'
     mekanismCompile 'deobf.industrial-craft:Industrialcraft-2-2.8.111:ex112'
 
+    deobfCompile aetherDep
+    runtime "deobf.$aetherDepBase"
+    aetherCompile "deobf.$aetherDepBase"
+
     testCompile 'io.kotlintest:kotlintest-runner-junit5:3.0.4'
 }
 
@@ -153,6 +164,7 @@ jar {
     from sourceSets.vanilla.output
     from sourceSets.twilightforest.output
     from sourceSets.mekanism.output
+    from sourceSets.aether.output
     exclude 'de/johni0702/minecraft/betterportals/MixinLoader.class'
     manifest {
         attributes 'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
