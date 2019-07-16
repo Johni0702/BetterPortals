@@ -62,7 +62,7 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 init = { commonInitCallbacks.add(it) },
                 clientInit = { clientInitCallbacks.add(it) },
                 preventFallDamage = { BPConfig.preventFallDamage },
-                maxRenderRecursion = { if (BPConfig.seeThroughPortals) 5 else 0 }
+                maxRenderRecursion = { if (BPConfig.seeThroughPortals) BPConfig.recursionLimit else 0 }
         )
 
         initVanilla(

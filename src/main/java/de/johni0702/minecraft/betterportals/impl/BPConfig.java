@@ -47,6 +47,19 @@ public class BPConfig {
     @Config.Comment("Whether the other side of portals will be visible. Disabling will improve performance.")
     public static boolean seeThroughPortals = true;
 
+    @Config.Name("Portals in portals limit")
+    @Config.Comment("How deeply nested portals are rendered.\n" +
+            "A value of 0 will completely disable see-through portals.\n" +
+            "A value of 1 will allow you to see through portals but not portals within those.\n" +
+            "A value of 2 (default) will allow you to see through portals in portals but no further.\n" +
+            "A value of 3 will allow you to see through portals in portals in portals but no further.\n" +
+            "Etc.\n" +
+            "\n" +
+            "This only applies to portals which already have their remote world loaded.\n" +
+            "The recursion limit for loading of portals is a fixed 1.")
+    @Config.RangeInt(min = 0)
+    public static int recursionLimit = 2;
+
     @SubscribeEvent
     public static void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
         if (MOD_ID.equals(event.getModID())) {
