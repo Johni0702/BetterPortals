@@ -32,7 +32,7 @@ internal fun registerOptifineCompat() {
         fun preRenderView(event: RenderPassEvent.Prepare) {
             // TODO: OF might allow portals to be rendered with shaders if the shader pack uses the same shaders for
             //       each dimension. should we enable that, we also need to stop using shaders to draw portal surfaces
-            if (optifine.shadersActive) {
+            if (optifine.shadersActive && event.renderPass != event.renderPass.manager.root) {
                 event.isCanceled = true
             }
         }

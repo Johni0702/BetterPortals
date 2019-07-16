@@ -5,7 +5,6 @@ import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.view.client.render.*
 import de.johni0702.minecraft.view.client.viewManager
 import de.johni0702.minecraft.view.impl.client.ViewEntity
-import de.johni0702.minecraft.view.impl.compat.Optifine
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GLAllocation
 import net.minecraft.client.renderer.GlStateManager
@@ -301,19 +300,6 @@ internal class ViewRenderPlan(
      * portals will be empty.
      */
     private fun renderSelf(partialTicks: Float, finishTimeNano: Long): Framebuffer {
-        // Optifine reloads its shader when the dimension changes, so for now, when shaders are enabled, we can only
-        // render the main view.
-        if (Optifine?.shadersActive == true && this != MAIN) {
-            val framebuffer = manager.allocFramebuffer()
-            this.framebuffer = framebuffer
-            framebuffer.bindFramebuffer(false)
-            GL11.glClearColor(0f, 0f, 0f, 1f)
-            GL11.glClearDepth(1.0)
-            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT or GL11.GL_DEPTH_BUFFER_BIT)
-            framebuffer.unbindFramebuffer()
-            return framebuffer
-        }
-
         if (CURRENT != this) {
             val prev = CURRENT
             CURRENT = this
