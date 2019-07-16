@@ -87,11 +87,13 @@ class BlockBetterEndPortal : BlockEndPortal(Material.PORTAL) {
             }
             val remoteRot = Rotation.NONE
 
-            val localPortal = EndEntryPortalEntity(localWorld, localDim, localPos, localRot, remoteDim, remotePos, remoteRot)
-            val remotePortal = EndEntryPortalEntity(remoteWorld, remoteDim, remotePos, remoteRot, localDim, localPos, localRot)
+            val localPortal = EndEntryPortalEntity(localWorld, localDim, localPos, localRot)
+            val remotePortal = EndEntryPortalEntity(remoteWorld, remoteDim, remotePos, remoteRot)
 
             localWorld.spawnEntity(localPortal)
             remoteWorld.spawnEntity(remotePortal)
+
+            localPortal.link(remotePortal)
             return
         }
         exitPattern.match(localWorld, pos)?.let { pattern ->
@@ -108,11 +110,13 @@ class BlockBetterEndPortal : BlockEndPortal(Material.PORTAL) {
             }
             val remoteRot = Rotation.NONE
 
-            val localPortal = EndExitPortalEntity(localWorld, localDim, localPos, localRot, remoteDim, remotePos, remoteRot)
-            val remotePortal = EndExitPortalEntity(remoteWorld, remoteDim, remotePos, remoteRot, localDim, localPos, localRot)
+            val localPortal = EndExitPortalEntity(localWorld, localDim, localPos, localRot)
+            val remotePortal = EndExitPortalEntity(remoteWorld, remoteDim, remotePos, remoteRot)
 
             localWorld.spawnEntity(localPortal)
             remoteWorld.spawnEntity(remotePortal)
+
+            localPortal.link(remotePortal)
             return
         }
     }
