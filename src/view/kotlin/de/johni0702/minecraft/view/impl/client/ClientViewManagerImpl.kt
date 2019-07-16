@@ -261,6 +261,8 @@ internal class ClientViewManagerImpl : ClientViewManager {
             return
         }
 
+        (mc.integratedServer as? IIntegratedServer)?.updateClientState(mc)
+
         mc.mcProfiler.startSection("tickViews")
 
         views.filter { !it.isMainView }.forEach { view ->
@@ -344,5 +346,9 @@ internal class ClientViewManagerImpl : ClientViewManager {
         fun onDisconnect(event: FMLNetworkEvent.ClientDisconnectionFromServerEvent) {
             reset()
         }
+    }
+
+    interface IIntegratedServer {
+        fun updateClientState(mc: Minecraft)
     }
 }

@@ -13,6 +13,7 @@
     "MixinEntityRenderer",
     "MixinEntityRenderer_NoOF",
     "MixinEntityRenderer_OF",
+    "MixinIntegratedServer",
     "MixinRenderGlobal",
     "MixinRenderPlayer",
     "MixinWorldClient"
