@@ -112,6 +112,7 @@ open class FramedPortalRenderer<in P: FinitePortal>(
 
     protected open fun renderPortalBlock(portal: P, relativePos: BlockPos, opacity: Double, bufferBuilder: BufferBuilder) {
         val sprite = portalSprite() ?: return
+        bufferBuilder.markSpriteAsActive(sprite)
         val facing = viewFacing.opposite
         var rotFacing = if (facing.axis == EnumFacing.Axis.Y) EnumFacing.NORTH else EnumFacing.UP
         (0..3).map { i ->
@@ -134,5 +135,17 @@ open class FramedPortalRenderer<in P: FinitePortal>(
             }
             rotFacing = nextRotFacing
         }
+    }
+}
+
+private fun BufferBuilder.markSpriteAsActive(sprite: TextureAtlasSprite) {
+    // See https://github.com/sp614x/optifine/issues/2633
+    methodSetSprite?.invoke(this, sprite)
+}
+private val methodSetSprite by lazy {
+    try {
+        BufferBuilder::class.java.getDeclaredMethod("setSprite", TextureAtlasSprite::class.java)
+    } catch (e: NoSuchMethodException) {
+        null
     }
 }
