@@ -18,6 +18,14 @@ public class BPConfig {
     @Config.Name("Vanilla End Portals")
     @Config.Comment("Configuration for vanilla end portals")
     public static PortalConfig endPortals = new PortalConfig();
+    static {
+        // End entry portal is 40 blocks above the exit and we'd like to see it clearly.
+        // Rounding up, that's three chunks.
+        // These settings aren't as important for end portals anyway, because the entry portal is usually take care of
+        // via occlusion culling and the exit portal is the only one around.
+        endPortals.renderDistMin = 3;
+        endPortals.renderDistMax = 6;
+    }
 
     @Config.Name("TwilightForest Portals")
     @Config.Comment("Configuration for TwilightForest portals.")

@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl.tf.common.entity
 
 import de.johni0702.minecraft.betterportals.common.entity.OneWayPortalEntity
+import de.johni0702.minecraft.betterportals.impl.tf.common.TF_PORTAL_CONFIG
 import net.minecraft.block.Block
 import net.minecraft.init.Blocks
 import net.minecraft.util.EnumFacing
@@ -16,7 +17,8 @@ class TFPortalEntity(
 ) : OneWayPortalEntity(
         isTailEnd, world, EnumFacing.Plane.HORIZONTAL, relativeBlocks,
         localDimension, localPosition, localRotation,
-        remoteDimension, remotePosition, remoteRotation
+        remoteDimension, remotePosition, remoteRotation,
+        TF_PORTAL_CONFIG
 ) {
     @Suppress("unused")
     constructor(world: World) : this(false, world, emptySet(), 0, BlockPos.ORIGIN, Rotation.NONE, null, BlockPos.ORIGIN, Rotation.NONE)

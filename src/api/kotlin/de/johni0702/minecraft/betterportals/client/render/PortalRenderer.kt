@@ -69,6 +69,14 @@ abstract class PortalRenderer<in P: Portal> {
             shader.addSamplerTexture("sampler", framebuffer)
             shader.getShaderUniformOrDefault("screenSize")
                     .set(framebuffer.framebufferWidth.toFloat(), framebuffer.framebufferHeight.toFloat())
+            val portalPass = renderPass.children.find {
+                it.portalDetail?.parent == portal
+            }
+            val fogDetail = portalPass?.portalFogDetail
+            shader.getShaderUniformOrDefault("fogDensity").set(fogDetail?.density?.toFloat() ?: 0f)
+            with (fogDetail?.color ?: Vec3d.ZERO) {
+                shader.getShaderUniformOrDefault("fogColor").set(x.toFloat(), y.toFloat(), z.toFloat())
+            }
             shader.useShader()
         }
         renderPortalSurface(portal, pos, renderPass, framebuffer != null)

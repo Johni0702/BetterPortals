@@ -1,15 +1,14 @@
 package de.johni0702.minecraft.betterportals.impl.client.renderer
 
 import de.johni0702.minecraft.betterportals.client.render.PortalDetail
+import de.johni0702.minecraft.betterportals.client.render.PortalFogDetail
 import de.johni0702.minecraft.betterportals.client.render.portalDetail
+import de.johni0702.minecraft.betterportals.client.render.portalFogDetail
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.impl.client.PostSetupFogEvent
 import de.johni0702.minecraft.betterportals.impl.client.glClipPlane
 import de.johni0702.minecraft.betterportals.impl.common.maxRenderRecursionGetter
-import de.johni0702.minecraft.view.client.render.DetermineRootPassEvent
-import de.johni0702.minecraft.view.client.render.PopulateTreeEvent
-import de.johni0702.minecraft.view.client.render.RenderPass
-import de.johni0702.minecraft.view.client.render.RenderPassEvent
+import de.johni0702.minecraft.view.client.render.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.math.Vec3d
@@ -17,9 +16,11 @@ import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import org.lwjgl.opengl.GL11
+import kotlin.math.min
 
 internal object PortalRenderManager {
     var registered by MinecraftForge.EVENT_BUS
+    private val mc get() = Minecraft.getMinecraft()
 
     @SubscribeEvent
     fun determineRootPass(event: DetermineRootPassEvent) {
@@ -146,6 +147,7 @@ internal object PortalRenderManager {
             val plan = addChild(it.view!!, childCamera, childPreviousFrame)
             val cameraSide = portal.localFacing.axis.toFacing(camera.viewPosition - portal.localPosition.to3dMid())
             plan.portalDetail = PortalDetail(portal, cameraSide)
+            plan.computeFogAndRenderDistance(it)
             changed = true
         }
         children.forEach { child ->
@@ -156,6 +158,20 @@ internal object PortalRenderManager {
             }
         }
         return changed
+    }
+
+    private fun RenderPass.computeFogAndRenderDistance(agent: PortalAgent<*, *>) {
+        val portalBB = agent.portal.remoteBoundingBox
+        val config = agent.portalConfig
+        val dist = camera.viewPosition.distanceTo(portalBB.center)
+        val renderDistChunks = mc.gameSettings.renderDistanceChunks
+        val renderDist = renderDistChunks * 16.0
+        val sizeMultiplier = config.getRenderDistMultiplier(portalBB)
+        val distMax = config.renderDistMax().let { if (it < 1.0) renderDist * it else 16 * it } * sizeMultiplier
+        val distMin = min(distMax, config.renderDistMin().let { if (it < 1.0) renderDist * it else 16 * it } * sizeMultiplier)
+        val fog = ((dist - distMin) / (distMax - distMin)).coerceIn(0.0..1.0)
+        portalFogDetail = PortalFogDetail(fog)
+        renderDistanceDetail.renderDistance = if (fog == 1.0) 0.0 else renderDist - fog * (renderDist - dist)
     }
 
     @SubscribeEvent
@@ -194,6 +210,13 @@ internal object PortalRenderManager {
                 GlStateManager.FogMode.LINEAR -> fogOffset = dist
                 // TODO
                 else -> fogOffset = 0f
+            }
+        }
+
+        renderPass.portalFogDetail?.let { fogDetail ->
+            mc.entityRenderer.updateFogColor(partialTicks)
+            with(GlStateManager.clearState.color) {
+                fogDetail.color = Vec3d(red.toDouble(), green.toDouble(), blue.toDouble())
             }
         }
     }

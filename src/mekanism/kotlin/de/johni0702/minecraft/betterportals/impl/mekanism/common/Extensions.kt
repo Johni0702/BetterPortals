@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.betterportals.impl.mekanism.common
 
+import de.johni0702.minecraft.betterportals.common.PortalConfiguration
 import de.johni0702.minecraft.betterportals.common.portalManager
 import de.johni0702.minecraft.betterportals.common.tile.PortalTileEntityAccessor
 import de.johni0702.minecraft.betterportals.impl.mekanism.client.tile.renderer.RenderBetterTeleporter
@@ -19,6 +20,8 @@ internal val LOGGER = LogManager.getLogger("betterportals/mekanism")
 const val MEKANISM_MOD_ID = "mekanism"
 const val TELEPORTER_ID = "$MEKANISM_MOD_ID:mekanism_teleporter"
 
+lateinit var CONFIG_MEKANISM_PORTALS: PortalConfiguration
+
 private val hasMekanism by lazy { Loader.isModLoaded(MEKANISM_MOD_ID) }
 
 fun initMekanism(
@@ -26,8 +29,10 @@ fun initMekanism(
         postInit: (() -> Unit) -> Unit,
         clientPostInit: (() -> Unit) -> Unit,
         enableMekanismPortals: Boolean,
-        opacityPortals: () -> Double
+        configMekanismPortals: PortalConfiguration
 ) {
+    CONFIG_MEKANISM_PORTALS = configMekanismPortals
+
     if (!enableMekanismPortals || !hasMekanism) {
         return
     }
@@ -38,7 +43,7 @@ fun initMekanism(
     }
 
     clientPostInit {
-        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBetterTeleporter::class.java, RenderBetterTeleporter(opacityPortals))
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBetterTeleporter::class.java, RenderBetterTeleporter(configMekanismPortals.opacity))
     }
 
     init {

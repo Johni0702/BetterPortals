@@ -37,6 +37,7 @@ internal class ViewRenderManager : RenderPassManager {
     companion object {
         val INSTANCE = ViewRenderManager()
     }
+    var realRenderDistanceChunks: Int = 16
     private var debugView = System.getProperty("betterportals.debugview", "false")!!.toBoolean()
     private var frameWidth = 0
     private var frameHeight = 0
@@ -82,6 +83,7 @@ internal class ViewRenderManager : RenderPassManager {
         val cameraPitch = viewEntity.prevRotationPitch + (viewEntity.rotationPitch - viewEntity.prevRotationPitch) * partialTicks.toDouble()
 
         // Capture main view camera settings
+        realRenderDistanceChunks = mc.gameSettings.renderDistanceChunks
         GlStateManager.pushMatrix()
         val camera = view.withView {
             eventHandler.capture = true
@@ -276,6 +278,7 @@ internal class ViewRenderPlan(
     private val details = mutableMapOf<Class<*>, Any>()
     init {
         occlusionDetail = OcclusionDetail(OcclusionQuery())
+        renderDistanceDetail = RenderDistanceDetail()
     }
 
     override fun <T> set(type: Class<T>, detail: T?) {
@@ -358,6 +361,7 @@ internal class ViewRenderPlan(
 
         // Clear framebuffer
         // TODO given we move the fog calculations into some mixin, we should no longer need this block
+        //      Note: still need it for 0.0 render distance optimization
         GlStateManager.disableFog()
         GlStateManager.disableLighting()
         mc.entityRenderer.disableLightmap()
@@ -369,14 +373,19 @@ internal class ViewRenderPlan(
         // Our camera doesn't move but our view frustum changes and for that visible chunks have to be updated.
         mc.renderGlobal.setDisplayListEntitiesDirty()
 
+        renderDistanceDetail.renderDistanceChunks?.let { mc.gameSettings.renderDistanceChunks = it }
+
         RenderPassEvent.Start(partialTicks, this).post()
 
         // Actually render the world
-        mc.entityRenderer.renderWorld(partialTicks, finishTimeNano)
+        if (renderDistanceDetail.renderDistance != 0.0) {
+            mc.entityRenderer.renderWorld(partialTicks, finishTimeNano)
+        }
 
         RenderPassEvent.End(partialTicks, this).post()
 
         mc.renderViewEntity = orgViewEntity
+        mc.gameSettings.renderDistanceChunks = manager.realRenderDistanceChunks
 
         GlStateManager.popMatrix()
         framebuffer.unbindFramebuffer()

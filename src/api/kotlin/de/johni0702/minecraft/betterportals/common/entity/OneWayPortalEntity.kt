@@ -1,9 +1,6 @@
 package de.johni0702.minecraft.betterportals.common.entity
 
-import de.johni0702.minecraft.betterportals.common.FinitePortal
-import de.johni0702.minecraft.betterportals.common.PortalManager
-import de.johni0702.minecraft.betterportals.common.portalManager
-import de.johni0702.minecraft.betterportals.common.pos
+import de.johni0702.minecraft.betterportals.common.*
 import net.minecraft.block.Block
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.renderer.culling.ICamera
@@ -18,8 +15,13 @@ import net.minecraft.world.World
 
 open class OneWayPortalEntityPortalAgent<out E: OneWayPortalEntity>(
         manager: PortalManager,
-        entity: E
-) : PortalEntityPortalAgent<E>(manager, entity) {
+        entity: E,
+        portalConfig: PortalConfiguration
+) : PortalEntityPortalAgent<E>(manager, entity, portalConfig) {
+
+    @Deprecated("missing `PortalConfig` argument")
+    constructor(manager: PortalManager, entity: E) : this(manager, entity, PortalConfiguration())
+
     override fun checkTeleportees() {
         if (entity.isTailEnd) return // Cannot use portal from the tail end
         super.checkTeleportees()
@@ -52,13 +54,25 @@ abstract class OneWayPortalEntity(
 
         world: World, plane: EnumFacing.Plane, relativeBlocks: Set<BlockPos>,
         localDimension: Int, localPosition: BlockPos, localRotation: Rotation,
-        remoteDimension: Int?, remotePosition: BlockPos, remoteRotation: Rotation
+        remoteDimension: Int?, remotePosition: BlockPos, remoteRotation: Rotation,
+        portalConfig: PortalConfiguration
 ) : AbstractPortalEntity(
         world, plane, relativeBlocks,
         localDimension, localPosition, localRotation,
-        remoteDimension,remotePosition, remoteRotation
+        remoteDimension,remotePosition, remoteRotation,
+        portalConfig
 ), PortalEntity.OneWay<FinitePortal.Mutable> {
-    override val agent = OneWayPortalEntityPortalAgent(world.portalManager, this)
+
+    @Deprecated("missing `PortalConfig` argument")
+    constructor(
+            isTailEnd: Boolean,
+            world: World, plane: EnumFacing.Plane, relativeBlocks: Set<BlockPos>,
+            localDimension: Int, localPosition: BlockPos, localRotation: Rotation,
+            remoteDimension: Int?, remotePosition: BlockPos, remoteRotation: Rotation
+    ) : this(isTailEnd, world, plane, relativeBlocks, localDimension, localPosition, localRotation, remoteDimension, remotePosition, remoteRotation,
+            PortalConfiguration())
+
+    override val agent = OneWayPortalEntityPortalAgent(world.portalManager, this, portalConfig)
 
     override fun writePortalToNBT(): NBTTagCompound =
             super.writePortalToNBT().apply { setBoolean("IsTailEnd", isTailEnd) }

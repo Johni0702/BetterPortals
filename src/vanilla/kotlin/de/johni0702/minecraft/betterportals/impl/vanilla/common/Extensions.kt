@@ -3,6 +3,7 @@ package de.johni0702.minecraft.betterportals.impl.vanilla.common
 import de.johni0702.minecraft.betterportals.client.render.FramedPortalRenderer
 import de.johni0702.minecraft.betterportals.client.render.RenderOneWayPortalEntity
 import de.johni0702.minecraft.betterportals.client.render.RenderPortalEntity
+import de.johni0702.minecraft.betterportals.common.PortalConfiguration
 import de.johni0702.minecraft.betterportals.common.entity.PortalEntityAccessor
 import de.johni0702.minecraft.betterportals.common.portalManager
 import de.johni0702.minecraft.betterportals.impl.vanilla.client.renderer.EndPortalRenderer
@@ -28,6 +29,8 @@ import net.minecraftforge.registries.IForgeRegistry
 
 const val MOD_ID = "betterportals"
 internal val EMPTY_AABB = AxisAlignedBB(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+internal lateinit var NETHER_PORTAL_CONFIG: PortalConfiguration
+internal lateinit var END_PORTAL_CONFIG: PortalConfiguration
 
 fun initVanilla(
         mod: Any,
@@ -36,14 +39,16 @@ fun initVanilla(
         registerBlocks: (IForgeRegistry<Block>.() -> Unit) -> Unit,
         enableNetherPortals: Boolean,
         enableEndPortals: Boolean,
-        opacityNetherPortals: () -> Double,
-        opacityEndPortals: () -> Double
+        configNetherPortals: PortalConfiguration,
+        configEndPortals: PortalConfiguration
 ) {
+    NETHER_PORTAL_CONFIG = configNetherPortals
+    END_PORTAL_CONFIG = configEndPortals
 
     clientPreInit {
         if (enableNetherPortals) {
             RenderingRegistry.registerEntityRenderingHandler(NetherPortalEntity::class.java) {
-                RenderPortalEntity(it, FramedPortalRenderer(opacityNetherPortals, {
+                RenderPortalEntity(it, FramedPortalRenderer(configNetherPortals.opacity, {
                     Minecraft.getMinecraft().textureMapBlocks.getAtlasSprite("minecraft:blocks/portal")
                 }))
             }
@@ -51,10 +56,10 @@ fun initVanilla(
         if (enableEndPortals) {
             ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBetterEndPortal::class.java, BetterEndPortalTileRenderer())
             RenderingRegistry.registerEntityRenderingHandler(EndEntryPortalEntity::class.java) {
-                RenderOneWayPortalEntity(it, EndPortalRenderer(opacityEndPortals))
+                RenderOneWayPortalEntity(it, EndPortalRenderer(configEndPortals.opacity))
             }
             RenderingRegistry.registerEntityRenderingHandler(EndExitPortalEntity::class.java) {
-                RenderOneWayPortalEntity(it, EndPortalRenderer(opacityEndPortals))
+                RenderOneWayPortalEntity(it, EndPortalRenderer(configEndPortals.opacity))
             }
         }
     }

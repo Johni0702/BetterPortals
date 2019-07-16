@@ -6,6 +6,7 @@ import de.johni0702.minecraft.betterportals.common.portalManager
 import de.johni0702.minecraft.betterportals.common.tile.PortalTileEntity
 import de.johni0702.minecraft.betterportals.common.tile.PortalTileEntityAccessor
 import de.johni0702.minecraft.betterportals.common.toRotation
+import de.johni0702.minecraft.betterportals.impl.mekanism.common.CONFIG_MEKANISM_PORTALS
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.LOGGER
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.compareTo
 import de.johni0702.minecraft.view.server.FixedLocationTicket
@@ -52,7 +53,8 @@ class TeleporterPortalAgent(
         tileEntity.world.portalManager,
         PortalTileEntityAccessor.getId(tileEntity),
         portal,
-        { it.allocateFixedLocationTicket() }
+        { it.allocateFixedLocationTicket() },
+        CONFIG_MEKANISM_PORTALS
 ) {
     override fun modifyAABBs(entity: Entity, queryAABB: AxisAlignedBB, aabbList: MutableList<AxisAlignedBB>, queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>) {
         if (getRemoteAgent() == null) {

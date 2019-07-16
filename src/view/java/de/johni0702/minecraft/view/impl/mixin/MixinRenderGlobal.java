@@ -2,9 +2,11 @@ package de.johni0702.minecraft.view.impl.mixin;
 
 import de.johni0702.minecraft.view.impl.client.render.ViewCameraEntity;
 import de.johni0702.minecraft.view.impl.client.render.ViewChunkRenderDispatcher;
+import de.johni0702.minecraft.view.impl.client.render.ViewRenderManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
+import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.Entity;
 import org.spongepowered.asm.lib.Opcodes;
 import org.spongepowered.asm.mixin.Final;
@@ -21,6 +23,41 @@ public abstract class MixinRenderGlobal {
     @Redirect(method = "loadRenderers", at = @At(value = "NEW", target = "net/minecraft/client/renderer/chunk/ChunkRenderDispatcher"))
     private ChunkRenderDispatcher createChunkRenderDispatcher() {
         return new ViewChunkRenderDispatcher();
+    }
+
+    //
+    // We'd like to have a lower visual render distance in views whose portals are further away (since you can see less
+    // of it anyway). To accomplish that, we set mc.gameSettings.renderDistanceChunks to the appropriate value.
+    //
+    // However, because that value may fluctuate and RenderGlobal re-creates its view frustum whenever it changes, that
+    // would break horribly. So instead we use the real value for the view frustum but the fake value for everything
+    // else.
+    //
+
+    @Redirect(
+            method = "loadRenderers",
+            at = @At(value = "FIELD", target = "Lnet/minecraft/client/settings/GameSettings;renderDistanceChunks:I", opcode = Opcodes.GETFIELD)
+    )
+    private int getRealRenderDistance$0(GameSettings gameSettings) {
+        return ViewRenderManager.Companion.getINSTANCE().getRealRenderDistanceChunks();
+    }
+
+    @Redirect(
+            method = "setupTerrain",
+            slice = @Slice(to = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/RenderGlobal;loadRenderers()V")),
+            at = @At(value = "FIELD", target = "Lnet/minecraft/client/settings/GameSettings;renderDistanceChunks:I", opcode = Opcodes.GETFIELD)
+    )
+    private int getRealRenderDistance$1(GameSettings gameSettings) {
+        return ViewRenderManager.Companion.getINSTANCE().getRealRenderDistanceChunks();
+    }
+
+    @Redirect(
+            method = "setupTerrain",
+            slice = @Slice(from = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/RenderGlobal;loadRenderers()V")),
+            at = @At(value = "FIELD", target = "Lnet/minecraft/client/renderer/RenderGlobal;renderDistanceChunks:I", opcode = Opcodes.GETFIELD)
+    )
+    private int getFakeRenderDistance(RenderGlobal renderGlobal) {
+        return mc.gameSettings.renderDistanceChunks;
     }
 
     //

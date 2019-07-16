@@ -20,13 +20,18 @@ import net.minecraftforge.fml.relauncher.SideOnly
 
 open class PortalEntityPortalAgent<out E: AbstractPortalEntity>(
         manager: PortalManager,
-        val entity: E
+        val entity: E,
+        portalConfig: PortalConfiguration
 ) : PortalAgent<FixedLocationTicket, E>(
         manager,
         PortalEntityAccessor.getId(entity),
         entity,
-        { it.allocateFixedLocationTicket() }
+        { it.allocateFixedLocationTicket() },
+        portalConfig
 ) {
+    @Deprecated("missing `PortalConfig` argument")
+    constructor(manager: PortalManager, entity: E) : this(manager, entity, PortalConfiguration())
+
     // The entity ID might not be correct before the entity is actually spawned into the world
     override val id: ResourceLocation
         get() = PortalEntityAccessor.getId(entity)
@@ -53,8 +58,23 @@ abstract class AbstractPortalEntity(
         localRotation: Rotation,
         override var remoteDimension: Int?,
         override var remotePosition: BlockPos,
-        override var remoteRotation: Rotation
+        override var remoteRotation: Rotation,
+        portalConfig: PortalConfiguration
 ) : Entity(world), PortalEntity<FinitePortal.Mutable>, FinitePortal.Mutable, IEntityAdditionalSpawnData {
+
+    @Deprecated("missing `PortalConfig` argument")
+    constructor(
+            world: World,
+            plane: EnumFacing.Plane,
+            relativeBlocks: Set<BlockPos>,
+            localDimension: Int,
+            localPosition: BlockPos,
+            localRotation: Rotation,
+            remoteDimension: Int?,
+            remotePosition: BlockPos,
+            remoteRotation: Rotation
+    ) : this(world, plane, relativeBlocks, localDimension, localPosition, localRotation, remoteDimension, remotePosition, remoteRotation,
+            PortalConfiguration())
 
     override fun getRenderBoundingBox(): AxisAlignedBB = localBoundingBox
     override var localPosition = localPosition
@@ -68,7 +88,7 @@ abstract class AbstractPortalEntity(
             setRotation(value.degrees.toFloat(), 0f)
         }
 
-    override val agent = PortalEntityPortalAgent(world.portalManager, this)
+    override val agent = PortalEntityPortalAgent(world.portalManager, this, portalConfig)
 
     init {
         // MC checks whether entities are completely inside the view frustum which is completely useless/broken for

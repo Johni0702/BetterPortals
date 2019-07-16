@@ -110,8 +110,13 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
          */
         open val id: ResourceLocation,
         val portal: P,
-        val allocateTicket: (ServerView) -> T?
+        val allocateTicket: (ServerView) -> T?,
+        val portalConfig: PortalConfiguration
 ) {
+    @Deprecated("missing `PortalConfig` argument")
+    constructor(manager: PortalManager, id: ResourceLocation, portal: P, allocateTicket: (ServerView) -> T?)
+            : this(manager, id, portal, allocateTicket, PortalConfiguration())
+
     val world get() = manager.world
     open val preventFallAfterVerticalPortal get() = manager.preventFallAfterVerticalPortal
 

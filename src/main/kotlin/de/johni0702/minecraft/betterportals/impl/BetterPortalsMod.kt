@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.BetterPortalsAPI
+import de.johni0702.minecraft.betterportals.common.PortalConfiguration
 import de.johni0702.minecraft.betterportals.impl.aether.common.initAether
 import de.johni0702.minecraft.betterportals.impl.common.initPortal
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.initMekanism
@@ -45,6 +46,13 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
     init {
         ConfigManager.sync(MOD_ID, Config.Type.INSTANCE);
 
+        fun PortalConfig.toConfiguration() = PortalConfiguration(
+                { opacity },
+                { renderDistMin },
+                { renderDistMax },
+                { renderDistSizeMultiplier }
+        )
+
         initView(
                 clientInit = { clientInitCallbacks.add(it) }
         )
@@ -64,8 +72,8 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 registerBlocks = { registerBlockCallbacks.add(it) },
                 enableNetherPortals = BPConfig.netherPortals.enabled,
                 enableEndPortals = BPConfig.endPortals.enabled,
-                opacityNetherPortals = { BPConfig.netherPortals.opacity },
-                opacityEndPortals = { BPConfig.endPortals.opacity }
+                configNetherPortals = BPConfig.netherPortals.toConfiguration(),
+                configEndPortals = BPConfig.endPortals.toConfiguration()
         )
 
         initTwilightForest(
@@ -74,7 +82,7 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 clientPreInit = { clientPreInitCallbacks.add(it) },
                 registerBlocks = { registerBlockCallbacks.add(it) },
                 enableTwilightForestPortals = BPConfig.twilightForestPortals.enabled,
-                opacityTwilightForestPortals = { BPConfig.twilightForestPortals.opacity }
+                configTwilightForestPortals = BPConfig.twilightForestPortals.toConfiguration()
         )
 
         initMekanism(
@@ -82,7 +90,7 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 postInit = { commonPostInitCallbacks.add(it) },
                 clientPostInit = { clientPostInitCallbacks.add(it) },
                 enableMekanismPortals = BPConfig.mekanismPortals.enabled,
-                opacityPortals = { BPConfig.mekanismPortals.opacity }
+                configMekanismPortals = BPConfig.mekanismPortals.toConfiguration()
         )
 
         initAether(
@@ -91,7 +99,7 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 clientPreInit = { clientPreInitCallbacks.add(it) },
                 registerBlocks = { registerBlockCallbacks.add(it) },
                 enableAetherPortals = BPConfig.aetherPortals.enabled,
-                opacityAetherPortals = { BPConfig.aetherPortals.opacity }
+                configAetherPortals = BPConfig.aetherPortals.toConfiguration()
         )
     }
 

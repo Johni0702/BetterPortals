@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl.aether.common.entity
 
 import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
+import de.johni0702.minecraft.betterportals.impl.aether.common.AETHER_PORTAL_CONFIG
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.BlockPos
@@ -14,7 +15,8 @@ class AetherPortalEntity(
 ) : AbstractPortalEntity(
         world, plane, portalBlocks,
         localDimension, localPosition, localRotation,
-        null, BlockPos.ORIGIN, Rotation.NONE
+        null, BlockPos.ORIGIN, Rotation.NONE,
+        AETHER_PORTAL_CONFIG
 ) {
     @Suppress("unused")
     constructor(world: World) : this(world, EnumFacing.Plane.VERTICAL, emptySet(), 0, BlockPos.ORIGIN, Rotation.NONE)

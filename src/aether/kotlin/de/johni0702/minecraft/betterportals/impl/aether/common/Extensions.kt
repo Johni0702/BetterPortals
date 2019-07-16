@@ -3,6 +3,7 @@ package de.johni0702.minecraft.betterportals.impl.aether.common
 import com.legacy.aether.blocks.BlocksAether
 import de.johni0702.minecraft.betterportals.client.render.FramedPortalRenderer
 import de.johni0702.minecraft.betterportals.client.render.RenderPortalEntity
+import de.johni0702.minecraft.betterportals.common.PortalConfiguration
 import de.johni0702.minecraft.betterportals.common.entity.PortalEntityAccessor
 import de.johni0702.minecraft.betterportals.common.portalManager
 import de.johni0702.minecraft.betterportals.impl.aether.common.blocks.BlockBetterAetherPortal
@@ -23,6 +24,8 @@ internal val EMPTY_AABB = AxisAlignedBB(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 const val MOD_ID = "betterportals"
 const val AETHER_MOD_ID = "aether_legacy"
 
+lateinit var AETHER_PORTAL_CONFIG: PortalConfiguration
+
 private val hasAether by lazy { Loader.isModLoaded(AETHER_MOD_ID) }
 
 fun initAether(
@@ -31,15 +34,17 @@ fun initAether(
         init: (() -> Unit) -> Unit,
         registerBlocks: (IForgeRegistry<Block>.() -> Unit) -> Unit,
         enableAetherPortals: Boolean,
-        opacityAetherPortals: () -> Double
+        configAetherPortals: PortalConfiguration
 ) {
+    AETHER_PORTAL_CONFIG = configAetherPortals
+
     if (!enableAetherPortals || !hasAether) {
         return
     }
 
     clientPreInit {
         RenderingRegistry.registerEntityRenderingHandler(AetherPortalEntity::class.java) {
-            RenderPortalEntity(it, FramedPortalRenderer(opacityAetherPortals, {
+            RenderPortalEntity(it, FramedPortalRenderer(configAetherPortals.opacity, {
                 Minecraft.getMinecraft().textureMapBlocks.getAtlasSprite("$AETHER_MOD_ID:blocks/aether_portal")
             }))
         }
