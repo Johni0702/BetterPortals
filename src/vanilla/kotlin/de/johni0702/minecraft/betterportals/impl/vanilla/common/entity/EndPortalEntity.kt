@@ -3,6 +3,7 @@ package de.johni0702.minecraft.betterportals.impl.vanilla.common.entity
 import de.johni0702.minecraft.betterportals.common.entity.OneWayPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.END_PORTAL_CONFIG
 import net.minecraft.block.Block
+import net.minecraft.block.BlockEndPortal
 import net.minecraft.init.Blocks
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.Rotation
@@ -51,4 +52,15 @@ class EndExitPortalEntity(
 
     override val portalFrameBlock: Block
         get() = Blocks.BEDROCK
+
+    override fun onUpdate() {
+        if (!world.isRemote && !isTailEnd) {
+            // Destruction of the end exit portal does not call [Block.neighborChanged], so we need to check here
+            // manually for the disappearance of our portal.
+            if (localBlocks.any { world.getBlockState(it).block !is BlockEndPortal }) {
+                setDead()
+            }
+        }
+        super.onUpdate()
+    }
 }
