@@ -15,10 +15,7 @@ import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 import net.minecraftforge.common.ForgeChunkManager
 import java.util.concurrent.CompletableFuture
-import kotlin.math.abs
-import kotlin.math.ceil
-import kotlin.math.max
-import kotlin.math.roundToInt
+import kotlin.math.*
 
 /**
  * Interface which can be inherited from by blocks which form arbitrarily shaped portal structures.
@@ -142,7 +139,8 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
     ): CompletableFuture<Pair<BlockPos, Rotation>> {
         // Calculate target position
         val movementFactor = localWorld.provider.movementFactor / remoteWorld.provider.movementFactor
-        val maxY = remoteWorld.provider.actualHeight
+        val maxY = if (haveCubicChunks) Int.MAX_VALUE else remoteWorld.provider.actualHeight
+        val minY = if (haveCubicChunks) Int.MIN_VALUE else 0
         val remotePosition = BlockPos(
                 (localPos.x * movementFactor).roundToInt()
                         .coerceIn(remoteWorld.worldBorder.minX().toInt() + 16, remoteWorld.worldBorder.maxX().toInt() - 16)
@@ -157,26 +155,28 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
         val remotePos0 = remotePosition.add(0, -remotePosition.y, 0)
         val remoteChunkPos = ChunkPos(remotePos0)
 
-        // Create block cache and pre-load it with whole chunks
-        val asyncBlockCache = remoteWorld.makeChunkwiseBlockCache()
-        val maxDist = ceil((maxPortalSize + searchDist) / 16.0).toInt()
-        val loadedChunks = (-maxDist..maxDist).flatMap { x ->
-            (-maxDist..maxDist).map { z ->
-                val chunkPos = remoteChunkPos.add(x, z)
-                val completableFuture = CompletableFuture<ChunkPos>()
-                remoteWorld.chunkProvider.loadChunk(chunkPos.x, chunkPos.z) {
-                    asyncBlockCache[chunkPos.getBlock(0, 0, 0)]
-                    completableFuture.complete(chunkPos)
-                }
-                completableFuture
-            }
+        val searchMin = if (haveCubicChunks) {
+            remotePosition.add(-searchDist, -searchDist, -searchDist)
+        } else {
+            remotePos0.add(-searchDist, minY, -searchDist)
         }
+        val searchMax = if (haveCubicChunks) {
+            remotePosition.add(searchDist, searchDist, searchDist)
+        } else {
+            remotePos0.add(searchDist, maxY, -searchDist)
+        }
+
+        // Create block cache and pre-load it with whole chunks (or cubes when CC is installed)
+        val asyncBlockCache = remoteWorld.makeBulkBlockCache()
+        val cacheMin = searchMin.add(-maxPortalSize - 16, if (haveCubicChunks) -maxPortalSize else 0, -maxPortalSize - 16)
+        val cacheMax = searchMax.add(maxPortalSize + 16, if (haveCubicChunks) maxPortalSize else 0, maxPortalSize + 16)
+        val cacheFuture = remoteWorld.asyncLoadBulkBlockCache(asyncBlockCache, cacheMin, cacheMax)
 
         // Make sure the world isn't unloaded while we're searching (that would invalidate our remoteWorld reference)
         val ticket = ForgeChunkManager.requestTicket(mod, remoteWorld, ForgeChunkManager.Type.NORMAL)
         ForgeChunkManager.forceChunk(ticket, remoteChunkPos)
 
-        return CompletableFuture.allOf(*loadedChunks.toTypedArray()).thenApplyAsync {
+        return cacheFuture.thenApplyAsync {
             // Find any existing frames (of right shape) within 129xmaxYx129
             val existingFrames = mutableListOf<Pair<BlockPos, Rotation>>()
             val checkedPositions = mutableSetOf<BlockPos>()
@@ -188,10 +188,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
                 portalBlocks.mapTo(mutableSetOf()) { it.rotate(rot) }
             }
 
-            BlockPos.MutableBlockPos.getAllInBoxMutable(
-                    remotePos0.add(-searchDist, 0, -searchDist),
-                    remotePos0.add(searchDist, maxY, searchDist)
-            ).forEach { pos ->
+            BlockPos.MutableBlockPos.getAllInBoxMutable(searchMin, searchMax).forEach { pos ->
                 val block = asyncBlockCache[pos].block
                 if (block == frameBlock) {
                     for (potentialStartDirection in plane.facings()) {
@@ -254,15 +251,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
             // Finally, unforce the chunk we force to prevent the world from being unload
             ForgeChunkManager.releaseTicket(ticket)
             // and unload all chunks which we had to load just for finding the frame
-            val chunkProvider = remoteWorld.chunkProvider
-            val playerChunkMap = remoteWorld.playerChunkMap
-            loadedChunks.forEach { futurePos ->
-                val pos = futurePos.get()
-                val chunk = chunkProvider.getLoadedChunk(pos.x, pos.z)
-                if (playerChunkMap.getEntry(pos.x, pos.z) == null && chunk != null) {
-                    chunkProvider.queueUnload(chunk)
-                }
-            }
+            remoteWorld.chunkProvider.queueUnloadAll()
         }, { remoteWorld.server.addScheduledTask(it) })
     }
 
