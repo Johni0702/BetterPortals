@@ -83,6 +83,7 @@ minecraft {
 mixin {
     add sourceSets.view, "mixins.betterportals.view.refmap.json"
     add sourceSets.portal, "mixins.betterportals.refmap.json"
+    extraSrgFile "searge", "extra.srg"
 }
 
 repositories {

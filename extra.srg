@@ -1,0 +1,3 @@
+MD: io/github/opencubicchunks/cubicchunks/core/server/PlayerCubeMap/addPlayer (Lnet/minecraft/entity/player/EntityPlayerMP;)V io/github/opencubicchunks/cubicchunks/core/server/PlayerCubeMap/func_72683_a (Lnet/minecraft/entity/player/EntityPlayerMP;)V
+MD: io/github/opencubicchunks/cubicchunks/core/server/ColumnWatcher/addPlayer (Lnet/minecraft/entity/player/EntityPlayerMP;)V io/github/opencubicchunks/cubicchunks/core/server/ColumnWatcher/func_187276_a (Lnet/minecraft/entity/player/EntityPlayerMP;)V
+MD: io/github/opencubicchunks/cubicchunks/core/server/ColumnWatcher/removePlayer (Lnet/minecraft/entity/player/EntityPlayerMP;)V io/github/opencubicchunks/cubicchunks/core/server/ColumnWatcher/func_187277_b (Lnet/minecraft/entity/player/EntityPlayerMP;)V
