@@ -6,6 +6,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import de.johni0702.minecraft.betterportals.common.server
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.LOGGER
+import de.johni0702.minecraft.view.impl.net.Net
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.LazyLoadBase
@@ -13,8 +14,13 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 import net.minecraftforge.fml.relauncher.Side
 
 fun initView(
+        init: (() -> Unit) -> Unit,
         clientInit: (() -> Unit) -> Unit
 ) {
+    init {
+        Net.INSTANCE // initialize via <init>
+    }
+
     clientInit {
         ClientViewAPIImpl.init()
     }

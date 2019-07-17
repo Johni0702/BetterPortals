@@ -54,6 +54,7 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
         )
 
         initView(
+                init = { commonInitCallbacks.add(it) },
                 clientInit = { clientInitCallbacks.add(it) }
         )
 
