@@ -18,10 +18,14 @@ import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.lib.Opcodes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.io.File;
 import java.net.Proxy;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 @SideOnly(Side.CLIENT)
 @Mixin(IntegratedServer.class)
@@ -34,6 +38,8 @@ public abstract class MixinIntegratedServer extends MinecraftServer implements C
     // Fixing thread-safety issues
     //
 
+    // Note: Cannot use addScheduledTask as that could block the client thread for an extended amount of time
+    private final Queue<Runnable> clientStateUpdates = new ConcurrentLinkedQueue<>();
     private int clientRenderDistanceChunks = 10;
     private WorldClient clientWorld; // for null-checking only
     private WorldInfo clientWorldInfo;
@@ -43,11 +49,19 @@ public abstract class MixinIntegratedServer extends MinecraftServer implements C
         int clientRenderDistanceChunks = mc.gameSettings.renderDistanceChunks;
         WorldClient clientWorld = mc.world;
         WorldInfo clientWorldInfo = clientWorld == null ? null : new WorldInfo(clientWorld.getWorldInfo());
-        addScheduledTask(() -> {
+        clientStateUpdates.offer(() -> {
             this.clientRenderDistanceChunks = clientRenderDistanceChunks;
             this.clientWorld = clientWorld;
             this.clientWorldInfo = clientWorldInfo;
         });
+    }
+
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void pollClientState(CallbackInfo ci) {
+        Runnable update;
+        while ((update = clientStateUpdates.poll()) != null) {
+            update.run();
+        }
     }
 
     @Redirect(method = "tick", at = @At(value = "FIELD", opcode = Opcodes.GETFIELD, target = "Lnet/minecraft/client/settings/GameSettings;renderDistanceChunks:I"))
