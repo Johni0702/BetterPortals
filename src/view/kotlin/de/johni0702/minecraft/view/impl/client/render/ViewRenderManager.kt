@@ -373,7 +373,9 @@ internal class ViewRenderPlan(
         // Our camera doesn't move but our view frustum changes and for that visible chunks have to be updated.
         mc.renderGlobal.setDisplayListEntitiesDirty()
 
-        renderDistanceDetail.renderDistanceChunks?.let { mc.gameSettings.renderDistanceChunks = it }
+        if (!haveCubicChunks) { // TODO: CC does its own check which we currently do not hook into (it also has vertical render distance)
+            renderDistanceDetail.renderDistanceChunks?.let { mc.gameSettings.renderDistanceChunks = it }
+        }
 
         RenderPassEvent.Start(partialTicks, this).post()
 
