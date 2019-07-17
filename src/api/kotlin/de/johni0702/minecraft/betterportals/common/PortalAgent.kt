@@ -129,7 +129,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         } else {
             world.minecraftServer!!.getWorld(portal.remoteDimension ?: return null)
         }
-        remoteWorld.getChunkFromBlockCoords(portal.remotePosition) // make sure the portal is loaded
+        remoteWorld.getBlockState(portal.remotePosition) // make sure the portal is loaded
         val remotePortal = remoteWorld.portalManager.loadedPortals.find { isLinked(it) }
         @Suppress("UNCHECKED_CAST")
         return remotePortal as PortalAgent<T, P>?
