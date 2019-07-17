@@ -7,10 +7,13 @@ import org.spongepowered.asm.mixin.extensibility.IMixinInfo
 
 class BetterPortalsMixinConfigPlugin : IMixinConfigPlugin {
     private val hasOF = Launch.classLoader.getClassBytes("optifine.OptiFineForgeTweaker") != null
+    private val hasCC = Launch.classLoader.getClassBytes("io.github.opencubicchunks.cubicchunks.core.asm.coremod.CubicChunksCoreMod") != null
 
     override fun shouldApplyMixin(targetClassName: String?, mixinClassName: String): Boolean = when {
         mixinClassName.endsWith("_OF") -> hasOF
         mixinClassName.endsWith("_NoOF") -> !hasOF
+        mixinClassName.endsWith("_CC") -> hasCC
+        mixinClassName.endsWith("_NoCC") -> !hasCC
         else -> true
     }
 

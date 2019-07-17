@@ -23,6 +23,8 @@ ext {
     mekanismDep = "$mekanismDepBase:9.7.9.380" // yes, the classifier is the version (really, CF?!)...
     aetherDepBase = 'the-aether:aether_legacy:1.12.2'
     aetherDep = "$aetherDepBase:v1.4.4"
+    cubicChunksDepBase = 'opencubicchunks:CubicChunks-1.12.2-0.0.970.0:SNAPSHOT'
+    cubicChunksDep = "$cubicChunksDepBase:all"
 }
 
 version = determineVersion()
@@ -115,6 +117,10 @@ dependencies {
     // We want FG to deobf our mod-deps for us.
     // However FG sucks and doesn't support non-standard source sets, so we need to use this workaround...
     // Might need to run `./gradlew deobfCompileDummyTask` before importing into IDEA (doesn't happen automatically).
+
+    deobfCompile cubicChunksDep
+    runtime "deobf.$cubicChunksDepBase"
+    viewCompile "deobf.$cubicChunksDepBase"
 
     deobfCompile twilightforestDep
     runtime "deobf.$twilightforestDepBase"

@@ -1,5 +1,9 @@
 package de.johni0702.minecraft.betterportals.common
 
+import io.github.opencubicchunks.cubicchunks.api.util.CubePos
+import io.github.opencubicchunks.cubicchunks.api.world.ICubeProviderServer
+import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld
+import io.github.opencubicchunks.cubicchunks.core.server.CubeProviderServer
 import net.minecraft.block.state.IBlockState
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.entity.Entity
@@ -21,17 +25,18 @@ import net.minecraft.world.chunk.BlockStateContainer
 import net.minecraft.world.chunk.BlockStatePaletteHashMap
 import net.minecraft.world.chunk.BlockStatePaletteLinear
 import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.fml.common.Loader
 import net.minecraftforge.fml.common.eventhandler.Event
 import net.minecraftforge.fml.common.eventhandler.EventBus
 import org.lwjgl.util.vector.Quaternion
 import java.lang.IllegalArgumentException
+import java.util.concurrent.CompletableFuture
 import javax.vecmath.*
 import kotlin.math.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 import net.minecraft.client.renderer.Matrix4f as McMatrix4f
 import org.lwjgl.util.vector.Matrix3f as LwjglMatrix3f
-import org.lwjgl.util.vector.Vector4f as LwjglVector4f
 
 // Generic
 fun <T> MutableList<T>.removeAtOrNull(index: Int) = if (isEmpty()) null else removeAt(index)
@@ -311,7 +316,66 @@ fun World.makeBlockCache(forceLoad: Boolean = true): BlockCache =
             }
         }
 
-fun World.makeChunkwiseBlockCache(forceLoad: Boolean = true): BlockCache =
+fun World.makeBulkBlockCache(): BlockCache = if (haveCubicChunks) {
+    makeCCCompatibleBlockCache()
+} else {
+    makeChunkwiseBlockCacheInternal()
+}
+
+fun WorldServer.asyncLoadBulkBlockCache(cache: BlockCache, min: BlockPos, max: BlockPos): CompletableFuture<Void> {
+    // Cannot use CubePos because this needs to work without CC as well
+    val minCube = Vec3i(min.x shr 4, min.y shr 4, min.z shr 4)
+    val maxCube = Vec3i(max.x shr 4, (if (haveCubicChunks) max.y else min.y) shr 4, max.z shr 4)
+    val loadedChunks = (minCube.x .. maxCube.x).flatMap { x ->
+        (minCube.z .. maxCube.z).flatMap { z ->
+            (minCube.y .. maxCube.y).map { y ->
+                val completableFuture = CompletableFuture<Unit>()
+                loadCube(Vec3i(x, y, z)) {
+                    cache[BlockPos(x shl 4, y shl 4, z shl 4)]
+                    completableFuture.complete(Unit)
+                }
+                completableFuture
+            }
+        }
+    }
+    return CompletableFuture.allOf(*loadedChunks.toTypedArray())
+}
+
+private fun WorldServer.loadCube(cubePos: Vec3i, done: () -> Unit) {
+    if (haveCubicChunks && isCubicWorld) {
+        // Separate method for class loading purposes
+        fun doLoadCube() {
+            (chunkProvider as CubeProviderServer).asyncGetCube(cubePos.x, cubePos.y, cubePos.z, ICubeProviderServer.Requirement.GENERATE) {
+                done()
+            }
+        }
+        doLoadCube()
+    } else {
+        chunkProvider.loadChunk(cubePos.x, cubePos.z, done)
+    }
+}
+
+// Separate method due to ICubicWorld class requirement (i.e. only safe to call when CC is loaded!)
+private fun World.makeCCCompatibleBlockCache(): BlockCache = if ((this as ICubicWorld).isCubicWorld) {
+    makeCubewiseBlockCache()
+} else {
+    makeChunkwiseBlockCacheInternal()
+}
+
+// Only safe to call when CC is loaded and the world uses CC!
+private fun World.makeCubewiseBlockCache(): BlockCache =
+        HashMap<CubePos, BlockStateContainer?>().let { cache ->
+            Gettable { pos ->
+                val cubePos = CubePos.fromBlockCoords(pos)
+                val storage = cache.getOrPut(cubePos) {
+                    (this as ICubicWorld).cubeCache.getCube(cubePos).storage?.data?.copy()
+                }
+                storage?.get(pos.x and 15, pos.y and 15, pos.z and 15)
+                        ?: Blocks.AIR.defaultState
+            }
+        }
+
+private fun World.makeChunkwiseBlockCacheInternal(forceLoad: Boolean = true): BlockCache =
         HashMap<ChunkPos, List<BlockStateContainer?>>().let { cache ->
             Gettable { pos ->
                 val chunkPos = ChunkPos(pos)
@@ -326,6 +390,9 @@ fun World.makeChunkwiseBlockCache(forceLoad: Boolean = true): BlockCache =
                         ?: Blocks.AIR.defaultState
             }
         }
+
+@Deprecated("incompatible with CubicChunks")
+fun World.makeChunkwiseBlockCache(forceLoad: Boolean = true): BlockCache = makeChunkwiseBlockCacheInternal(forceLoad)
 
 fun BlockStateContainer.copy(): BlockStateContainer {
     val copy = BlockStateContainer()
@@ -508,6 +575,10 @@ fun World.rayTraceBlocksWithPortals(
         )
     }
 }
+
+val haveCubicChunks by lazy { Loader.isModLoaded("cubicchunks") }
+// Only safe to call when CC is loaded!
+private val World.isCubicWorld get() = (this as ICubicWorld).isCubicWorld
 
 operator fun <T, V> ThreadLocal<V>.provideDelegate(thisRef: T, prop: KProperty<*>): ReadWriteProperty<T, V?> = object : ReadWriteProperty<T, V?> {
     override fun getValue(thisRef: T, property: KProperty<*>): V? = get()
