@@ -3,7 +3,11 @@
   "package": "de.johni0702.minecraft.view.impl.mixin",
   "plugin": "de.johni0702.minecraft.view.impl.BetterPortalsMixinConfigPlugin",
   "mixins": [
+    "MixinChunkGc_CC",
+    "MixinColumnWatcher_CC",
+    "MixinCubeWatcher_CC",
     "MixinNetHandlerPlayerServer",
+    "MixinPlayerCubeMap_CC",
     "MixinPlayerList",
     "MixinServerWorldEventHandler"
   ],

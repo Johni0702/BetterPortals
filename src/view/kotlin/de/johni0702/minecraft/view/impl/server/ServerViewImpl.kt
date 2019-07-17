@@ -1,10 +1,12 @@
 package de.johni0702.minecraft.view.impl.server
 
+import de.johni0702.minecraft.betterportals.common.haveCubicChunks
 import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.common.swapPosRotWith
 import de.johni0702.minecraft.view.impl.net.ChangeServerMainView
 import de.johni0702.minecraft.view.impl.net.sendTo
 import de.johni0702.minecraft.view.server.*
+import io.github.opencubicchunks.cubicchunks.core.server.PlayerCubeMap
 import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.advancements.CriteriaTriggers
 import net.minecraft.entity.EntityTrackerEntry
@@ -85,39 +87,12 @@ internal class ServerViewImpl(
 
         // TODO set enteredNetherPosition (see EntityPlayerMP#changeDimension)
 
-        fun unregister(player: EntityPlayerMP): Pair<List<PlayerChunkMapEntry>, List<EntityTrackerEntry>> {
-            val posX = player.managedPosX.toInt() shr 4
-            val posZ = player.managedPosZ.toInt() shr 4
-            val viewRadius = manager.server.playerList.viewDistance
-            val playerChunkMap = player.serverWorld.playerChunkMap
-            val knownChunks = mutableListOf<PlayerChunkMapEntry>()
-            for (x in posX - viewRadius..posX + viewRadius) {
-                for (z in posZ - viewRadius..posZ + viewRadius) {
-                    val entry = playerChunkMap.getEntry(x, z)
-                    if (entry != null && entry.players.remove(player)) {
-                        if (entry.isSentToPlayers) {
-                            MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.UnWatch(entry.chunk, player))
-                        }
-                        knownChunks.add(entry)
-                    }
-                }
-            }
+        val chunkMapHandler = if (haveCubicChunks) PlayerCubeMapHandler else PlayerChunkMapHandler
+        val swapHandlers = listOf(chunkMapHandler, EntityTrackerHandler)
 
-            playerChunkMap.players.remove(player)
-
-            val knownEntities = mutableListOf<EntityTrackerEntry>()
-            player.serverWorld.entityTracker.entries.forEach { entry ->
-                if (entry.trackingPlayers.remove(player)) {
-                    entry.trackedEntity.removeTrackingPlayer(player)
-                    knownEntities.add(entry)
-                }
-            }
-
-            return Pair(knownChunks, knownEntities)
-        }
         // Important: Unregister the camera before the player because the camera depends on the player
-        val newRegistrations = unregister(camera)
-        val oldRegistrations = unregister(player)
+        val newRegistrations = swapHandlers.map { it.swap(camera) }
+        val oldRegistrations = swapHandlers.map { it.swap(player) }
 
         oldWorld.removeEntityDangerously(player)
         newWorld.removeEntityDangerously(camera)
@@ -139,9 +114,6 @@ internal class ServerViewImpl(
 
         player.swapPosRotWith(camera)
 
-        player.managedPosX = camera.managedPosX.also { camera.managedPosX = player.managedPosX }
-        player.managedPosZ = camera.managedPosZ.also { camera.managedPosZ = player.managedPosZ }
-
         player.connection.captureCurrentPosition()
 
         player.dimension = newDim
@@ -152,25 +124,9 @@ internal class ServerViewImpl(
         player.interactionManager.setWorld(newWorld)
         camera.interactionManager.setWorld(oldWorld)
 
-        fun register(player: EntityPlayerMP, knownRegistrations: Pair<List<PlayerChunkMapEntry>, List<EntityTrackerEntry>>) {
-            val (knownChunks, knownEntities) = knownRegistrations
-
-            knownChunks.forEach {
-                it.players.add(player)
-                if (it.isSentToPlayers) {
-                    MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.Watch(it.chunk, player))
-                }
-            }
-            player.serverWorld.playerChunkMap.players.add(player)
-
-            knownEntities.forEach {
-                it.trackingPlayers.add(player)
-                it.trackedEntity.addTrackingPlayer(player)
-            }
-        }
         // Important: Add the player before the camera because the camera depends on the player
-        register(player, newRegistrations)
-        register(camera, oldRegistrations)
+        newRegistrations.forEach { it(player) }
+        oldRegistrations.forEach { it(camera) }
 
         newWorld.spawnEntity(player)
         oldWorld.spawnEntity(camera)
@@ -185,5 +141,102 @@ internal class ServerViewImpl(
 
         manager.flushPackets() // Just for good measure, who knows what other mods will do during the event
         FMLCommonHandler.instance().firePlayerChangedDimensionEvent(player, oldDim, newDim)
+    }
+}
+
+internal interface SwapHandler {
+    fun swap(prevPlayer: EntityPlayerMP): (newPlayer: EntityPlayerMP) -> Unit
+}
+
+internal object EntityTrackerHandler : SwapHandler {
+    override fun swap(prevPlayer: EntityPlayerMP): (EntityPlayerMP) -> Unit {
+        val knownEntities = mutableListOf<EntityTrackerEntry>()
+        prevPlayer.serverWorld.entityTracker.entries.forEach { entry ->
+            if (entry.trackingPlayers.remove(prevPlayer)) {
+                entry.trackedEntity.removeTrackingPlayer(prevPlayer)
+                knownEntities.add(entry)
+            }
+        }
+        return { newPlayer ->
+            knownEntities.forEach {
+                it.trackingPlayers.add(newPlayer)
+                it.trackedEntity.addTrackingPlayer(newPlayer)
+            }
+        }
+    }
+}
+
+internal object PlayerChunkMapHandler : SwapHandler {
+    override fun swap(prevPlayer: EntityPlayerMP): (EntityPlayerMP) -> Unit {
+        val managedPosX = prevPlayer.managedPosX
+        val managedPosZ = prevPlayer.managedPosZ
+        val chunkPosX = managedPosX.toInt() shr 4
+        val chunkPosZ = managedPosZ.toInt() shr 4
+        val viewRadius = prevPlayer.mcServer.playerList.viewDistance
+        val playerChunkMap = prevPlayer.serverWorld.playerChunkMap
+        val knownChunks = mutableListOf<PlayerChunkMapEntry>()
+        for (x in chunkPosX - viewRadius..chunkPosX + viewRadius) {
+            for (z in chunkPosZ - viewRadius..chunkPosZ + viewRadius) {
+                val entry = playerChunkMap.getEntry(x, z)
+                if (entry != null && entry.players.remove(prevPlayer)) {
+                    if (entry.isSentToPlayers) {
+                        MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.UnWatch(entry.chunk, prevPlayer))
+                    }
+                    knownChunks.add(entry)
+                }
+            }
+        }
+
+        playerChunkMap.players.remove(prevPlayer)
+
+        return { newPlayer ->
+            newPlayer.managedPosX = managedPosX
+            newPlayer.managedPosZ = managedPosZ
+            knownChunks.forEach {
+                it.players.add(newPlayer)
+                if (it.isSentToPlayers) {
+                    MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.Watch(it.chunk, newPlayer))
+                }
+            }
+            newPlayer.serverWorld.playerChunkMap.players.add(newPlayer)
+        }
+    }
+}
+
+internal object PlayerCubeMapHandler : SwapHandler {
+    /**
+     * Ordinarily CC would run its chunk GC when we call [PlayerCubeMap.updateMovingPlayer]. Since we're calling
+     * from a non-standard location, that might not be safe though.
+     */
+    var suppressChunkGc = false
+
+    /**
+     * This is where the magic happens. When this is `true`, we suppress the ordinary chunk (un-)load packets because
+     * we don't need them (the client will just swap its world and then it'll already have them).
+     */
+    var swapInProgress = false
+
+    override fun swap(prevPlayer: EntityPlayerMP): (newPlayer: EntityPlayerMP) -> Unit {
+        val playerChunkMap = prevPlayer.serverWorld.playerChunkMap
+                as? PlayerCubeMap
+                ?: return PlayerChunkMapHandler.swap(prevPlayer)
+
+
+        // Make sure their managedPos matches their pos
+        // Irrelevant for vanilla as we'll swap the exact managedPos anyway but crucial for CubicChunks because
+        // access to its internals is quite difficult (i.e. would require lots of reflection).
+        suppressChunkGc = true
+        playerChunkMap.updateMovingPlayer(prevPlayer)
+        suppressChunkGc = false
+
+        swapInProgress = true
+        playerChunkMap.removePlayer(prevPlayer)
+        swapInProgress = false
+
+        return { newPlayer ->
+            swapInProgress = true
+            playerChunkMap.addPlayer(newPlayer)
+            swapInProgress = false
+        }
     }
 }
