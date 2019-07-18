@@ -34,8 +34,19 @@ internal object DimensionTransitionHandler {
             val oldCapabilities = forgeCapabilities
             forgeCapabilities = player.forgeCapabilities
 
+            // Some teleporter require the world of the player to be the one they just came from (e.g. Misty World)
+            // Note: In the vanilla code path, the entity has already been removed from the old world but its `world`
+            //       has not yet been updated. With our code, its world has already been updated and it has also already
+            //       been added to the new world's entity list (that only happens after the teleporter for vanilla).
+            //       Let's just hope that no one relies on the fact that the entity is not yet in the entity list.
+            setWorld(player.world)
+
             // Let the teleporter position the view entity
             playerList.transferEntityToWorld(this, player.dimension, world, world, teleporter)
+
+            // Reset world, no need to spawn the entity in the new world (as would happen in vanilla now) because that
+            // has already happened in createView before we were even called.
+            setWorld(world)
 
             // Reset view entity capabilities since we're going to swap in the player soon enough anyway
             forgeCapabilities = oldCapabilities
