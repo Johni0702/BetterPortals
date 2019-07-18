@@ -32,6 +32,7 @@ internal class ClientViewImpl(
         player!!
     }
 
+    internal var renderViewEntity: Entity? = null
     private var itemRenderer: ItemRenderer? = null
     private var renderGlobal: RenderGlobal? = null
     private var entityRenderer: EntityRenderer? = null
@@ -90,6 +91,7 @@ internal class ClientViewImpl(
         viewerPosZ = mc.renderManager.viewerPosZ
         world = mc.world
         player = mc.player
+        renderViewEntity = mc.renderViewEntity
         netManager = mc.connection?.netManager
         pointedEntity = mc.pointedEntity
         objectMouseOver = mc.objectMouseOver
@@ -170,7 +172,7 @@ internal class ClientViewImpl(
         TileEntityRendererDispatcher.staticPlayerZ = staticPlayerZ
 
         if (mc.entityRenderer != null) {
-            mc.renderViewEntity = player
+            mc.renderViewEntity = renderViewEntity
         }
     }
 

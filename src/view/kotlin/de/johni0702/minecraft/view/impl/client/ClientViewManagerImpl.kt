@@ -219,6 +219,12 @@ internal class ClientViewManagerImpl : ClientViewManager {
         // And swap the views they belong to
         newMainView.player = mainPlayer
         oldMainView.player = viewPlayer
+        if (newMainView.renderViewEntity == viewPlayer) {
+            newMainView.renderViewEntity = mainPlayer
+        }
+        if (oldMainView.renderViewEntity == mainPlayer) {
+            oldMainView.renderViewEntity = viewPlayer
+        }
 
         // Sync some additional state from the old main view to the new one
         newMainView.copyRenderState(oldMainView)
