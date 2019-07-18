@@ -76,8 +76,12 @@ internal class ViewRenderManager : RenderPassManager {
             framebufferPool.clear()
         }
 
+        if (mc.renderViewEntity == null) {
+            mc.renderViewEntity = mc.player
+        }
+
         mc.mcProfiler.startSection("captureMainViewCamera")
-        val viewEntity = mc.renderViewEntity ?: mc.player
+        val viewEntity = mc.renderViewEntity!!
         val interpEntityPos = viewEntity.getPositionEyes(partialTicks)
         val cameraYaw = viewEntity.prevRotationYaw + (viewEntity.rotationYaw - viewEntity.prevRotationYaw) * partialTicks.toDouble()
         val cameraPitch = viewEntity.prevRotationPitch + (viewEntity.rotationPitch - viewEntity.prevRotationPitch) * partialTicks.toDouble()
