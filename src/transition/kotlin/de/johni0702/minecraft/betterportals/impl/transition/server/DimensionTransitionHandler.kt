@@ -13,8 +13,13 @@ import net.minecraftforge.common.util.ITeleporter
 
 internal object DimensionTransitionHandler {
     val tickets = mutableMapOf<ServerView, Ticket>()
+    var enabled = true
 
-    fun transferPlayerToDimension(playerList: PlayerList, player: EntityPlayerMP, dimension: Int, teleporter: ITeleporter) {
+    fun transferPlayerToDimension(playerList: PlayerList, player: EntityPlayerMP, dimension: Int, teleporter: ITeleporter): Boolean {
+        if (!enabled) {
+            return false
+        }
+
         val world = player.server!!.getWorld(dimension)
         val viewManager = player.viewManager
         val oldView = viewManager.mainView
@@ -67,5 +72,7 @@ internal object DimensionTransitionHandler {
         // Finally send a poslook packet to have the client confirm the teleport (and to be able to discard any UsePortal messages until the confirmation)
         player.connection.setPlayerLocation(player.posX, player.posY, player.posZ, player.rotationYaw, player.rotationPitch)
         viewManager.flushPackets()
+
+        return true
     }
 }

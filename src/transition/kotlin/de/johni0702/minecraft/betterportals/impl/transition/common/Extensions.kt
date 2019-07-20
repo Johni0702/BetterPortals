@@ -5,6 +5,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import de.johni0702.minecraft.betterportals.common.server
 import de.johni0702.minecraft.betterportals.impl.transition.net.Net
+import de.johni0702.minecraft.betterportals.impl.transition.server.DimensionTransitionHandler
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.Entity
 import net.minecraftforge.common.capabilities.CapabilityDispatcher
@@ -16,8 +17,11 @@ internal const val MOD_ID = "BP/transition"
 internal val LOGGER = LogManager.getLogger("betterportals/transition")
 
 fun initTransition(
-        init: (() -> Unit) -> Unit
+        init: (() -> Unit) -> Unit,
+        enable: Boolean
 ) {
+    DimensionTransitionHandler.enabled = enable
+
     init {
         Net.INSTANCE // initialize via <init>
     }

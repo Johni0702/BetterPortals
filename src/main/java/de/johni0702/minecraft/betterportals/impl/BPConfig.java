@@ -60,6 +60,16 @@ public class BPConfig {
     @Config.RangeInt(min = 0)
     public static int recursionLimit = 2;
 
+    @Config.Name("Enhance third-party transfers")
+    @Config.Comment("BetterPortals can replace the loading screen on transfer to a different world when triggered by a" +
+            "third-party mod with a custom \"blobby-transition-thing\".\n" +
+            "\n" +
+            "Disable (and report on the issue tracker) in case of compatibility issues.\n" +
+            "\n" +
+            "Needs to be set on the server / has no effect on the client.")
+    @Config.RequiresMcRestart
+    public static boolean enhanceThirdPartyTransfers = true;
+
     @SubscribeEvent
     public static void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
         if (MOD_ID.equals(event.getModID())) {
