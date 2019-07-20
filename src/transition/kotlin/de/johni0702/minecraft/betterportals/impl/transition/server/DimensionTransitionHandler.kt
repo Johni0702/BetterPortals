@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl.transition.server
 
 import de.johni0702.minecraft.betterportals.common.pos
+import de.johni0702.minecraft.betterportals.impl.transition.common.LOGGER
 import de.johni0702.minecraft.betterportals.impl.transition.common.forgeCapabilities
 import de.johni0702.minecraft.betterportals.impl.transition.net.TransferToDimension
 import de.johni0702.minecraft.betterportals.impl.transition.net.sendTo
@@ -14,9 +15,18 @@ import net.minecraftforge.common.util.ITeleporter
 internal object DimensionTransitionHandler {
     val tickets = mutableMapOf<ServerView, Ticket>()
     var enabled = true
+    private val knownBadTeleporterClasses = listOf(
+            // Stargate Network, see https://github.com/Johni0702/BetterPortals/issues/145
+            "gcewing.sg.util.FakeTeleporter"
+    )
 
     fun transferPlayerToDimension(playerList: PlayerList, player: EntityPlayerMP, dimension: Int, teleporter: ITeleporter): Boolean {
         if (!enabled) {
+            return false
+        }
+
+        if (teleporter.javaClass.name in knownBadTeleporterClasses) {
+            LOGGER.debug("Skipping fancy dimension transition because of bad teleporter class: {}", teleporter.javaClass)
             return false
         }
 
