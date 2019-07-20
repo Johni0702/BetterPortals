@@ -4,11 +4,15 @@ import de.johni0702.minecraft.betterportals.common.Portal
 import de.johni0702.minecraft.betterportals.common.PortalAccessor
 import de.johni0702.minecraft.betterportals.common.PortalAgent
 import de.johni0702.minecraft.view.server.FixedLocationTicket
+import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.Entity
+import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.ResourceLocation
+import net.minecraft.util.SoundCategory
+import net.minecraft.util.SoundEvent
+import net.minecraft.util.math.BlockPos
+import net.minecraft.world.IWorldEventListener
 import net.minecraft.world.World
-import net.minecraftforge.fml.relauncher.Side
-import net.minecraftforge.fml.relauncher.SideOnly
 
 interface PortalEntity<out P: Portal.Mutable> {
     val agent: PortalAgent<FixedLocationTicket, P>
@@ -43,6 +47,34 @@ class PortalEntityAccessor<E, P: Portal.Mutable>(
     override val loadedPortals: Iterable<PortalAgent<FixedLocationTicket, Portal.Mutable>>
         get() = entities.map { it.agent }
 
+    private val changeCallbacks = mutableListOf<() -> Unit>()
+    init {
+        world.addEventListener(object : IWorldEventListener {
+            override fun onEntityAdded(entity: Entity) {
+                if (type.isInstance(entity)) {
+                    changeCallbacks.forEach { it() }
+                }
+            }
+
+            override fun onEntityRemoved(entity: Entity) {
+                if (type.isInstance(entity)) {
+                    changeCallbacks.forEach { it() }
+                }
+            }
+
+            override fun playSoundToAllNearExcept(player: EntityPlayer?, soundIn: SoundEvent?, category: SoundCategory?, x: Double, y: Double, z: Double, volume: Float, pitch: Float) = Unit
+            override fun broadcastSound(soundID: Int, pos: BlockPos?, data: Int) = Unit
+            override fun playEvent(player: EntityPlayer?, type: Int, blockPosIn: BlockPos?, data: Int) = Unit
+            override fun markBlockRangeForRenderUpdate(x1: Int, y1: Int, z1: Int, x2: Int, y2: Int, z2: Int) = Unit
+            override fun notifyLightSet(pos: BlockPos?) = Unit
+            override fun spawnParticle(particleID: Int, ignoreRange: Boolean, xCoord: Double, yCoord: Double, zCoord: Double, xSpeed: Double, ySpeed: Double, zSpeed: Double, vararg parameters: Int) = Unit
+            override fun spawnParticle(id: Int, ignoreRange: Boolean, p_190570_3_: Boolean, x: Double, y: Double, z: Double, xSpeed: Double, ySpeed: Double, zSpeed: Double, vararg parameters: Int) = Unit
+            override fun notifyBlockUpdate(worldIn: World?, pos: BlockPos?, oldState: IBlockState?, newState: IBlockState?, flags: Int) = Unit
+            override fun playRecord(soundIn: SoundEvent?, pos: BlockPos?) = Unit
+            override fun sendBlockBreakProgress(breakerId: Int, pos: BlockPos?, progress: Int) = Unit
+        })
+    }
+
     override fun findById(id: ResourceLocation): PortalAgent<FixedLocationTicket, Portal.Mutable>? {
         if (id.resourceDomain != "minecraft") return null
         if (!id.resourcePath.startsWith("entity/id/")) return null
@@ -50,6 +82,11 @@ class PortalEntityAccessor<E, P: Portal.Mutable>(
         val entity = world.getEntityByID(entityId)
         if (!type.isInstance(entity)) return null
         return type.cast(world.getEntityByID(entityId))?.agent
+    }
+
+    override fun onChange(callback: () -> Unit): Boolean {
+        changeCallbacks.add(callback)
+        return true
     }
 
     companion object {

@@ -30,6 +30,8 @@ import java.lang.IllegalArgumentException
 interface PortalAccessor<T: CanMakeMainView> {
     /**
      * Collection of all, currently loaded portals known to this accessor.
+     *
+     * When implementing, take note of [onChange].
      */
     val loadedPortals: Iterable<PortalAgent<T, *>>
 
@@ -37,6 +39,19 @@ interface PortalAccessor<T: CanMakeMainView> {
      * Retrieve an agent by id. See [PortalAgent.id].
      */
     fun findById(id: ResourceLocation): PortalAgent<T, *>?
+
+    /**
+     * The [loadedPortals] field (or rather [PortalManager.loadedPortals]) needs to be accessed **very** often (e.g.
+     * to determine collision boxes or to check if an entity touches lava) while its content changes relatively
+     * infrequently (e.g. user builds/destroys portal or chunk with portal loads/unloads).
+     *
+     * To improve performance, this method should be implemented.
+     * Where this is not possible
+     *
+     * If implemented, it must return `true` and arrange for the `callback` to be invoked whenever [loadedPortals]
+     * changes. The [PortalManager] will then only have to update its cache whenever its callback is invoked.
+     */
+    fun onChange(callback: () -> Unit): Boolean = false
 }
 
 interface PortalManager {
@@ -45,6 +60,8 @@ interface PortalManager {
 
     /**
      * Collection of all, currently loaded portals.
+     *
+     * This method must perform well (both CPU and garbage wise) as it will be called **very** often.
      */
     val loadedPortals: Iterable<PortalAgent<*, *>>
 

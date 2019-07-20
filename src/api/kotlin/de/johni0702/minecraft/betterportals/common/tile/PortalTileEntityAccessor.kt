@@ -20,10 +20,31 @@ class PortalTileEntityAccessor<E, P: Portal.Mutable>(
         where E: PortalTileEntity<P>,
               E: TileEntity
 {
-    val tileEntities: List<E>
-        get() = world.loadedTileEntityList.mapNotNull { if (type.isInstance(it)) type.cast(it) else null }
-    override val loadedPortals: Iterable<PortalAgent<FixedLocationTicket, Portal.Mutable>>
-        get() = tileEntities.mapNotNull { it.agent }
+    // Note: There's no nice way to implement [onChange] for tile entities (would probably require Mixins), so instead
+    // (at least until it becomes necessary), this accessor will use the poll approach and makes sure to not
+    // cause any allocations unless there's an actual change.
+    private var updated = mutableListOf<E>()
+    private var tileEntitiesList = mutableListOf<E>()
+        get() {
+            // loadedTileEntityList will usually be far longer (possibly five-digit) than tileEntityList (single-digit),
+            // so rebuilding the latter should be more efficient than diffing
+            updated.clear()
+            world.loadedTileEntityList.forEach {
+                if (type.isInstance(it)) {
+                    updated.add(type.cast(it))
+                }
+            }
+            if (updated != field) {
+                // List changed, replace it instead of updating in-place because we've previously returned it, so
+                // modifying it in-place could cause a CME if it happens to be iterated over atm.
+                field = updated
+                updated = mutableListOf()
+            }
+            return field
+        }
+    val tileEntities: List<E> get() = tileEntitiesList
+    override val loadedPortals: Iterable<PortalAgent<FixedLocationTicket, Portal.Mutable>> =
+            Sequence { tileEntities.iterator() }.mapNotNull { it.agent }.asIterable()
 
     override fun findById(id: ResourceLocation): PortalAgent<FixedLocationTicket, Portal.Mutable>? {
         if (id.resourceDomain != "minecraft") return null

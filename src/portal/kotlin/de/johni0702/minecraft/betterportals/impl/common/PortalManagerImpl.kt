@@ -27,17 +27,40 @@ internal interface HasPortalManager {
 internal class PortalManagerImpl(override val world: World) : PortalManager {
     override val logger: Logger = LOGGER
     override val preventFallAfterVerticalPortal get() = preventFallDamageGetter()
-    private val accessors = mutableListOf<PortalAccessor<*>>()
+
+    private val passiveAccessors = mutableListOf<PortalAccessor<*>>()
+    private val activeAccessors = mutableListOf<PortalAccessor<*>>()
+    private val accessors = passiveAccessors.asSequence() + activeAccessors.asSequence()
+
+    // The slow ones which need polling
+    private val passiveAccessorPortals = passiveAccessors.asSequence().flatMap { it.loadedPortals.asSequence() }
+    // The fast ones which will notify us on any changes and therefore allow for caching
+    private var activeAccessorPortals = Sequence {
+        if (activeAccessorPortalsDirty) {
+            activeAccessorPortalsCache.clear()
+            activeAccessors.forEach {
+                activeAccessorPortalsCache.addAll(it.loadedPortals)
+            }
+            activeAccessorPortalsDirty = false
+        }
+        activeAccessorPortalsCache.iterator()
+    }
+    private var activeAccessorPortalsCache = mutableListOf<PortalAgent<*, *>>()
+    private var activeAccessorPortalsDirty = true
 
     init {
         EventHandler.registered = true
     }
 
-    override val loadedPortals: Iterable<PortalAgent<*, *>>
-        get() = accessors.flatMap { it.loadedPortals }
+    override val loadedPortals: Iterable<PortalAgent<*, *>> = (activeAccessorPortals + passiveAccessorPortals).asIterable()
 
     override fun registerPortals(accessor: PortalAccessor<*>) {
-        accessors.add(accessor)
+        if (accessor.onChange { activeAccessorPortalsDirty = true }) {
+            activeAccessors
+        } else {
+            activeAccessorPortalsDirty = true
+            passiveAccessors
+        }.add(accessor)
     }
 
     override fun findById(id: ResourceLocation): PortalAgent<*, *>? {
@@ -100,7 +123,7 @@ internal class PortalManagerImpl(override val world: World) : PortalManager {
         }
 
         private fun tickWorld(world: World) {
-            world.portalManager.loadedPortals.forEach { it.checkTeleportees() }
+            world.portalManager.loadedPortals.toList().forEach { it.checkTeleportees() }
         }
 
         @SubscribeEvent(priority = EventPriority.LOW)
