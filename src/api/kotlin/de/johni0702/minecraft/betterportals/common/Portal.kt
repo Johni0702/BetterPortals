@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.betterportals.common
 
+import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
 import net.minecraft.nbt.NBTBase
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.nbt.NBTTagList
@@ -10,7 +11,17 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraftforge.common.util.Constants
 import javax.vecmath.Matrix4d
+import kotlin.properties.Delegates
 
+/**
+ * Represents an arbitrarily sized and possibly linked portal.
+ *
+ * Care should be take when implementing for read-access (especially to [localBoundingBox]/[remoteBoundingBox]) to be as
+ * efficient as possible and, if at all possible, to not create any garbage because there will be a lot of accesses.
+ *
+ * Either implement these yourself (as is done in [AbstractPortalEntity]) or (preferably) use [FinitePortal.Impl].
+ * This entire interface will probably be replaced with an immutable Portal class in a future version of the API.
+ */
 interface Portal {
     val plane: EnumFacing.Plane
     val localDimension: Int
@@ -156,6 +167,86 @@ interface FinitePortal : Portal {
                     (it as NBTTagCompound).getXYZ()
                 }.toSet()
             }
+        }
+    }
+
+    open class Impl(
+            override var plane: EnumFacing.Plane,
+            override var localDimension: Int,
+            localPosition: BlockPos,
+            localRotation: Rotation,
+            override var remoteDimension: Int?,
+            remotePosition: BlockPos,
+            remoteRotation: Rotation,
+            relativeBlocks: Set<BlockPos>
+    ) : Mutable {
+        override var localPosition: BlockPos by Delegates.observable(localPosition) { _, _, _ -> update() }
+        override var localRotation: Rotation by Delegates.observable(localRotation) { _, _, _ -> update() }
+        override var remotePosition: BlockPos by Delegates.observable(remotePosition) { _, _, _ -> update() }
+        override var remoteRotation: Rotation by Delegates.observable(remoteRotation) { _, _, _ -> update() }
+        override var relativeBlocks: Set<BlockPos> by Delegates.observable(relativeBlocks) { _, _, _ -> update() }
+
+        private lateinit var _localBlocks: Set<BlockPos>
+        private lateinit var _remoteBlocks: Set<BlockPos>
+
+        private lateinit var _localDetailedBounds: List<AxisAlignedBB>
+        private lateinit var _remoteDetailedBounds: List<AxisAlignedBB>
+
+        private lateinit var _localBoundingBox: AxisAlignedBB
+        private lateinit var _remoteBoundingBox: AxisAlignedBB
+
+        override val localBlocks: Set<BlockPos> get() = _localBlocks
+        override val remoteBlocks: Set<BlockPos> get() = _remoteBlocks
+
+        override val localDetailedBounds: List<AxisAlignedBB> get() = _localDetailedBounds
+        override val remoteDetailedBounds: List<AxisAlignedBB> get() = _remoteDetailedBounds
+
+        override val localBoundingBox: AxisAlignedBB get() = _localBoundingBox
+        override val remoteBoundingBox: AxisAlignedBB get() = _remoteBoundingBox
+
+        init {
+            update()
+        }
+
+        private fun update() {
+            _localBlocks = relativeBlocks.map { it.toLocal() }.toSet()
+            _remoteBlocks = relativeBlocks.map { it.toRemote() }.toSet()
+
+            _localDetailedBounds = localBlocks.map(::AxisAlignedBB)
+            _remoteDetailedBounds = remoteBlocks.map(::AxisAlignedBB)
+
+            _localBoundingBox = localBlocks.toAxisAlignedBB()
+            _remoteBoundingBox = remoteBlocks.toAxisAlignedBB()
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Impl
+
+            if (plane != other.plane) return false
+            if (localDimension != other.localDimension) return false
+            if (localPosition != other.localPosition) return false
+            if (localRotation != other.localRotation) return false
+            if (remoteDimension != other.remoteDimension) return false
+            if (remotePosition != other.remotePosition) return false
+            if (remoteRotation != other.remoteRotation) return false
+            if (relativeBlocks != other.relativeBlocks) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = plane.hashCode()
+            result = 31 * result + localDimension
+            result = 31 * result + localPosition.hashCode()
+            result = 31 * result + localRotation.hashCode()
+            result = 31 * result + (remoteDimension ?: 0)
+            result = 31 * result + remotePosition.hashCode()
+            result = 31 * result + remoteRotation.hashCode()
+            result = 31 * result + relativeBlocks.hashCode()
+            return result
         }
     }
 }

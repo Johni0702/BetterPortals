@@ -17,6 +17,7 @@ import net.minecraft.world.WorldServer
 import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
+import kotlin.properties.Delegates
 
 open class PortalEntityPortalAgent<out E: AbstractPortalEntity>(
         manager: PortalManager,
@@ -52,13 +53,13 @@ open class PortalEntityPortalAgent<out E: AbstractPortalEntity>(
 abstract class AbstractPortalEntity(
         world: World,
         override var plane: EnumFacing.Plane,
-        override var relativeBlocks: Set<BlockPos>,
+        relativeBlocks: Set<BlockPos>,
         override var localDimension: Int,
         localPosition: BlockPos,
         localRotation: Rotation,
         override var remoteDimension: Int?,
-        override var remotePosition: BlockPos,
-        override var remoteRotation: Rotation,
+        remotePosition: BlockPos,
+        remoteRotation: Rotation,
         portalConfig: PortalConfiguration
 ) : Entity(world), PortalEntity<FinitePortal.Mutable>, FinitePortal.Mutable, IEntityAdditionalSpawnData {
 
@@ -76,17 +77,49 @@ abstract class AbstractPortalEntity(
     ) : this(world, plane, relativeBlocks, localDimension, localPosition, localRotation, remoteDimension, remotePosition, remoteRotation,
             PortalConfiguration())
 
+    override var localPosition: BlockPos by Delegates.observable(localPosition) { _, _, _ -> updatePortalFields() }
+    override var localRotation: Rotation by Delegates.observable(localRotation) { _, _, _ -> updatePortalFields() }
+    override var remotePosition: BlockPos by Delegates.observable(remotePosition) { _, _, _ -> updatePortalFields() }
+    override var remoteRotation: Rotation by Delegates.observable(remoteRotation) { _, _, _ -> updatePortalFields() }
+    override var relativeBlocks: Set<BlockPos> by Delegates.observable(relativeBlocks) { _, _, _ -> updatePortalFields() }
+
+    private lateinit var _localBlocks: Set<BlockPos>
+    private lateinit var _remoteBlocks: Set<BlockPos>
+
+    private lateinit var _localDetailedBounds: List<AxisAlignedBB>
+    private lateinit var _remoteDetailedBounds: List<AxisAlignedBB>
+
+    private lateinit var _localBoundingBox: AxisAlignedBB
+    private lateinit var _remoteBoundingBox: AxisAlignedBB
+
+    override val localBlocks: Set<BlockPos> get() = _localBlocks
+    override val remoteBlocks: Set<BlockPos> get() = _remoteBlocks
+
+    override val localDetailedBounds: List<AxisAlignedBB> get() = _localDetailedBounds
+    override val remoteDetailedBounds: List<AxisAlignedBB> get() = _remoteDetailedBounds
+
+    override val localBoundingBox: AxisAlignedBB get() = _localBoundingBox
+    override val remoteBoundingBox: AxisAlignedBB get() = _remoteBoundingBox
+
+    private fun updatePortalFields() {
+        _localBlocks = relativeBlocks.map { it.toLocal() }.toSet()
+        _remoteBlocks = relativeBlocks.map { it.toRemote() }.toSet()
+
+        _localDetailedBounds = localBlocks.map(::AxisAlignedBB)
+        _remoteDetailedBounds = remoteBlocks.map(::AxisAlignedBB)
+
+        _localBoundingBox = localBlocks.toAxisAlignedBB()
+        _remoteBoundingBox = remoteBlocks.toAxisAlignedBB()
+
+        with(localPosition.to3d()) { setPosition(x + 0.5, y + 0.5, z + 0.5) }
+        setRotation(localRotation.degrees.toFloat(), 0f)
+    }
+
+    init {
+        updatePortalFields()
+    }
+
     override fun getRenderBoundingBox(): AxisAlignedBB = localBoundingBox
-    override var localPosition = localPosition
-        set(value) {
-            field = value
-            with(value.to3d()) { setPosition(x + 0.5, y + 0.5, z + 0.5) }
-        }
-    override var localRotation = localRotation
-        set(value) {
-            field = value
-            setRotation(value.degrees.toFloat(), 0f)
-        }
 
     override val agent = PortalEntityPortalAgent(world.portalManager, this, portalConfig)
 

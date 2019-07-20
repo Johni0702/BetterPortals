@@ -29,16 +29,23 @@ import net.minecraft.world.WorldServer
 
 private val RELATIVE_PORTAL_BLOCKS: Set<BlockPos> = setOf(BlockPos.ORIGIN, BlockPos.ORIGIN.up())
 
-data class LinkedTeleporterPortal(
-        override var localDimension: Int,
-        override var localPosition: BlockPos,
-        override var localRotation: Rotation,
-        override var remoteDimension: Int?,
-        override var remotePosition: BlockPos,
-        override var remoteRotation: Rotation
-) : FinitePortal.Mutable {
-    override var plane: EnumFacing.Plane = EnumFacing.Plane.VERTICAL
-    override var relativeBlocks: Set<BlockPos> = RELATIVE_PORTAL_BLOCKS
+class LinkedTeleporterPortal(
+        localDimension: Int,
+        localPosition: BlockPos,
+        localRotation: Rotation,
+        remoteDimension: Int?,
+        remotePosition: BlockPos,
+        remoteRotation: Rotation
+) : FinitePortal.Impl(
+        EnumFacing.Plane.VERTICAL,
+        localDimension,
+        localPosition,
+        localRotation,
+        remoteDimension,
+        remotePosition,
+        remoteRotation,
+        RELATIVE_PORTAL_BLOCKS
+) {
 
     fun toRemote(): LinkedTeleporterPortal = LinkedTeleporterPortal(
             remoteDimension!!, remotePosition, remoteRotation,
