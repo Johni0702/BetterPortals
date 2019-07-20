@@ -41,6 +41,10 @@ sourceSets {
         compileClasspath += sourceSets.api.compileClasspath
         compileClasspath += sourceSets.api.output
     }
+    transition {
+        compileClasspath += sourceSets.api.compileClasspath
+        compileClasspath += sourceSets.api.output
+    }
     portal {
         compileClasspath += sourceSets.api.compileClasspath
         compileClasspath += sourceSets.api.output
@@ -63,6 +67,7 @@ sourceSets {
     }
     main {
         compileClasspath += sourceSets.view.output
+        compileClasspath += sourceSets.transition.output
         compileClasspath += sourceSets.portal.output
         compileClasspath += sourceSets.vanilla.output
         compileClasspath += sourceSets.twilightforest.output
@@ -82,6 +87,7 @@ minecraft {
 
 mixin {
     add sourceSets.view, "mixins.betterportals.view.refmap.json"
+    add sourceSets.transition, "mixins.betterportals.transition.refmap.json"
     add sourceSets.portal, "mixins.betterportals.refmap.json"
     extraSrgFile "searge", "extra.srg"
 }
@@ -167,6 +173,7 @@ jar {
             .collect {it.isDirectory() ? it : zipTree(it)}})
     from sourceSets.api.output
     from sourceSets.view.output
+    from sourceSets.transition.output
     from sourceSets.portal.output
     from sourceSets.vanilla.output
     from sourceSets.twilightforest.output

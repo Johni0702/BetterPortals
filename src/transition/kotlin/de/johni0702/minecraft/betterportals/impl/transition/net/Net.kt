@@ -1,6 +1,6 @@
-package de.johni0702.minecraft.betterportals.impl.net
+package de.johni0702.minecraft.betterportals.impl.transition.net
 
-import de.johni0702.minecraft.betterportals.impl.common.MOD_ID
+import de.johni0702.minecraft.betterportals.impl.transition.common.MOD_ID
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.network.Packet
 import net.minecraftforge.fml.common.network.NetworkRegistry
@@ -14,9 +14,8 @@ internal object Net {
     init {
         var nextId = 0
         with(INSTANCE) {
-            registerMessage(UsePortal.Handler(), UsePortal::class.java, ++nextId, Side.SERVER)
-            registerMessage(LinkPortal.Handler(), LinkPortal::class.java, ++nextId, Side.CLIENT)
-            registerMessage(EntityUsePortal.Handler(), EntityUsePortal::class.java, ++nextId, Side.CLIENT)
+            registerMessage(TransferToDimension.Handler(), TransferToDimension::class.java, ++nextId, Side.CLIENT)
+            registerMessage(TransferToDimensionDone.Handler(), TransferToDimensionDone::class.java, ++nextId, Side.SERVER)
         }
     }
 

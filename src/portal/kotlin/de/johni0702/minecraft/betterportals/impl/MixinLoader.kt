@@ -14,10 +14,12 @@ internal class MixinLoader : IFMLLoadingPlugin {
         // Forge appears to not support custom source sets
         Launch.classLoader.addURL(File("../src/portal/resources").toURI().toURL())
         Launch.classLoader.addURL(File("../src/view/resources").toURI().toURL())
+        Launch.classLoader.addURL(File("../src/transition/resources").toURI().toURL())
 
         MixinBootstrap.init()
         Mixins.addConfiguration("mixins.betterportals.json")
         Mixins.addConfiguration("mixins.betterportals.view.json")
+        Mixins.addConfiguration("mixins.betterportals.transition.json")
 
         val codeSource = javaClass.protectionDomain.codeSource
         if (codeSource != null) {

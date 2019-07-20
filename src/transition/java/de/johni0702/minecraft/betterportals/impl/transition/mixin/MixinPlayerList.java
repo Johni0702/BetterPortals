@@ -1,6 +1,6 @@
-package de.johni0702.minecraft.betterportals.impl.mixin;
+package de.johni0702.minecraft.betterportals.impl.transition.mixin;
 
-import de.johni0702.minecraft.betterportals.impl.server.DimensionTransitionHandler;
+import de.johni0702.minecraft.betterportals.impl.transition.server.DimensionTransitionHandler;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.management.PlayerList;
 import net.minecraftforge.common.util.ITeleporter;

@@ -1,8 +1,8 @@
-package de.johni0702.minecraft.betterportals.impl.net
+package de.johni0702.minecraft.betterportals.impl.transition.net
 
-import de.johni0702.minecraft.betterportals.impl.client.renderer.TransferToDimensionRenderer
-import de.johni0702.minecraft.betterportals.impl.common.LOGGER
-import de.johni0702.minecraft.betterportals.impl.common.sync
+import de.johni0702.minecraft.betterportals.impl.transition.client.renderer.TransferToDimensionRenderer
+import de.johni0702.minecraft.betterportals.impl.transition.common.LOGGER
+import de.johni0702.minecraft.betterportals.impl.transition.common.sync
 import de.johni0702.minecraft.view.client.viewManager
 import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft

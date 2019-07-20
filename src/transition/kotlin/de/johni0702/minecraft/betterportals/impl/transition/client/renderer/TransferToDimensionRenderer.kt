@@ -1,4 +1,4 @@
-package de.johni0702.minecraft.betterportals.impl.client.renderer
+package de.johni0702.minecraft.betterportals.impl.transition.client.renderer
 
 import de.johni0702.minecraft.betterportals.client.deriveClientPosRotFrom
 import de.johni0702.minecraft.betterportals.common.*

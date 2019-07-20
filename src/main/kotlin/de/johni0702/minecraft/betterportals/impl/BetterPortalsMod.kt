@@ -6,6 +6,7 @@ import de.johni0702.minecraft.betterportals.impl.aether.common.initAether
 import de.johni0702.minecraft.betterportals.impl.common.initPortal
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.initMekanism
 import de.johni0702.minecraft.betterportals.impl.tf.common.initTwilightForest
+import de.johni0702.minecraft.betterportals.impl.transition.common.initTransition
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.initVanilla
 import de.johni0702.minecraft.view.common.ViewAPI
 import de.johni0702.minecraft.view.impl.ViewAPIImpl
@@ -56,6 +57,10 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
         initView(
                 init = { commonInitCallbacks.add(it) },
                 clientInit = { clientInitCallbacks.add(it) }
+        )
+
+        initTransition(
+                init = { commonInitCallbacks.add(it) }
         )
 
         initPortal(
@@ -161,7 +166,10 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 field.isAccessible = true
                 val mc = Minecraft.getMinecraft()
                 @Suppress("UNCHECKED_CAST")
-                (field.get(mc) as MutableList<IResourcePack>).add(FolderResourcePack(File("../src/portal/resources")))
+                (field.get(mc) as MutableList<IResourcePack>).addAll(listOf(
+                        "portal",
+                        "transition"
+                ).map { FolderResourcePack(File("../src/$it/resources")) })
             } catch (ignored: NoSuchFieldException) {
             }
         }

@@ -1,9 +1,9 @@
-package de.johni0702.minecraft.betterportals.impl.server
+package de.johni0702.minecraft.betterportals.impl.transition.server
 
 import de.johni0702.minecraft.betterportals.common.pos
-import de.johni0702.minecraft.betterportals.impl.common.forgeCapabilities
-import de.johni0702.minecraft.betterportals.impl.net.TransferToDimension
-import de.johni0702.minecraft.betterportals.impl.net.sendTo
+import de.johni0702.minecraft.betterportals.impl.transition.common.forgeCapabilities
+import de.johni0702.minecraft.betterportals.impl.transition.net.TransferToDimension
+import de.johni0702.minecraft.betterportals.impl.transition.net.sendTo
 import de.johni0702.minecraft.view.server.ServerView
 import de.johni0702.minecraft.view.server.Ticket
 import de.johni0702.minecraft.view.server.viewManager
