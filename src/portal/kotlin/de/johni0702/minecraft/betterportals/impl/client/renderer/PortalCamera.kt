@@ -48,6 +48,7 @@ internal class PortalCamera(
         // We can use neither near (i.e. portal) plane nor far plane (same as regular far plane)
         // The reason we cannot use the portal plane is that MC discovers chunks to be rendered using a flood fill from
         // the camera which would never reach the portal if we used a portal plane and the portal's too far away.
+        // TODO: the near-plane could now be implemented because [ChunkVisibilityDetail] exists (and is used)
         clippingHelper.frustum[4][0] = 0f
         clippingHelper.frustum[4][1] = 0f
         clippingHelper.frustum[4][2] = 0f

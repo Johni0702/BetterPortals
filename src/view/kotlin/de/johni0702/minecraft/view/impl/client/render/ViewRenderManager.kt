@@ -283,6 +283,7 @@ internal class ViewRenderPlan(
     init {
         occlusionDetail = OcclusionDetail(OcclusionQuery())
         renderDistanceDetail = RenderDistanceDetail()
+        chunkVisibilityDetail = ChunkVisibilityDetail()
     }
 
     override fun <T> set(type: Class<T>, detail: T?) {

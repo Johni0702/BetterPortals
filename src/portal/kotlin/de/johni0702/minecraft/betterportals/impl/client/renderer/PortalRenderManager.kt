@@ -147,6 +147,7 @@ internal object PortalRenderManager {
             val plan = addChild(it.view!!, childCamera, childPreviousFrame)
             val cameraSide = portal.localFacing.axis.toFacing(camera.viewPosition - portal.localPosition.to3dMid())
             plan.portalDetail = PortalDetail(portal, cameraSide)
+            plan.chunkVisibilityDetail.origin = portal.remotePosition
             plan.computeFogAndRenderDistance(it)
             changed = true
         }
