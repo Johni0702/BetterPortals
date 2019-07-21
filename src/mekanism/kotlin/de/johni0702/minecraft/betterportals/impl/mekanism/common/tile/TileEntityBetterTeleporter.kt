@@ -207,7 +207,11 @@ class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<Link
     }
 
     fun syncWatchers(world: WorldServer, updateAgent: Boolean = true) {
-        val actualWatchers = world.playerChunkMap.getEntry(pos.x shr 4, pos.z shr 4)?.watchingPlayers ?: listOf()
+        val actualWatchers = world.playerChunkMap
+                .getEntry(pos.x shr 4, pos.z shr 4)
+                ?.watchingPlayers
+                ?.toList() // copy to guard against CME in case view entities are being added/removed
+                ?: listOf()
         trackingPlayers.removeIf {
             if (actualWatchers.contains(it)) {
                 false
