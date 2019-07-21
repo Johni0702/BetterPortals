@@ -6,6 +6,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import de.johni0702.minecraft.betterportals.common.server
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.LOGGER
+import de.johni0702.minecraft.view.impl.client.render.ViewRenderManager
 import de.johni0702.minecraft.view.impl.net.Net
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.player.EntityPlayer
@@ -15,13 +16,15 @@ import net.minecraftforge.fml.relauncher.Side
 
 fun initView(
         init: (() -> Unit) -> Unit,
-        clientInit: (() -> Unit) -> Unit
+        clientInit: (() -> Unit) -> Unit,
+        debugView: () -> Boolean
 ) {
     init {
         Net.INSTANCE // initialize via <init>
     }
 
     clientInit {
+        ViewRenderManager.INSTANCE.debugView = debugView
         ClientViewAPIImpl.init()
     }
 }

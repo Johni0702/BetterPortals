@@ -38,7 +38,7 @@ internal class ViewRenderManager : RenderPassManager {
         val INSTANCE = ViewRenderManager()
     }
     var realRenderDistanceChunks: Int = 16
-    private var debugView = System.getProperty("betterportals.debugview", "false")!!.toBoolean()
+    lateinit var debugView: () -> Boolean
     private var frameWidth = 0
     private var frameHeight = 0
     private val framebufferPool = mutableListOf<Framebuffer>()
@@ -177,7 +177,7 @@ internal class ViewRenderManager : RenderPassManager {
         mc.framebuffer.bindFramebuffer(true)
 
         mc.mcProfiler.startSection("renderFramebuffer")
-        if (debugView) {
+        if (debugView()) {
             plan.debugFramebuffer
         } else {
             plan.framebuffer

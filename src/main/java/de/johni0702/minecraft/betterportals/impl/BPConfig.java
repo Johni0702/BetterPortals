@@ -70,6 +70,10 @@ public class BPConfig {
     @Config.RequiresMcRestart
     public static boolean enhanceThirdPartyTransfers = true;
 
+    @Config.Name("Debug View")
+    @Config.Comment("Show debug view instead of composed view.")
+    public static boolean debugView = false;
+
     @SubscribeEvent
     public static void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
         if (MOD_ID.equals(event.getModID())) {
