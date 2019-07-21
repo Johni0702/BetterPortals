@@ -7,8 +7,6 @@ import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.util.math.Vec3d
 import javax.vecmath.Matrix4d
 import javax.vecmath.Point3d
-import kotlin.math.max
-import kotlin.math.min
 
 /**
  * A camera through which a view can be rendered.
@@ -85,6 +83,10 @@ class Camera(
                     ): Boolean {
                         val min = inverseMatrix * Point3d(minX, minY, minZ)
                         val max = inverseMatrix * Point3d(maxX, maxY, maxZ)
+                        // isBoxInFrustum doesn't deal properly with NaN values, see [PortalCamera.isBoxInPortalFrustum]
+                        // so we replaces those values with pos/neg infinity (because that's more or less what we mean).
+                        fun min(a: Double, b: Double) = if (a.isNaN() || b.isNaN()) Double.NEGATIVE_INFINITY else kotlin.math.min(a, b)
+                        fun max(a: Double, b: Double) = if (a.isNaN() || b.isNaN()) Double.POSITIVE_INFINITY else kotlin.math.max(a, b)
                         return frustum.isBoxInFrustum(
                                 min(min.x, max.x), min(min.y, max.y), min(min.z, max.z),
                                 max(min.x, max.x), max(min.y, max.y), max(min.z, max.z)
