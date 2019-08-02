@@ -7,6 +7,10 @@ open class EmptyWorldSetup : SetClientThreadListener() {
     override fun beforeSpec(spec: Spec) {
         asMainThread {
             super.beforeSpec(spec)
+            if (mc.integratedServer != null) {
+                closeServer()
+            }
+            deleteWorld()
             launchServer()
         }
     }

@@ -26,6 +26,7 @@ fun runTests(mcIn: Minecraft): Boolean {
 
     val request = LauncherDiscoveryRequestBuilder.request()
             .selectors(selectClass(SinglePortalTraversalTests::class.java))
+            .selectors(selectClass(NearTeleporterTraversalTests::class.java))
             .build()
     val launcher = LauncherFactory.create()
     val testPlan = launcher.discover(request)

@@ -2,11 +2,16 @@ package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.to3dMid
+import de.johni0702.minecraft.betterportals.impl.worlds.NearTeleporterSetup
 import de.johni0702.minecraft.betterportals.impl.worlds.SingleNetherPortalSetup
 import io.kotlintest.extensions.TestListener
+import io.kotlintest.matchers.doubles.shouldBeBetween
+import io.kotlintest.matchers.doubles.shouldBeLessThanOrEqual
 import io.kotlintest.shouldBe
+import io.kotlintest.shouldNotBe
 import io.kotlintest.specs.AnnotationSpec
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 
 class SinglePortalTraversalTests : AnnotationSpec() {
     override fun listeners(): List<TestListener> = listOf(SingleNetherPortalSetup())
@@ -147,5 +152,67 @@ class SinglePortalTraversalTests : AnnotationSpec() {
 
         // Make sure it's not horribly broken in some way
         testSimpleTraversal()
+    }
+}
+
+class NearTeleporterTraversalTests : AnnotationSpec() {
+    override fun listeners(): List<TestListener> = listOf(NearTeleporterSetup(negativePowered = false))
+
+    /**
+     * Walk through the teleporter multiple times.
+     */
+    @Test
+    fun testTraversal() {
+        moveTo(Vec3d(0.5, 10.0, 0.5))
+        lookAt(BlockPos(0, 10, 10).to3dMid())
+
+        mc.player.updateMovement { forwardKeyDown = true; moveForward += 1 }
+        var prevPos = mc.player.pos
+        repeat(10) {
+            tickClient()
+            tickServer()
+            mc.player.pos.x shouldBe prevPos.x
+            mc.player.pos.y shouldBe prevPos.y
+            mc.player.pos.z shouldNotBe prevPos.z
+            mc.player.pos.z.shouldBeBetween(-2.0, 2.0, 0.0)
+            prevPos = mc.player.pos
+        }
+        mc.player.updateMovement { forwardKeyDown = false }
+        tickClient()
+
+        prevPos = mc.player.pos
+        tickServer()
+        updateClient()
+        mc.player.pos shouldBe prevPos
+    }
+
+    /**
+     * Walk through the teleporter multiple times but in the other direction (which isn't active).
+     */
+    @Test
+    fun testInactiveTraversal() {
+        moveTo(Vec3d(0.5, 10.0, 0.5))
+        lookAt(BlockPos(0, 10, -10).to3dMid())
+
+        mc.player.updateMovement { forwardKeyDown = true; moveForward += 1 }
+        var prevPos = mc.player.pos
+        repeat(10) {
+            tickClient()
+            tickServer()
+            mc.player.pos.x shouldBe prevPos.x
+            mc.player.pos.y shouldBe prevPos.y
+            mc.player.pos.z shouldBeLessThanOrEqual prevPos.z
+            prevPos = mc.player.pos
+        }
+        mc.player.updateMovement { forwardKeyDown = false }
+        tickClient()
+
+        // Player should have walked against the back wall of the teleporter
+        mc.player.pos.z.shouldBeBetween(-0.7, -0.7, 0.1)
+
+        prevPos = mc.player.pos
+        tickServer()
+        updateClient()
+        mc.player.pos shouldBe prevPos
     }
 }
