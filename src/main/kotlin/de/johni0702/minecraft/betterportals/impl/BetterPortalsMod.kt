@@ -166,12 +166,20 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
             try {
                 val field = Minecraft::class.java.getDeclaredField("defaultResourcePacks")
                 field.isAccessible = true
-                val mc = Minecraft.getMinecraft()
-                @Suppress("UNCHECKED_CAST")
-                (field.get(mc) as MutableList<IResourcePack>).addAll(listOf(
-                        "portal",
-                        "transition"
-                ).map { FolderResourcePack(File("../src/$it/resources")) })
+
+                var root: File? = File(".").absoluteFile
+                while (root != null && !File(root, "src").exists()) {
+                    root = root.parentFile
+                }
+
+                if (root != null) {
+                    val mc = Minecraft.getMinecraft()
+                    @Suppress("UNCHECKED_CAST")
+                    (field.get(mc) as MutableList<IResourcePack>).addAll(listOf(
+                            "portal",
+                            "transition"
+                    ).map { FolderResourcePack(File(root, "src/$it/resources")) })
+                }
             } catch (ignored: NoSuchFieldException) {
             }
         }

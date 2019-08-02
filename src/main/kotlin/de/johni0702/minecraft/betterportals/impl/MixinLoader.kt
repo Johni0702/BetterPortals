@@ -9,12 +9,15 @@ import org.spongepowered.asm.mixin.Mixins
 import java.io.File
 import java.net.URISyntaxException
 
-internal class MixinLoader : IFMLLoadingPlugin {
+open class MixinLoader(val root: File) : IFMLLoadingPlugin {
+    @Suppress("unused")
+    constructor() : this(File(".."))
+
     init {
         // Forge appears to not support custom source sets
-        Launch.classLoader.addURL(File("../src/portal/resources").toURI().toURL())
-        Launch.classLoader.addURL(File("../src/view/resources").toURI().toURL())
-        Launch.classLoader.addURL(File("../src/transition/resources").toURI().toURL())
+        listOf("portal", "view", "transition").forEach {
+            Launch.classLoader.addURL(File(root, "src/$it/resources").toURI().toURL())
+        }
 
         MixinBootstrap.init()
         Mixins.addConfiguration("mixins.betterportals.json")

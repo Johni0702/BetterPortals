@@ -74,6 +74,10 @@ sourceSets {
         compileClasspath += sourceSets.mekanism.output
         compileClasspath += sourceSets.aether.output
     }
+    integrationTest {
+        compileClasspath += sourceSets.main.compileClasspath
+        compileClasspath += sourceSets.main.output
+    }
 }
 
 minecraft {
@@ -89,6 +93,7 @@ mixin {
     add sourceSets.view, "mixins.betterportals.view.refmap.json"
     add sourceSets.transition, "mixins.betterportals.transition.refmap.json"
     add sourceSets.portal, "mixins.betterportals.refmap.json"
+    add sourceSets.integrationTest, "mixins.betterportals.test.refmap.json"
     extraSrgFile "searge", "extra.srg"
 }
 
@@ -112,14 +117,19 @@ repositories {
 configurations {
     shade
     compile.extendsFrom shade
+    integrationTest.extendsFrom main
 }
 
 dependencies {
     compile 'net.shadowfacts:Forgelin:1.8.2'
 
-    runtime mixinDep
-    viewCompile mixinDep
-    portalCompile mixinDep
+    def withoutOldMixinDeps = {
+        exclude group: 'com.google.guava' // 17.0
+        exclude group: 'com.google.code.gson' // 2.2.4
+    }
+    runtime mixinDep, withoutOldMixinDeps
+    viewCompile mixinDep, withoutOldMixinDeps
+    portalCompile mixinDep, withoutOldMixinDeps
 
     // We want FG to deobf our mod-deps for us.
     // However FG sucks and doesn't support non-standard source sets, so we need to use this workaround...
@@ -146,7 +156,10 @@ dependencies {
     runtime "deobf.$aetherDepBase"
     aetherCompile "deobf.$aetherDepBase"
 
-    testCompile 'io.kotlintest:kotlintest-runner-junit5:3.0.4'
+    integrationTestCompile 'org.junit.jupiter:junit-jupiter-engine:5.5.1'
+    integrationTestCompile 'org.junit.platform:junit-platform-launcher:1.5.0'
+    integrationTestCompile 'io.kotlintest:kotlintest-runner-junit5:3.4.0'
+    integrationTestRuntimeOnly configurations.forgeGradleGradleStart
 }
 
 processResources {
@@ -170,7 +183,10 @@ processResources {
 
 jar {
     from ({files(configurations.runtime.findAll {it.name.startsWith 'mixin-'} + configurations.shade)
-            .collect {it.isDirectory() ? it : zipTree(it)}})
+            .collect {it.isDirectory() ? it : zipTree(it)}}) {
+        exclude 'META-INF/*.SF'
+        exclude 'META-INF/*.RSA'
+    }
     from sourceSets.api.output
     from sourceSets.view.output
     from sourceSets.transition.output
@@ -180,6 +196,7 @@ jar {
     from sourceSets.mekanism.output
     from sourceSets.aether.output
     exclude 'de/johni0702/minecraft/betterportals/MixinLoader.class'
+    exclude 'mixins.betterportals.test.refmap.json' // MixinGradle is being stupid
     manifest {
         attributes 'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
                 'TweakOrder': '0',
@@ -203,6 +220,38 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+}
+
+task runIntegrationTest(type: JavaExec) {
+    dependsOn tasks.jar
+    dependsOn tasks.makeStart
+
+    main = 'GradleStart'
+    standardOutput = System.out
+    errorOutput = System.err
+    enableAssertions = true
+
+    def testDir = new File(project.buildDir, "integration-test")
+    args "--gameDir", testDir.canonicalPath
+    workingDir testDir
+    doFirst {
+        testDir.deleteDir()
+        testDir.mkdirs()
+    }
+
+    // Default MC/Forge deps
+    classpath configurations.runtime
+    classpath configurations.forgeGradleMc
+    classpath configurations.forgeGradleMcDeps
+    classpath configurations.forgeGradleGradleStart
+    // Base mod
+    classpath tasks.jar.archivePath
+    // Test classes and deps
+    classpath sourceSets.integrationTest.output
+    classpath configurations.integrationTestCompile
+
+    systemProperty "fml.noGrab", "true"
+    systemProperty "fml.coreMods.load", "de.johni0702.minecraft.betterportals.impl.TestLoader"
 }
 
 def determineVersion() {

@@ -87,6 +87,7 @@ fun EnumFacing.Axis.toFacing(direction: Vec3d) = toFacing(direction[this])
 val EnumFacing.Axis.parallelFaces get() = EnumFacing.values().filter { it.axis != this }
 fun Vec3i.to3d(): Vec3d = Vec3d(this.x.toDouble(), this.y.toDouble(), this.z.toDouble())
 fun Vec3i.to3dMid(): Vec3d = this.to3d() + Vec3d(0.5, 0.5, 0.5)
+operator fun BlockPos.plus(other: Vec3i): BlockPos = add(other)
 operator fun Vec3i.plus(other: Vec3i): Vec3i = Vec3i(x + other.x, y + other.y, z + other.z)
 operator fun Vec3i.times(n: Int): Vec3i = Vec3i(x * n, y * n, z * n)
 operator fun Vec3d.plus(other: Vec3d): Vec3d = add(other)

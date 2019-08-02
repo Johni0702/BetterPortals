@@ -17,7 +17,7 @@ import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 
-internal class Transaction(
+class Transaction(
         var phase: Phase = Phase.START
 ) : IMessage {
     override fun fromBytes(buf: ByteBuf) {
@@ -34,6 +34,7 @@ internal class Transaction(
 
     internal class Handler : IMessageHandler<Transaction, IMessage> {
         override fun onMessage(message: Transaction, ctx: MessageContext): IMessage? {
+            if (disableTransactions) return null
             when(message.phase) {
                 Phase.START -> {
                     // We need to block the network thread until MC's queue has been replaced.
@@ -88,5 +89,11 @@ internal class Transaction(
 
     companion object {
         private var inTransaction = 0
+
+        /**
+         * During single-threaded testing, the transaction handler results in dead locks and is useless anyway.
+         * Warning: During normal operation, transactions are required and disabling them will result in bugs!
+         */
+        var disableTransactions = false
     }
 }
