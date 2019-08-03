@@ -140,7 +140,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
         // Calculate target position
         val movementFactor = localWorld.provider.movementFactor / remoteWorld.provider.movementFactor
         val isCubicWorld = remoteWorld.isCubicWorld
-        val maxY = if (isCubicWorld) Int.MAX_VALUE else remoteWorld.provider.actualHeight
+        val maxY = if (isCubicWorld) Int.MAX_VALUE else remoteWorld.provider.actualHeight - 1
         val minY = if (isCubicWorld) Int.MIN_VALUE else 0
         val remotePosition = BlockPos(
                 (localPos.x * movementFactor).roundToInt()
