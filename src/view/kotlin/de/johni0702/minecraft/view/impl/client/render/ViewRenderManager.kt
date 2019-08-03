@@ -203,6 +203,11 @@ internal class ViewRenderManager : RenderPassManager {
         private var pitch = 0.toFloat()
         private var roll = 0.toFloat()
 
+        private var currentRenderPass: ViewRenderPlan? = null
+        private var currentYaw = 0f
+        private var currentPitch = 0f
+        private var currentRoll = 0f
+
         @SubscribeEvent(priority = EventPriority.LOWEST)
         fun onCameraSetup(event: EntityViewRenderEvent.CameraSetup) {
             if (capture) {
@@ -221,9 +226,24 @@ internal class ViewRenderManager : RenderPassManager {
                 GL11.glLoadMatrix(modelViewMatrix)
                 projectionMatrix.rewind()
                 modelViewMatrix.rewind()
-                event.yaw = yaw - mainCameraYaw + plan.camera.eyeRotation.y.toFloat()
-                event.pitch = pitch - mainCameraPitch + plan.camera.eyeRotation.x.toFloat()
-                event.roll = roll - mainCameraRoll + plan.camera.eyeRotation.z.toFloat()
+
+                // If this is the first camera setup for this plan, then capture the current yaw/pitch/roll
+                // We do this in case yaw/pitch/roll change in a later call (e.g. because of portal gun mod or similar)
+                // because then we want to add the difference on top of our calculated value instead of just overwriting
+                // the (e.g.) portal gun's changes.
+                if (currentRenderPass != plan) {
+                    currentRenderPass = plan
+                    currentYaw = event.yaw
+                    currentPitch = event.pitch
+                    currentRoll = event.roll
+                }
+                event.yaw -= currentYaw
+                event.pitch -= currentPitch
+                event.roll -= currentRoll
+
+                event.yaw += yaw - mainCameraYaw + plan.camera.eyeRotation.y.toFloat()
+                event.pitch += pitch - mainCameraPitch + plan.camera.eyeRotation.x.toFloat()
+                event.roll += roll - mainCameraRoll + plan.camera.eyeRotation.z.toFloat()
             }
         }
 
