@@ -139,9 +139,23 @@ open class FramedPortalRenderer<in P: FinitePortal>(
 }
 
 private fun BufferBuilder.markSpriteAsActive(sprite: TextureAtlasSprite) {
+    // See https://github.com/Johni0702/BetterPortals/issues/170#issuecomment-514312479
+    methodMarkNeedsAnimationUpdate?.invoke(sprite)
+
     // See https://github.com/sp614x/optifine/issues/2633
     methodSetSprite?.invoke(this, sprite)
 }
+
+// VanillaFix
+private val methodMarkNeedsAnimationUpdate by lazy {
+    try {
+        TextureAtlasSprite::class.java.getDeclaredMethod("markNeedsAnimationUpdate")
+    } catch (e: NoSuchMethodException) {
+        null
+    }
+}
+
+// Optifine
 private val methodSetSprite by lazy {
     try {
         BufferBuilder::class.java.getDeclaredMethod("setSprite", TextureAtlasSprite::class.java)
