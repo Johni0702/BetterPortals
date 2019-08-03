@@ -343,7 +343,7 @@ fun WorldServer.asyncLoadBulkBlockCache(cache: BlockCache, min: BlockPos, max: B
 }
 
 private fun WorldServer.loadCube(cubePos: Vec3i, done: () -> Unit) {
-    if (haveCubicChunks && isCubicWorld) {
+    if (isCubicWorld) {
         // Separate method for class loading purposes
         fun doLoadCube() {
             (chunkProvider as CubeProviderServer).asyncGetCube(cubePos.x, cubePos.y, cubePos.z, ICubeProviderServer.Requirement.GENERATE) {
@@ -579,7 +579,9 @@ fun World.rayTraceBlocksWithPortals(
 
 val haveCubicChunks by lazy { Loader.isModLoaded("cubicchunks") }
 // Only safe to call when CC is loaded!
-private val World.isCubicWorld get() = (this as ICubicWorld).isCubicWorld
+val World.isCubicWorld get() = haveCubicChunks && isCubicWorldUnsafe
+// Only safe to call when CC is loaded!
+private val World.isCubicWorldUnsafe get() = (this as ICubicWorld).isCubicWorld
 
 operator fun <T, V> ThreadLocal<V>.provideDelegate(thisRef: T, prop: KProperty<*>): ReadWriteProperty<T, V?> = object : ReadWriteProperty<T, V?> {
     override fun getValue(thisRef: T, property: KProperty<*>): V? = get()

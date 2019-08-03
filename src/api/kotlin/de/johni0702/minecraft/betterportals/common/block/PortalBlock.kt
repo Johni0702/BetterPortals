@@ -139,8 +139,9 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
     ): CompletableFuture<Pair<BlockPos, Rotation>> {
         // Calculate target position
         val movementFactor = localWorld.provider.movementFactor / remoteWorld.provider.movementFactor
-        val maxY = if (haveCubicChunks) Int.MAX_VALUE else remoteWorld.provider.actualHeight
-        val minY = if (haveCubicChunks) Int.MIN_VALUE else 0
+        val isCubicWorld = remoteWorld.isCubicWorld
+        val maxY = if (isCubicWorld) Int.MAX_VALUE else remoteWorld.provider.actualHeight
+        val minY = if (isCubicWorld) Int.MIN_VALUE else 0
         val remotePosition = BlockPos(
                 (localPos.x * movementFactor).roundToInt()
                         .coerceIn(remoteWorld.worldBorder.minX().toInt() + 16, remoteWorld.worldBorder.maxX().toInt() - 16)
@@ -155,12 +156,12 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
         val remotePos0 = remotePosition.add(0, -remotePosition.y, 0)
         val remoteChunkPos = ChunkPos(remotePos0)
 
-        val searchMin = if (haveCubicChunks) {
+        val searchMin = if (isCubicWorld) {
             remotePosition.add(-searchDist, -searchDist, -searchDist)
         } else {
             remotePos0.add(-searchDist, minY, -searchDist)
         }
-        val searchMax = if (haveCubicChunks) {
+        val searchMax = if (isCubicWorld) {
             remotePosition.add(searchDist, searchDist, searchDist)
         } else {
             remotePos0.add(searchDist, maxY, -searchDist)
@@ -168,8 +169,8 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
 
         // Create block cache and pre-load it with whole chunks (or cubes when CC is installed)
         val asyncBlockCache = remoteWorld.makeBulkBlockCache()
-        val cacheMin = searchMin.add(-maxPortalSize - 16, if (haveCubicChunks) -maxPortalSize else 0, -maxPortalSize - 16)
-        val cacheMax = searchMax.add(maxPortalSize + 16, if (haveCubicChunks) maxPortalSize else 0, maxPortalSize + 16)
+        val cacheMin = searchMin.add(-maxPortalSize - 16, if (isCubicWorld) -maxPortalSize else 0, -maxPortalSize - 16)
+        val cacheMax = searchMax.add(maxPortalSize + 16, if (isCubicWorld) maxPortalSize else 0, maxPortalSize + 16)
         val cacheFuture = remoteWorld.asyncLoadBulkBlockCache(asyncBlockCache, cacheMin, cacheMax)
 
         // Make sure the world isn't unloaded while we're searching (that would invalidate our remoteWorld reference)
