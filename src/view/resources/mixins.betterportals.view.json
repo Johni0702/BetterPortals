@@ -19,6 +19,7 @@
     "MixinEntityRenderer_OF",
     "MixinIntegratedServer",
     "MixinRenderGlobal",
+    "MixinRenderLivingBase",
     "MixinRenderPlayer",
     "MixinWorldClient"
   ],
