@@ -13,12 +13,27 @@ import net.minecraft.client.shader.Framebuffer
 import net.minecraft.client.shader.ShaderManager
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.Vec3d
+import org.apache.logging.log4j.LogManager
 
 abstract class PortalRenderer<in P: Portal> {
     companion object {
         private val mc = Minecraft.getMinecraft()
         // Needs to be lazy as it'll fail until MC has loaded its resources (and it loads renderer before that)
         private val shader by lazy { ShaderManager(mc.resourceManager, "betterportals:render_portal") }
+
+        private val iChunWorldPortalsRenderLevel by lazy {
+            try {
+                val field = Class.forName("me.ichun.mods.ichunutil.common.module.worldportals.client.render.WorldPortalRenderer")
+                        .getDeclaredField("renderLevel")
+                ({ field[null] as Int })
+            } catch (e: ClassNotFoundException) {
+                LogManager.getLogger().debug("iChunUtil not found or unsupported version: ", e)
+                ({ 0 })
+            } catch (e: NoSuchFieldException) {
+                LogManager.getLogger().warn("Unsupported iChunUtil version: ", e)
+                ({ 0 })
+            }
+        }
     }
 
     /**
@@ -51,6 +66,11 @@ abstract class PortalRenderer<in P: Portal> {
 
         val portalPass = renderPass.children.find {
             it.portalDetail?.parent == portal
+        }
+
+        if (iChunWorldPortalsRenderLevel() > 0) {
+            renderPortal(portal, pos, null, renderPass)
+            return
         }
 
         val occlusionQuery = portalPass?.occlusionDetail?.occlusionQuery
