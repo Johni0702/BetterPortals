@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.to3dMid
+import de.johni0702.minecraft.betterportals.impl.worlds.DistinctViewOnNearTeleporterSetup
 import de.johni0702.minecraft.betterportals.impl.worlds.NearTeleporterSetup
 import de.johni0702.minecraft.betterportals.impl.worlds.SingleNetherPortalSetup
 import io.kotlintest.extensions.TestListener
@@ -155,7 +156,7 @@ class SinglePortalTraversalTests : AnnotationSpec() {
     }
 }
 
-class NearTeleporterTraversalTests : AnnotationSpec() {
+open class NearTeleporterTraversalTests : AnnotationSpec() {
     override fun listeners(): List<TestListener> = listOf(NearTeleporterSetup(negativePowered = false))
 
     /**
@@ -215,4 +216,8 @@ class NearTeleporterTraversalTests : AnnotationSpec() {
         updateClient()
         mc.player.pos shouldBe prevPos
     }
+}
+
+class DistinctViewsOnNearTeleporterTraversalTests : NearTeleporterTraversalTests() {
+    override fun listeners(): List<TestListener> = listOf(DistinctViewOnNearTeleporterSetup(negativePowered = false))
 }

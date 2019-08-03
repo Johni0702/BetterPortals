@@ -20,6 +20,7 @@ import mekanism.common.tile.TileEntityTeleporter
 import net.minecraft.block.state.IBlockState
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Vec3d
 import net.minecraft.world.WorldServer
 
 val BlockStateBasic.BasicBlockType.defaultState: IBlockState
@@ -89,5 +90,60 @@ open class NearTeleporterSetup(
         mc.world.portalManager.loadedPortals.toList() shouldHaveSize 2
         mc.world.portalManager.loadedPortals.toList().forAll { it.getRemoteAgent().shouldNotBeNull() }
         mc.viewManager!!.views shouldHaveSize 1 // view sharing
+    }
+}
+
+open class DistinctViewOnNearTeleporterSetup(
+        positivePowered: Boolean = true,
+        negativePowered: Boolean = true
+) : NearTeleporterSetup(positivePowered, negativePowered) {
+    override fun beforeSpec(spec: Spec) {
+        asMainThread {
+            super.beforeSpec(spec)
+            makeDistinctViews()
+        }
+    }
+
+    /**
+     * Forces separate view to be used for the teleporter, i.e. not just the shared main view.
+     * This is done by moving far away, thus unloading the teleporter,
+     * then moving in until one end is loaded (but the other end is still too far away for sharing) and then finally
+     * moving back to the original start position.
+     * Note: This will break once we start sharing views on demand and not just on initial load.
+     */
+    open fun makeDistinctViews() {
+        val loadDist = mc.gameSettings.renderDistanceChunks * 16.0
+
+        mc.world.portalManager.loadedPortals.toList() shouldHaveSize 2
+        mc.viewManager!!.views shouldHaveSize 1
+
+        sendTpCommand(Vec3d(0.5, 10.0, loadDist + 24.0))
+        repeat(10) {
+            tickServer()
+            updateClient()
+            tickClient()
+        }
+        mc.world.portalManager.loadedPortals.toList() shouldHaveSize 0
+        mc.viewManager!!.views shouldHaveSize 1
+
+        // This should position the edge of loaded chunks in such a way that the portal with the positive z-coordinate
+        // is loaded while the portal with the negative ones is not.
+        sendTpCommand(Vec3d(0.5, 10.0, loadDist + 8.0))
+        repeat(10) {
+            tickServer()
+            updateClient()
+            tickClient()
+        }
+        mc.world.portalManager.loadedPortals.toList() shouldHaveSize 1
+        mc.viewManager!!.views shouldHaveSize 2
+
+        sendTpCommand(Vec3d(0.5, 10.0, 0.5))
+        repeat(10) {
+            tickServer()
+            updateClient()
+            tickClient()
+        }
+        mc.world.portalManager.loadedPortals.toList() shouldHaveSize 2
+        mc.viewManager!!.views shouldHaveSize 2
     }
 }
