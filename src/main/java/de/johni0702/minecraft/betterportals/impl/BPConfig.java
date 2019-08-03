@@ -34,6 +34,10 @@ public class BPConfig {
     @Config.Name("Mekanism Teleporter")
     @Config.Comment("Configuration for Mekanism Teleporter portals.")
     public static PortalConfig mekanismPortals = new PortalConfig();
+    static {
+        // Disable by default until #151 is fixed
+        mekanismPortals.enabled = false;
+    }
 
     @Config.Name("The Aether Portals")
     @Config.Comment("Configuration for The Aether portals.")
