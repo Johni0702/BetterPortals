@@ -519,7 +519,8 @@ fun World.rayTracePortals(start: Vec3d, end: Vec3d): Pair<World, Matrix4d> {
         val result = world.findPortal(start, end)
         val agent = result.third ?: return Pair(world, mat)
         val newStart = (agent.portal.localToRemoteMatrix * result.second.toPoint()).toMC()
-        return aux(result.first, newStart, end, mat * agent.portal.localToRemoteMatrix)
+        val newEnd = (agent.portal.localToRemoteMatrix * end.toPoint()).toMC()
+        return aux(result.first, newStart, newEnd, mat * agent.portal.localToRemoteMatrix)
     }
     return aux(this, start, end, Mat4d.id())
 }
