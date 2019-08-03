@@ -20,16 +20,16 @@ import net.minecraft.util.math.Vec3d
 // - New portals don't create new sound sources (limitation of sound system lack of source cloning)
 // - Closing portals doesn't stop sounds
 object PortalAwareSoundManager {
+    lateinit var dropRemoteSounds: () -> Boolean
     private val mc = Minecraft.getMinecraft()
     private val viewForSound = mutableMapOf<ISound, ClientView>()
     private val soundPaths = mutableMapOf<ISound, List<PortalAgent<*, *>>>()
     var listenerPos = Vec3d(0.0, 0.0, 0.0)
 
-    fun recordView(sound: ISound) {
-        if (viewForSound[sound] != null) {
-            return
-        }
-        viewForSound[sound] = (mc.viewManager ?: return).activeView
+    fun recordView(sound: ISound): Boolean {
+        val viewManager = mc.viewManager ?: return true
+        val view = viewForSound.computeIfAbsent(sound) { viewManager.activeView }
+        return view.isMainView || !dropRemoteSounds()
     }
 
     fun beforePlay(sound: ISound) {

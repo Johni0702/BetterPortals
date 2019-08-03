@@ -47,6 +47,11 @@ public class BPConfig {
     @Config.Comment("Whether to prevent the next fall damage after a player has passed through a lying portal.")
     public static boolean preventFallDamage = true;
 
+    @Config.Name("Sound through portals")
+    @Config.Comment("Whether to redirect sounds in the remote world of a portal to originate from the direction of the portal." +
+            "Disabling will drop all sounds not originating in the primary world.")
+    public static boolean soundThroughPortals = true;
+
     @Config.Name("See-through portals")
     @Config.Comment("Whether the other side of portals will be visible. Disabling will improve performance.")
     public static boolean seeThroughPortals = true;

@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import de.johni0702.minecraft.betterportals.common.server
+import de.johni0702.minecraft.betterportals.impl.client.audio.PortalAwareSoundManager
 import de.johni0702.minecraft.betterportals.impl.client.renderer.PortalRenderManager
 import de.johni0702.minecraft.betterportals.impl.net.Net
 import net.minecraft.client.Minecraft
@@ -23,6 +24,7 @@ fun initPortal(
         init: (() -> Unit) -> Unit,
         clientInit: (() -> Unit) -> Unit,
         preventFallDamage: () -> Boolean,
+        dropRemoteSound: () -> Boolean,
         maxRenderRecursion: () -> Int
 ) {
     preventFallDamageGetter = preventFallDamage
@@ -38,6 +40,7 @@ fun initPortal(
     }
 
     clientInit {
+        PortalAwareSoundManager.dropRemoteSounds = dropRemoteSound
         PortalRenderManager.registered = true
     }
 }

@@ -70,6 +70,7 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 init = { commonInitCallbacks.add(it) },
                 clientInit = { clientInitCallbacks.add(it) },
                 preventFallDamage = { BPConfig.preventFallDamage },
+                dropRemoteSound = { !BPConfig.soundThroughPortals },
                 maxRenderRecursion = { if (BPConfig.seeThroughPortals) BPConfig.recursionLimit else 0 }
         )
 

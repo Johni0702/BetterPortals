@@ -24,14 +24,18 @@ public abstract class MixinSoundManager {
         }
     }
 
-    @Inject(method = "playDelayedSound", at = @At("HEAD"))
+    @Inject(method = "playDelayedSound", at = @At("HEAD"), cancellable = true)
     private void recordViewOnPlayDelayedSound(ISound sound, int delay, CallbackInfo ci) {
-        PortalAwareSoundManager.INSTANCE.recordView(sound);
+        if (!PortalAwareSoundManager.INSTANCE.recordView(sound)) {
+            ci.cancel();
+        }
     }
 
-    @Inject(method = "playSound", at = @At("HEAD"))
+    @Inject(method = "playSound", at = @At("HEAD"), cancellable = true)
     private void recordViewOnPlaySound(ISound sound, CallbackInfo ci) {
-        PortalAwareSoundManager.INSTANCE.recordView(sound);
+        if (!PortalAwareSoundManager.INSTANCE.recordView(sound)) {
+            ci.cancel();
+        }
     }
 
     @Inject(method = "playSound", at = @At(
