@@ -164,7 +164,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
         val searchMax = if (isCubicWorld) {
             remotePosition.add(searchDist, searchDist, searchDist)
         } else {
-            remotePos0.add(searchDist, maxY, -searchDist)
+            remotePos0.add(searchDist, maxY, searchDist)
         }
 
         // Create block cache and pre-load it with whole chunks (or cubes when CC is installed)
