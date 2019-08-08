@@ -14,9 +14,13 @@ import java.time.Duration
 
 lateinit var mc: Minecraft
 
-fun runTests(mcIn: Minecraft): Boolean {
+fun preInitTests(mcIn: Minecraft) {
     mc = mcIn
 
+    BPConfig.mekanismPortals.enabled = true // TODO remove once default is true
+}
+
+fun runTests(): Boolean {
     mc.gameSettings.showDebugInfo = true
     mc.gameSettings.pauseOnLostFocus = false
     Transaction.disableTransactions = true
