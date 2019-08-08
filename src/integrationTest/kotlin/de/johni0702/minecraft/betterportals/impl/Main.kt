@@ -92,6 +92,9 @@ open class SetClientThreadListener : TestListener {
             TestStatus.Error, TestStatus.Failure -> {
                 println("Failed ${testCase.description.fullName()}, taking screenshot..")
                 try {
+                    // Previous render result (in case render tests fail)
+                    screenshot(testCase.description.fullName() + ".previous.png")
+
                     // Initial screenshot
                     renderToScreenshot(testCase.description.fullName() + ".first.png")
 
