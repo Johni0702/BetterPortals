@@ -105,6 +105,7 @@ open class SetClientThreadListener : TestListener {
                     // Debug view
                     BPConfig.debugView = true
                     renderToScreenshot(testCase.description.fullName() + ".debug.png")
+                    BPConfig.debugView = false
                 } catch (t: Throwable) {
                     t.printStackTrace()
                 }
