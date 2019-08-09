@@ -39,4 +39,11 @@ class OcclusionQuery {
         }
         return queuedQueries.isEmpty()
     }
+
+    fun awaitResult() {
+        queuedQueries.forEach { id ->
+            occluded = GL15.glGetQueryObjectui(id, GL15.GL_QUERY_RESULT) == 0
+            queries.add(id)
+        }
+    }
 }

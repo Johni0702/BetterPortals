@@ -92,6 +92,7 @@ operator fun Vec3i.plus(other: Vec3i): Vec3i = Vec3i(x + other.x, y + other.y, z
 operator fun Vec3i.times(n: Int): Vec3i = Vec3i(x * n, y * n, z * n)
 operator fun Vec3d.plus(other: Vec3d): Vec3d = add(other)
 operator fun Vec3d.minus(other: Vec3d): Vec3d = subtract(other)
+operator fun Vec3d.unaryMinus(): Vec3d = times(-1)
 operator fun Vec3d.times(n: Int): Vec3d = Vec3d(x * n, y * n, z * n)
 operator fun Vec3d.times(d: Double): Vec3d = Vec3d(x * d, y * d, z * d)
 fun Vec3d.withoutY(): Vec3d = Vec3d(x, 0.0, z)

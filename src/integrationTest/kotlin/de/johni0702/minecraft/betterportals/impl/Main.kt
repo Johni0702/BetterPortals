@@ -4,6 +4,7 @@ import de.johni0702.minecraft.view.impl.net.Transaction
 import io.kotlintest.*
 import io.kotlintest.extensions.TestListener
 import net.minecraft.client.Minecraft
+import net.minecraftforge.fml.client.registry.RenderingRegistry
 import org.junit.platform.engine.discovery.DiscoverySelectors.selectClass
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder
 import org.junit.platform.launcher.core.LauncherFactory
@@ -25,10 +26,14 @@ fun runTests(): Boolean {
     mc.gameSettings.pauseOnLostFocus = false
     Transaction.disableTransactions = true
 
+    mc.renderManager.entityRenderMap[TestEntity::class.java] = RenderTestEntity(mc.renderManager)
+    RenderingRegistry.registerEntityRenderingHandler(TestEntity::class.java) { RenderTestEntity(it) }
+
     Display.getDrawable().releaseContext()
     System.setProperty("kotlintest.project.config", ProjectConfig::class.java.name)
 
     val request = LauncherDiscoveryRequestBuilder.request()
+            .selectors(selectClass(EntityRenderTests::class.java))
             .selectors(selectClass(SinglePortalTraversalTests::class.java))
             .selectors(selectClass(NearTeleporterTraversalTests::class.java))
             // FIXME .selectors(selectClass(DistinctViewsOnNearTeleporterTraversalTests::class.java))
