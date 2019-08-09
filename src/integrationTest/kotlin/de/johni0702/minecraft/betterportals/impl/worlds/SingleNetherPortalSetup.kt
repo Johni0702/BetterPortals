@@ -50,7 +50,7 @@ open class SingleNetherPortalSetup : EmptyWorldSetup() {
 
     open fun buildDefaultPortal() {
         buildFrame(serverOverworld, BlockPos(0, 20, 0))
-        buildFrame(serverNether, BlockPos(20, 30, 20))
+        buildFrame(serverNether, BlockPos(20, 80, 20))
 
         sendMessage("/give @p minecraft:flint_and_steel")
 
@@ -87,6 +87,10 @@ open class SingleNetherPortalSetup : EmptyWorldSetup() {
 
         mc.world.getBlockState(targetPos).block shouldBe Blocks.PORTAL
         mc.world.portalManager.loadedPortals.count() shouldBeExactly 1
-        mc.world.portalManager.loadedPortals.first().getRemoteAgent().shouldNotBeNull()
+        val local = mc.world.portalManager.loadedPortals.first()
+        val remote = local.getRemoteAgent()
+        remote.shouldNotBeNull()
+        local.portal.localPosition.shouldBe(BlockPos(-1, 20, -1))
+        remote.portal.localPosition.shouldBe(BlockPos(19, 80, 19))
     }
 }
