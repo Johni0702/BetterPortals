@@ -289,6 +289,7 @@ internal class ViewRenderPlan(
     override val children = mutableListOf<ViewRenderPlan>()
 
     override fun addChild(view: ClientView, camera: Camera, previousFrame: RenderPass?): ViewRenderPlan {
+        view.checkValid()
         val child = ViewRenderPlan(manager, this, view, camera)
         if (previousFrame != null) {
             child.occlusionDetail = previousFrame.occlusionDetail.also {

@@ -45,9 +45,15 @@ val Minecraft.renderPassManager get() = ClientViewAPI.instance.getRenderPassMana
 class DetermineRootPassEvent(
         val manager: RenderPassManager,
         val partialTicks: Float,
-        var view: ClientView,
+        view: ClientView,
         var camera: Camera
-) : Event()
+) : Event() {
+    var view = view
+        set(value) {
+            view.checkValid()
+            field = value
+        }
+}
 
 /**
  * Emitted to populate the render pass tree, i.e. add more passes where required.

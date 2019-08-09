@@ -26,6 +26,7 @@ internal class ClientViewImpl(
         var channel: EmbeddedChannel?,
         var netManager: NetworkManager?
 ) : ClientView {
+    override var isValid = true
     override val camera: EntityPlayerSP get() = if (manager.activeView == this) {
         Minecraft.getMinecraft().player
     } else {

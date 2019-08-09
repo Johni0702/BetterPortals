@@ -20,28 +20,35 @@ import net.minecraftforge.fml.common.FMLCommonHandler
 
 internal class ServerViewImpl(
         override val manager: ServerViewManagerImpl,
-        override val id: Int,
+        id: Int,
         override var camera: EntityPlayerMP,
         var channel: EmbeddedChannel?
 ) : ServerView {
+    override var isValid = true
+    override val id: Int = id
+        get() = checkValid().let { field }
     internal var tickets = mutableListOf<TicketImpl>()
     private var fixedLocationTickets = 0
     private var exclusiveTickets = 0
 
-    override fun allocatePlainTicket(): Ticket = TicketImpl(this).also { tickets.add(it) }
+    override fun allocatePlainTicket(): Ticket = checkValid().let { TicketImpl(this).also { tickets.add(it) } }
 
-    override fun allocateFixedLocationTicket(): FixedLocationTicket? = if (exclusiveTickets > 0) {
-        null
-    } else {
-        fixedLocationTickets += 1
-        FixedLocationTicketImpl(this).also { tickets.add(it) }
+    override fun allocateFixedLocationTicket(): FixedLocationTicket? = checkValid().let {
+        if (exclusiveTickets > 0) {
+            null
+        } else {
+            fixedLocationTickets += 1
+            FixedLocationTicketImpl(this).also { tickets.add(it) }
+        }
     }
 
-    override fun allocateExclusiveTicket(): ExclusiveTicket? = if (fixedLocationTickets > 0 || exclusiveTickets > 0) {
-        null
-    } else {
-        exclusiveTickets += 1
-        ExclusiveTicketImpl(this).also { tickets.add(it) }
+    override fun allocateExclusiveTicket(): ExclusiveTicket? = checkValid().let {
+        if (fixedLocationTickets > 0 || exclusiveTickets > 0) {
+            null
+        } else {
+            exclusiveTickets += 1
+            ExclusiveTicketImpl(this).also { tickets.add(it) }
+        }
     }
 
     internal fun releaseTicket(ticket: TicketImpl) {
@@ -55,11 +62,13 @@ internal class ServerViewImpl(
     }
 
     override fun makeMainView(ticket: CanMakeMainView) {
+        checkValid()
         ticket.ensureValid(this)
         makeMainView()
     }
 
     override fun releaseAndMakeMainView(ticket: CanMakeMainView) {
+        checkValid()
         ticket.ensureValid(this)
         ticket.release()
         makeMainView()

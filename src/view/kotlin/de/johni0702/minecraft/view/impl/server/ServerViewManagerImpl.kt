@@ -94,6 +94,7 @@ internal class ServerViewManagerImpl(
             throw RuntimeException("unknown view $view")
         }
         DestroyView(view.id).sendTo(connection.player)
+        view.isValid = false
 
         val camera = view.camera
         val world = camera.serverWorld
@@ -106,6 +107,8 @@ internal class ServerViewManagerImpl(
 
         views.forEach { view ->
             if (view.isMainView) return@forEach
+            view.isValid = false
+
             val camera = view.camera
             val world = camera.serverWorld
             world.removeEntity(camera)

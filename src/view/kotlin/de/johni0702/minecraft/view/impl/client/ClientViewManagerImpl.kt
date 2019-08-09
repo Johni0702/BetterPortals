@@ -60,6 +60,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
         activeView = mainView
 
         unusedViews.addAll(views)
+        unusedViews.forEach { it.isValid = false }
         views.clear()
         views.add(mainView)
     }
@@ -91,7 +92,9 @@ internal class ClientViewManagerImpl : ClientViewManager {
         }
 
         if (view.camera is ViewEntity) view.world?.removeEntity(view.camera)
-        if (!views.remove(view)) throw IllegalStateException("View $view has already been destroyed")
+        view.checkValid()
+        check(views.remove(view)) { "Unknown view $view" }
+        view.isValid = false
         unusedViews.add(view)
     }
 
@@ -121,6 +124,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
     override fun <T> withView(view: ClientView, block: () -> T): T {
         if (view == activeView) return block()
         if (view !is ClientViewImpl) throw UnsupportedOperationException("Unsupported ClientView impl: ${view::class}")
+        view.checkValid()
         val previousView = activeView
         previousView.captureState(mc)
         view.restoreState(mc)

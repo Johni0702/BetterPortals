@@ -24,6 +24,19 @@ interface View {
     val id: Int
 
     /**
+     * Whether this view is still valid.
+     */
+    val isValid: Boolean
+        get() = true // TODO remove default impl in 0.3
+
+    /**
+     * Check if this view [isValid] and throw an exception if it is not.
+     */
+    fun checkValid() {
+        check(isValid) { "View $this has already been destroyed" }
+    }
+
+    /**
      * Whether this view is the main view.
      * The camera in the main view is the actual player entity which other players will see.
      * Use input is handled by the main view and by default the main view is the only view which is rendered.
