@@ -85,7 +85,7 @@ interface PortalManager {
     fun clientUsePortal(agent: PortalAgent<*, *>)
 
     /**
-     * Called right before a non-player entity uses a portal to ensure clients are prepared for it.
+     * Called right before an entity uses a portal to ensure clients are prepared for it.
      * Calls [PortalAgent.beforeUsePortal] on the corresponding agent on the client.
      *
      * Passing an agent which is not in [loadedPortals] is an error.
@@ -93,7 +93,7 @@ interface PortalManager {
     fun serverBeforeUsePortal(agent: PortalAgent<*, *>, oldEntity: Entity, trackingPlayers: Iterable<EntityPlayerMP>)
 
     /**
-     * Called right after a non-player entity uses a portal to allow clients to properly display the transition.
+     * Called right after an entity uses a portal to allow clients to properly display the transition.
      * Calls [PortalAgent.afterUsePortal] on the corresponding agent on the client.
      *
      * Passing an agent which is not in [loadedPortals] is an error.
