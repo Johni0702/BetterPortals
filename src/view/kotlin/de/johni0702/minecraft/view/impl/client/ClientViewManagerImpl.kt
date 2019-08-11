@@ -237,6 +237,19 @@ internal class ClientViewManagerImpl : ClientViewManager {
         mainView = newMainView
         activeView = newMainView
         newMainView.restoreState(mc)
+
+        // Certain mods (e.g. Aether Legacy and Aether II) have their own music manager which relies on the
+        // world change to cancel any previous music (because changing worlds usually stops all sounds).
+        // There isn't any good way to detect these mods and always stopping music would be wasteful, so instead
+        // we're having a dimension type blacklist
+        val badDims = listOf(
+                "aether", // Aether 2
+                "necromancertower", // Aether 2
+                "aetheri" // Aether Legacy
+        )
+        if (mc.world.provider.dimensionType.name in badDims) {
+            mc.soundHandler.stopSounds()
+        }
     }
 
     fun makeMainViewAck(viewId: Int) {
