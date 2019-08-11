@@ -26,7 +26,14 @@ internal class ViewNetworkManager : NetworkManager(EnumPacketDirection.CLIENTBOU
             // Send packet via main connection
             viewManager.serverMainView.netManager?.sendPacket(packetIn)
         } else {
-            LOGGER.warn("Dropping packet {}", packetIn)
+            val knownBadSenders = setOf(
+                    "mods.chiselsandbits.network.NetworkRouter" // Chisels & Bits sends packets during RenderWorldLastEvent
+            )
+            if (Thread.currentThread().stackTrace.any { it.className in knownBadSenders }) {
+                viewManager.serverMainView.netManager?.sendPacket(packetIn)
+            } else {
+                LOGGER.warn("Dropping packet {}", packetIn)
+            }
         }
     }
 
