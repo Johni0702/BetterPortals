@@ -60,12 +60,14 @@ internal object PortalRendererHooks {
         // Actually, we do still want to render it outside the portal frame but only on the right side,
         // because there it'll be visible when looking at the portal from the side.
         val inPortals = entity.world.portalManager.loadedPortals.filter {
+            // The AABB of some entities is too small. Growing it on the portal axis will solve that and should be OK.
+            val largeEntityAABB = entityAABB.grow(it.portal.localFacing.directionVec.to3d().abs() * 100)
             // ignore the remote end of our current portal
             portal?.isTarget(it.portal) != true
                     // the entity has to be even remotely close to it
-                    && it.portal.localBoundingBox.intersects(entityAABB)
+                    && it.portal.localBoundingBox.intersects(largeEntityAABB)
                     // if it is, then check if it's actually in one of the blocks (and not some hole)
-                    && it.portal.localDetailedBounds.any { aabb -> aabb.intersects(entityAABB) }
+                    && it.portal.localDetailedBounds.any { aabb -> aabb.intersects(largeEntityAABB) }
         }
         // FIXME can't deal with entities which are in more than one portal at the same time
         inPortals.firstOrNull()?.let { agent ->
