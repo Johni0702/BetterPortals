@@ -17,7 +17,7 @@ apply plugin: 'org.spongepowered.mixin'
 
 ext {
     mixinDep = 'org.spongepowered:mixin:0.7.11-SNAPSHOT'
-    twilightforestDepBase = 'the-twilight-forest:twilightforest-1.12.2:3.6.345'
+    twilightforestDepBase = 'the-twilight-forest:twilightforest-1.12.2:3.9.984'
     twilightforestDep = "$twilightforestDepBase:universal"
     mekanismDepBase = 'mekanism:Mekanism:1.12.2'
     mekanismDep = "$mekanismDepBase:9.7.9.380" // yes, the classifier is the version (really, CF?!)...
@@ -84,7 +84,7 @@ minecraft {
     // Note: For development, either uncomment the following line or manually add -Dfml.coreMods.load=de.johni0702.minecraft.betterportals.impl.MixinLoader
     //       to the jvm arguments.
     // coreMod = "de.johni0702.minecraft.betterportals.impl.MixinLoader"
-    version = "1.12.2-14.23.5.2768"
+    version = "1.12.2-14.23.5.2838"
     runDir = "run"
     mappings = "snapshot_20171003"
 }

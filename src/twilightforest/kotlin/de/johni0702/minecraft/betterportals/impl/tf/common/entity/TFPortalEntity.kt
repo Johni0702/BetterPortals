@@ -32,7 +32,7 @@ class TFPortalEntity(
             // Cannot replace with AIR because we still need the block light
             val replacementState = Blocks.PORTAL.defaultState
             localBlocks.forEach {
-                if (world.getBlockState(it).block == TFBlocks.portal) {
+                if (world.getBlockState(it).block == TFBlocks.twilight_portal) {
                     world.setBlockState(it, replacementState)
                 }
             }

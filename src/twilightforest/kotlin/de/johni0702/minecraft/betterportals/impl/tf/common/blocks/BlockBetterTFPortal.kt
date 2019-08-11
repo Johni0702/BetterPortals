@@ -9,6 +9,7 @@ import net.minecraft.block.Block
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityItem
+import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Blocks
 import net.minecraft.network.EnumPacketDirection
 import net.minecraft.network.NetHandlerPlayServer
@@ -108,8 +109,8 @@ class BlockBetterTFPortal(override val mod: Any) : BlockTFPortal(), PortalBlock<
         }
     }
 
-    override fun tryToCreatePortal(world: World, pos: BlockPos, activationItem: EntityItem): Boolean {
-        val success = super.tryToCreatePortal(world, pos, activationItem)
+    override fun tryToCreatePortal(world: World, pos: BlockPos, catalyst: EntityItem, player: EntityPlayer?): Boolean {
+        val success = super.tryToCreatePortal(world, pos, catalyst, player)
         if (success && world is WorldServer) makeBetterPortal(world, pos)
         return success
     }
