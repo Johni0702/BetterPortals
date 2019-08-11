@@ -535,10 +535,11 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             // Allocate a ticket for our local world which we can later give to our remote end
             // If this fails, someone is holding an exclusive ticket to our current world, so we fail soft
             val localView = player.view ?: return
-            remotePortal.views[viewManager] = allocateTicket(localView) ?: return
+            val localTicket = allocateTicket(localView) ?: return
+            remotePortal.views[viewManager] = localTicket
 
             // preferably an existing view close by (half server view distance, ignoring y axis)
-            viewManager.views
+            val ticket = viewManager.views
                     .asSequence()
                     .filter { it.camera.world == remoteWorld }
                     .map { it to it.camera.pos.withoutY().distanceTo(portal.remotePosition.to3d().withoutY()) }
@@ -550,6 +551,18 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
                     }
                     // but we'll also create a new one if we can't find one
                     ?: allocateTicket(viewManager.createView(remoteWorld, portal.remotePosition.to3d()))!!
+
+            // If the remote portal is at first not linked due to the recursion-limit, then we need to manually link it
+            // This can happen if you have two overworld portals with a bit of distance between with their two nether ends
+            // close to each other. If you then only load one of the overworld portals, both nether portals will be loaded
+            // but one won't yet be linked since that would require recursive loading (its overworld end is out of view).
+            // If you then move to bring the other overworld portal into view, it (`this`) will link to the already existing
+            // view in the nether but its nether end (`remotePortal`) won't be linked back on the client.
+            if (viewManager in remotePortal.tracking) {
+                manager.linkPortal(remotePortal, ticket.view.camera, localTicket)
+            }
+
+            ticket
         }
 
         manager.linkPortal(this, player, ticket)
