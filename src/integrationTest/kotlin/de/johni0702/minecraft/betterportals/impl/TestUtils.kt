@@ -1,5 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl
 
+import de.johni0702.minecraft.betterportals.common.provideDelegate
+import de.johni0702.minecraft.view.client.render.RenderPassEvent
 import io.kotlintest.matchers.collections.shouldBeEmpty
 import io.kotlintest.matchers.types.shouldNotBeNull
 import io.kotlintest.milliseconds
@@ -21,7 +23,9 @@ import net.minecraft.world.GameType
 import net.minecraft.world.WorldServer
 import net.minecraft.world.WorldSettings
 import net.minecraft.world.WorldType
+import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.FMLCommonHandler
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -96,10 +100,29 @@ fun updateClient(skipSync: Boolean = false) {
         }
     }
     mc.entityRenderer.getMouseOver(mc.renderPartialTicks)
+    fastRender()
 }
 
 fun tickClient() {
     mc.runTick()
+}
+
+private object SkipRender {
+    var registered by MinecraftForge.EVENT_BUS
+
+    @SubscribeEvent
+    fun preRenderPass(event: RenderPassEvent.Prepare) {
+        event.isCanceled = true
+    }
+}
+
+fun fastRender() {
+    SkipRender.registered = true
+    try {
+        render()
+    } finally {
+        SkipRender.registered = false
+    }
 }
 
 fun render() {

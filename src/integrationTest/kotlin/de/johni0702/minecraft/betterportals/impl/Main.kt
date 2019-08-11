@@ -24,6 +24,7 @@ fun preInitTests(mcIn: Minecraft) {
 fun runTests(): Boolean {
     mc.gameSettings.showDebugInfo = true
     mc.gameSettings.pauseOnLostFocus = false
+    mc.gameSettings.renderDistanceChunks = 8 // some tests depend on this specific render distance
     Transaction.disableTransactions = true
 
     mc.renderManager.entityRenderMap[TestEntity::class.java] = RenderTestEntity(mc.renderManager)
@@ -35,6 +36,9 @@ fun runTests(): Boolean {
     val request = LauncherDiscoveryRequestBuilder.request()
             .selectors(selectClass(EntityRenderTests::class.java))
             .selectors(selectClass(SinglePortalTraversalTests::class.java))
+            // FIXME https://github.com/Johni0702/BetterPortals/issues/221
+            //.selectors(selectClass(SinglePortalWithSecondNearbyTraversalTest::class.java))
+            //.selectors(selectClass(DoublePortalTraversalTests::class.java))
             .selectors(selectClass(NearTeleporterTraversalTests::class.java))
             // FIXME .selectors(selectClass(DistinctViewsOnNearTeleporterTraversalTests::class.java))
             .build()

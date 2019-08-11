@@ -3,6 +3,7 @@ package de.johni0702.minecraft.betterportals.impl
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.to3dMid
 import de.johni0702.minecraft.betterportals.impl.worlds.DistinctViewOnNearTeleporterSetup
+import de.johni0702.minecraft.betterportals.impl.worlds.DoubleNetherPortalSetup
 import de.johni0702.minecraft.betterportals.impl.worlds.NearTeleporterSetup
 import de.johni0702.minecraft.betterportals.impl.worlds.SingleNetherPortalSetup
 import io.kotlintest.extensions.TestListener
@@ -14,7 +15,7 @@ import io.kotlintest.specs.AnnotationSpec
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 
-class SinglePortalTraversalTests : AnnotationSpec() {
+open class SinglePortalTraversalTests : AnnotationSpec() {
     override fun listeners(): List<TestListener> = listOf(SingleNetherPortalSetup())
 
     private fun moveUpThroughPortal() {
@@ -153,6 +154,90 @@ class SinglePortalTraversalTests : AnnotationSpec() {
 
         // Make sure it's not horribly broken in some way
         testSimpleTraversal()
+    }
+}
+
+open class SinglePortalWithSecondNearbyTraversalTest : SinglePortalTraversalTests() {
+    override fun listeners(): List<TestListener> = listOf(DoubleNetherPortalSetup())
+}
+
+open class DoublePortalTraversalTests : AnnotationSpec() {
+    override fun listeners(): List<TestListener> = listOf(DoubleNetherPortalSetup())
+
+    private fun holdForTwentyTicks(movement: TestMovementInput.(Boolean) -> Unit) {
+        mc.player.updateMovement { movement(true) }
+        repeat(20) {
+            tickClient()
+            tickServer()
+        }
+        mc.player.updateMovement { movement(false) }
+        tickClient()
+    }
+
+    /**
+     * Simply move up through both portals and then back down through both portals.
+     * @see testSimpleTraversalWithoutLag
+     * @see testSimpleTraversalWithLag
+     */
+    private fun testSimpleTraversal(skipServerUpdateInNether: Boolean = false, skipServerUpdateInOverworld: Boolean = false) {
+        mc.world.provider.dimension shouldBe 0
+        holdForTwentyTicks { jump = it }
+        mc.world.provider.dimension shouldBe -1
+        if (!skipServerUpdateInNether) {
+            updateClient()
+        }
+
+        mc.world.provider.dimension shouldBe -1
+        holdForTwentyTicks { jump = it }
+        mc.world.provider.dimension shouldBe 0
+        if (!skipServerUpdateInOverworld) {
+            updateClient()
+        }
+
+        mc.world.provider.dimension shouldBe 0
+        holdForTwentyTicks { sneak = it }
+        mc.world.provider.dimension shouldBe -1
+        if (!skipServerUpdateInNether) {
+            updateClient()
+        }
+
+        mc.world.provider.dimension shouldBe -1
+        holdForTwentyTicks { sneak = it }
+        mc.world.provider.dimension shouldBe 0
+        updateClient()
+        mc.world.provider.dimension shouldBe 0
+    }
+
+    @BeforeEach
+    fun moveToStart() {
+        moveTo(BlockPos(0, 17, 0).to3dMid())
+        tickClient()
+        tickServer()
+        updateClient()
+    }
+
+    /**
+     * Same as [testSimpleTraversal] with default arguments (kotlintest doesn't appear to fill those in)
+     */
+    @Test
+    fun testSimpleTraversalWithoutLag() {
+        testSimpleTraversal()
+    }
+
+    /**
+     * Same as [testSimpleTraversal] but with network lag while in the nether.
+     */
+    @Test
+    fun testSimpleTraversalWithShortLag() {
+        testSimpleTraversal(skipServerUpdateInOverworld = true)
+    }
+
+    /**
+     * Same as [testSimpleTraversal] but with network lag throughout the whole process.
+     */
+    @Test
+    fun testSimpleTraversalWithLag() {
+        testSimpleTraversal(skipServerUpdateInNether = true, skipServerUpdateInOverworld = true)
     }
 }
 
