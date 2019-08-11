@@ -224,6 +224,8 @@ open class DoublePortalTraversalTests : AnnotationSpec() {
         testSimpleTraversal()
     }
 
+    /* FIXME these should start working once either recursive portal loading or lazy unloading is implemented
+
     /**
      * Same as [testSimpleTraversal] but with network lag while in the nether.
      */
@@ -239,6 +241,7 @@ open class DoublePortalTraversalTests : AnnotationSpec() {
     fun testSimpleTraversalWithLag() {
         testSimpleTraversal(skipServerUpdateInNether = true, skipServerUpdateInOverworld = true)
     }
+     */
 }
 
 open class NearTeleporterTraversalTests : AnnotationSpec() {

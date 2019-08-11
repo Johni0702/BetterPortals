@@ -465,6 +465,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
     }
 
     private val views = mutableMapOf<ServerViewManager, T>()
+    private val tracking = mutableMapOf<ServerViewManager, Int>()
 
     open fun serverPortalUsed(player: EntityPlayerMP): Boolean {
         val viewManager = player.viewManager
@@ -518,6 +519,8 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
     open fun addTrackingPlayer(player: EntityPlayerMP) {
         val viewManager = player.viewManager
 
+        tracking[viewManager] = (tracking[viewManager] ?: 0) + 1
+
         // If we already have a view for this player, then just link to it.
         // This can happen either because this is the remote portal to some other portal which we've already dealt with
         // or when multiple view entities have the same portal nearby.
@@ -553,9 +556,13 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
     }
 
     open fun removeTrackingPlayer(player: EntityPlayerMP) {
-        views.remove(player.viewManager)?.let {
-            manager.unlinkPortal(this, player)
-            it.release()
+        val viewManager = player.viewManager
+
+        manager.unlinkPortal(this, player)
+
+        val remaining = tracking[viewManager]!! - 1
+        if (remaining <= 0) {
+            views.remove(viewManager)?.release()
         }
     }
 
