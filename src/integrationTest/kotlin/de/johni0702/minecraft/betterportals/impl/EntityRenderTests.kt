@@ -72,8 +72,7 @@ class EntityRenderTests : AnnotationSpec() {
         // Remote world, behind portal, top/far side
         TestEntity.shouldBeVisible(remote, remotePortal + significantlyAbove)
         // Remote world, next to portal, bottom/near side
-        // FIXME https://github.com/Johni0702/BetterPortals/issues/204
-        // TestEntity.shouldNotBeVisible(remote, remotePortal - offset + slightlyBelow)
+        TestEntity.shouldNotBeVisible(remote, remotePortal - offset + slightlyBelow)
         // Remote world, next to portal, top/far side
         TestEntity.shouldBeVisible(remote, remotePortal + offset + slightlyAbove)
     }
@@ -112,8 +111,7 @@ class EntityRenderTests : AnnotationSpec() {
         // Remote world, next to portal, bottom/far side
         TestEntity.shouldBeVisible(remote, remotePortal + offset + slightlyBelow)
         // Remote world, next to portal, top/near side
-        // FIXME https://github.com/Johni0702/BetterPortals/issues/204
-        // TestEntity.shouldNotBeVisible(remote, remotePortal - offset + slightlyAbove)
+        TestEntity.shouldNotBeVisible(remote, remotePortal - offset + slightlyAbove)
     }
 
     @Test
@@ -160,11 +158,9 @@ class EntityRenderTests : AnnotationSpec() {
         // FIXME https://github.com/Johni0702/BetterPortals/issues/75
         // TestEntity.shouldBeVisible(remote, remotePortal + slightlyAbove)
         // Remote world, in front of portal, bottom side
-        // FIXME https://github.com/Johni0702/BetterPortals/issues/204
         // TODO https://github.com/Johni0702/BetterPortals/issues/230
         // TestEntity.shouldNotBeVisible(remote, remotePortal + significantlyBelow)
         // Remote world, behind portal, top side
-        // FIXME https://github.com/Johni0702/BetterPortals/issues/204
         // TODO https://github.com/Johni0702/BetterPortals/issues/230
         // TestEntity.shouldNotBeVisible(remote, remotePortal + significantlyAbove)
         // Remote world, next to portal, bottom side, near

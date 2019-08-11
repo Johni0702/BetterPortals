@@ -14,6 +14,7 @@ import kotlin.math.sign
 
 internal object PortalRendererHooks {
     private val clippingStack = mutableListOf<Boolean>()
+    private val disableParentClippingStack = mutableListOf<Boolean>()
     private val currentRenderPass get() = Minecraft.getMinecraft().renderPassManager.current
 
     fun beforeRender(entity: Entity): Boolean {
@@ -25,9 +26,10 @@ internal object PortalRendererHooks {
                 .reduce(AxisAlignedBB::union)
         val entityPos = lowestEntity.syncPos + lowestEntity.eyeOffset
 
-        val portal = currentRenderPass?.let { instance ->
+        val (portal, disableParentClipping) = currentRenderPass?.let { instance ->
             // If we're not rendering our own world (i.e. if we're looking through a portal)
             // then we do not want to render entities on the wrong remote side of said portal
+            // Or more precisely: we want to clip those outside of the portal and skip those inside/directly behind it.
             val portal = instance.portalDetail?.parent ?: return@let null
             val portalPos = portal.remotePosition.to3dMid()
             val portalFacing = portal.remoteFacing
@@ -35,9 +37,23 @@ internal object PortalRendererHooks {
             val entityFacing = portalFacing.axis.toFacing(entityPos - portalPos)
             // The AABB of some entities is too small. Growing it on the portal axis will solve that and should be OK.
             val largeEntityAABB = entityAABB.grow(portalFacing.directionVec.to3d().abs() * 100)
-            if (cameraFacing == entityFacing && portal.remoteDetailedBounds.any { it.intersects(largeEntityAABB) }) return false
-            return@let portal
+            return@let if (portal.remoteDetailedBounds.any { it.intersects(largeEntityAABB) }) {
+                // Inside the portal
+                if (cameraFacing == entityFacing) {
+                    return false // on the side which we cannot see, skip entirely
+                } else {
+                    Pair(portal, true) // on the visible side, disable parent clipping so we don't slice it open
+                }
+            } else {
+                // Outside the portal, clip it with the parent clipping plane just like everything else
+                Pair(portal, false)
+            }
+        } ?: Pair(null, false)
+
+        if (disableParentClipping) {
+            GL11.glDisable(GL11.GL_CLIP_PLANE5)
         }
+        disableParentClippingStack.add(disableParentClipping)
 
         // We also do not want to render the entity if it's on the opposite side of whatever portal we
         // might be looking at right now (i.e. on the other side of any portals in our world)
@@ -71,19 +87,17 @@ internal object PortalRendererHooks {
         }
         clippingStack.add(inPortals.isNotEmpty())
 
-        GL11.glDisable(GL11.GL_CLIP_PLANE5)
         return true
     }
 
     fun afterRender(entity: Entity) {
         if (entity is Portal) return
         if (!entity.isAddedToWorld) return // e.g. mobs rendered as part of tile entities (e.g. spawner)
+        if (disableParentClippingStack.removeAt(disableParentClippingStack.size - 1)) {
+            GL11.glEnable(GL11.GL_CLIP_PLANE5)
+        }
         if (clippingStack.removeAt(clippingStack.size - 1)) {
             GL11.glDisable(GL11.GL_CLIP_PLANE4)
         }
-
-        if (currentRenderPass?.portalDetail?.parent == null) return
-
-        GL11.glEnable(GL11.GL_CLIP_PLANE5)
     }
 }
