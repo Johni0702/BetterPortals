@@ -72,6 +72,9 @@ fun launchServer() {
 fun closeServer() {
     mc.world.sendQuittingDisconnectingPacket()
     mc.loadWorld(null)
+
+    // MC just catches all exceptions but that still breaks our tests (starting 1.14 (or 13?) MC also clears the queue)
+    mc.scheduledTasks.clear()
 }
 
 fun deleteWorld() {
