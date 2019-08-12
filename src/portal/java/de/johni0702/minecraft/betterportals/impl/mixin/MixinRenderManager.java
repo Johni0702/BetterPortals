@@ -21,4 +21,16 @@ public abstract class MixinRenderManager {
     private void afterRenderEntity(Entity entityIn, double x, double y, double z, float yaw, float partialTicks, boolean p_188391_10_, CallbackInfo ci) {
         PortalRendererHooks.INSTANCE.afterRender(entityIn);
     }
+
+    @Inject(method = "renderMultipass", at = @At("HEAD"), cancellable = true)
+    private void beforeRenderMultipass(Entity entityIn, float partialTicks, CallbackInfo ci) {
+        if (!PortalRendererHooks.INSTANCE.beforeRender(entityIn)) {
+            ci.cancel();
+        }
+    }
+
+    @Inject(method = "renderMultipass", at = @At("RETURN"))
+    private void afterRenderMultipass(Entity entityIn, float partialTicks, CallbackInfo ci) {
+        PortalRendererHooks.INSTANCE.afterRender(entityIn);
+    }
 }
