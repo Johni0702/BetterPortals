@@ -4,7 +4,9 @@ import de.johni0702.minecraft.view.impl.net.Transaction
 import io.kotlintest.*
 import io.kotlintest.extensions.TestListener
 import net.minecraft.client.Minecraft
+import net.minecraft.util.ResourceLocation
 import net.minecraftforge.fml.client.registry.RenderingRegistry
+import net.minecraftforge.fml.common.registry.EntityRegistry
 import org.junit.platform.engine.discovery.DiscoverySelectors.selectClass
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder
 import org.junit.platform.launcher.core.LauncherFactory
@@ -21,6 +23,19 @@ fun preInitTests(mcIn: Minecraft) {
     BPConfig.mekanismPortals.enabled = true // TODO remove once default is true
 }
 
+fun initTests() {
+    EntityRegistry.registerModEntity(
+            ResourceLocation(MOD_ID, "test_entity"),
+            TestEntity::class.java,
+            "test_entity",
+            256,
+            MOD_ID,
+            256,
+            1,
+            false
+    )
+}
+
 fun runTests(): Boolean {
     mc.gameSettings.showDebugInfo = true
     mc.gameSettings.pauseOnLostFocus = false
@@ -34,7 +49,8 @@ fun runTests(): Boolean {
     System.setProperty("kotlintest.project.config", ProjectConfig::class.java.name)
 
     val request = LauncherDiscoveryRequestBuilder.request()
-            .selectors(selectClass(EntityRenderTests::class.java))
+            .selectors(selectClass(EntityCullingTests::class.java))
+            .selectors(selectClass(EntityTraversalRenderTests::class.java))
             .selectors(selectClass(SinglePortalTraversalTests::class.java))
             .selectors(selectClass(SinglePortalWithSecondNearbyTraversalTest::class.java))
             .selectors(selectClass(DoublePortalTraversalTests::class.java))

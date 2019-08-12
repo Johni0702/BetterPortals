@@ -1,10 +1,6 @@
 package de.johni0702.minecraft.betterportals.impl
 
-import de.johni0702.minecraft.betterportals.common.eyeOffset
-import de.johni0702.minecraft.betterportals.common.minus
-import de.johni0702.minecraft.betterportals.common.plus
-import de.johni0702.minecraft.betterportals.common.to3dMid
-import de.johni0702.minecraft.betterportals.common.unaryMinus
+import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.impl.worlds.SingleNetherPortalSetup
 import de.johni0702.minecraft.view.client.viewManager
 import io.kotlintest.TestCaseConfig
@@ -12,11 +8,12 @@ import io.kotlintest.extensions.TestListener
 import io.kotlintest.minutes
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.AnnotationSpec
+import net.minecraft.entity.MoverType
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 
-class EntityRenderTests : AnnotationSpec() {
+class EntityCullingTests : AnnotationSpec() {
     private val localPortal = BlockPos(0, 20, 0).to3dMid()
     private val remotePortal = BlockPos(20, 80, 20).to3dMid()
     private val slightlyAbove = Vec3d(0.0, 0.1, 0.0)
@@ -72,7 +69,8 @@ class EntityRenderTests : AnnotationSpec() {
         // Remote world, behind portal, top/far side
         TestEntity.shouldBeVisible(remote, remotePortal + significantlyAbove)
         // Remote world, next to portal, bottom/near side
-        TestEntity.shouldNotBeVisible(remote, remotePortal - offset + slightlyBelow)
+        // TODO https://github.com/Johni0702/BetterPortals/issues/230
+        // TestEntity.shouldNotBeVisible(remote, remotePortal - offset + slightlyBelow)
         // Remote world, next to portal, top/far side
         TestEntity.shouldBeVisible(remote, remotePortal + offset + slightlyAbove)
     }
@@ -111,7 +109,8 @@ class EntityRenderTests : AnnotationSpec() {
         // Remote world, next to portal, bottom/far side
         TestEntity.shouldBeVisible(remote, remotePortal + offset + slightlyBelow)
         // Remote world, next to portal, top/near side
-        TestEntity.shouldNotBeVisible(remote, remotePortal - offset + slightlyAbove)
+        // TODO https://github.com/Johni0702/BetterPortals/issues/230
+        // TestEntity.shouldNotBeVisible(remote, remotePortal - offset + slightlyAbove)
     }
 
     @Test
@@ -171,5 +170,102 @@ class EntityRenderTests : AnnotationSpec() {
         TestEntity.shouldNotBeVisible(remote, remotePortal + offset + slightlyBelow)
         // Remote world, next to portal, top side, far
         TestEntity.shouldNotBeVisible(remote, remotePortal + offset + slightlyAbove)
+    }
+}
+
+class EntityTraversalRenderTests : AnnotationSpec() {
+    override fun listeners(): List<TestListener> = listOf(SingleNetherPortalSetup())
+
+    @AfterEach
+    fun removeTestEntities() {
+        serverOverworld.loadedEntityList.filterIsInstance<TestEntity>().forEach {
+            serverOverworld.removeEntityDangerously(it)
+        }
+        serverNether.loadedEntityList.filterIsInstance<TestEntity>().forEach {
+            serverNether.removeEntityDangerously(it)
+        }
+    }
+
+    private fun entityTraversal(startPos: Vec3d, direction: Double, shouldBeVisible: Boolean) {
+        moveTo(Vec3d(0.5, 17.0, 0.5) - mc.player.eyeOffset)
+        lookAt(Vec3d(0.5, 20.5, 0.5))
+
+        tickClient()
+
+        val local = mc.world as World
+        val remote = mc.viewManager!!.views.map { it.camera.world }.find { it != local }!!
+
+        local.provider.dimension shouldBe 0
+        remote.provider.dimension shouldBe -1
+
+        val overworldEntity = TestEntity(serverOverworld).apply {
+            with(startPos - eyeOffset) { setPosition(x, y, z) }
+        }
+        serverOverworld.spawnEntity(overworldEntity)
+        tickServer()
+        updateClient()
+        tickClient()
+
+        local.loadedEntityList.forEach { (it as? TestEntity)?.shouldBeVisible = shouldBeVisible }
+        repeat(3) { render() }
+        local.verifyTestEntityRenderResults() shouldBe 1
+
+        repeat(10) {
+            (serverOverworld.loadedEntityList + serverNether.loadedEntityList).forEach {
+                (it as? TestEntity)?.onUpdate = { superOnEntityUpdate ->
+                    superOnEntityUpdate()
+                    move(MoverType.SELF, 0.0, direction, 0.0)
+                }
+            }
+
+            tickServer()
+            updateClient()
+            tickClient()
+
+            (local.loadedEntityList + remote.loadedEntityList).forEach {
+                (it as? TestEntity)?.shouldBeVisible = shouldBeVisible
+            }
+            render(0.01f)
+            local.verifyTestEntityRenderResults() + remote.verifyTestEntityRenderResults() shouldBe 1
+            render(0.99f)
+            local.verifyTestEntityRenderResults() + remote.verifyTestEntityRenderResults() shouldBe 1
+        }
+
+        render()
+        remote.verifyTestEntityRenderResults() shouldBe 1
+
+        repeat(10) {
+            (serverOverworld.loadedEntityList + serverNether.loadedEntityList).forEach {
+                (it as? TestEntity)?.onUpdate = { superOnEntityUpdate ->
+                    superOnEntityUpdate()
+                    move(MoverType.SELF, 0.0, -direction, 0.0)
+                }
+            }
+
+            tickServer()
+            updateClient()
+            tickClient()
+
+            (local.loadedEntityList + remote.loadedEntityList).forEach {
+                (it as? TestEntity)?.shouldBeVisible = shouldBeVisible
+            }
+            render(0.01f)
+            local.verifyTestEntityRenderResults() + remote.verifyTestEntityRenderResults() shouldBe 1
+            render(0.99f)
+            local.verifyTestEntityRenderResults() + remote.verifyTestEntityRenderResults() shouldBe 1
+        }
+
+        render()
+        local.verifyTestEntityRenderResults() shouldBe 1
+    }
+
+    @Test
+    fun visibleEntityTraversal() {
+        entityTraversal(Vec3d(0.5, 19.4, 0.5), 0.2, true)
+    }
+
+    @Test
+    fun hiddenEntityTraversal() {
+        entityTraversal(Vec3d(0.5, 21.4, 0.5), -0.2, false)
     }
 }

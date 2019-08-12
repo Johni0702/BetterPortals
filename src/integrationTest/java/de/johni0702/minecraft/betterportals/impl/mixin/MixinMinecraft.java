@@ -17,8 +17,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Minecraft.class)
 public abstract class MixinMinecraft implements IHasMainThread {
     @Inject(method = "init", at = @At("HEAD"))
-    private void initTests(CallbackInfo ci) {
+    private void preInitTests(CallbackInfo ci) {
         MainKt.preInitTests((Minecraft) (Object) this);
+    }
+
+    @Inject(method = "init", at = @At(value = "INVOKE", target = "Lnet/minecraftforge/fml/client/FMLClientHandler;finishMinecraftLoading()V", remap = false))
+    private void initTests(CallbackInfo ci) {
+        MainKt.initTests();
     }
 
     @Inject(method = "run", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;init()V", shift = At.Shift.AFTER))

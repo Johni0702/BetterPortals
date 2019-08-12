@@ -379,6 +379,13 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         fun transfer(entity: Entity): Entity? {
             val newPassengers = entity.passengers.mapNotNull { transfer(it) }
 
+            // Sync the entity's movement in the previous tick with clients (the regular entity tracker tick would have
+            // happened only after this method is called, which is good since we want all in one transaction anyway).
+            // Syncing is important because the client will re-position the new entity based on the position of the old
+            // one, so all interpolation is preserved.
+            // The entity will subsequently be removed from the local world, so no double-ticking is happening.
+            localWorld.entityTracker.entries.find { it.trackedEntity == entity }?.updatePlayerList(remoteWorld.playerEntities)
+
             manager.serverBeforeUsePortal(this, entity, trackingPlayers)
 
             val newEntity = if (entity is EntityPlayerMP) {

@@ -128,13 +128,13 @@ fun fastRender() {
     }
 }
 
-fun render() {
+fun render(partialTicks: Float = mc.renderPartialTicks) {
     mc.framebufferMc.bindFramebuffer(true)
     GlStateManager.enableTexture2D()
 
-    FMLCommonHandler.instance().onRenderTickStart(mc.renderPartialTicks)
-    mc.entityRenderer.updateCameraAndRender(mc.renderPartialTicks, 0)
-    FMLCommonHandler.instance().onRenderTickEnd(mc.renderPartialTicks)
+    FMLCommonHandler.instance().onRenderTickStart(partialTicks)
+    mc.entityRenderer.updateCameraAndRender(partialTicks, 0)
+    FMLCommonHandler.instance().onRenderTickEnd(partialTicks)
 
     mc.framebufferMc.unbindFramebuffer()
 }
