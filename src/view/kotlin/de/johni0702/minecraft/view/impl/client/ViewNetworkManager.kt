@@ -24,6 +24,9 @@ internal class ViewNetworkManager : NetworkManager(EnumPacketDirection.CLIENTBOU
         // FIXME does sending keep alive responses actually make sense here?
         if (packetIn is CPacketKeepAlive || viewManager.activeView.isMainView) {
             // Send packet via main connection
+            if (viewManager.serverMainView.netManager == this) {
+                println("rec")
+            }
             viewManager.serverMainView.netManager?.sendPacket(packetIn)
         } else {
             val knownBadSenders = setOf(

@@ -42,7 +42,7 @@ object PortalAwareSoundManager {
     private fun findMainView(from: ClientView, visited: Set<ClientView>): Set<List<PortalAgent<*, *>>> = if (from.isMainView) {
         setOf(emptyList())
     } else {
-        val portalManager = from.camera.world.portalManager
+        val portalManager = from.world.portalManager
         portalManager.loadedPortals.flatMapTo(mutableSetOf<List<PortalAgent<*, *>>>()) { portalAgent ->
             val view = portalAgent.view ?: return@flatMapTo emptySet()
             if (view in visited) {

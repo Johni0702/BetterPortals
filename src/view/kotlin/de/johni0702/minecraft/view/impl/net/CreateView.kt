@@ -1,7 +1,7 @@
 package de.johni0702.minecraft.view.impl.net
 
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
-import de.johni0702.minecraft.view.impl.common.sync
+import de.johni0702.minecraft.view.impl.common.clientSyncIgnoringView
 import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
@@ -45,7 +45,7 @@ internal class CreateView(
 
     internal class Handler : IMessageHandler<CreateView, IMessage> {
         override fun onMessage(message: CreateView, ctx: MessageContext): IMessage? {
-            ctx.sync {
+            clientSyncIgnoringView {
                 val mc = Minecraft.getMinecraft()
                 val world = WorldClient(mc.connection!!,
                         WorldSettings(0L,

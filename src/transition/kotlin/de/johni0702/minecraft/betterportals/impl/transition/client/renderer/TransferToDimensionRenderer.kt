@@ -27,16 +27,16 @@ internal class TransferToDimensionRenderer(
     private val shader = ShaderManager(mc.resourceManager, "betterportals:dimension_transition")
     private val eventHandler = EventHandler()
 
-    private val cameraYawOffset = fromView.camera.rotationYaw - toView.camera.rotationYaw
+    private val cameraYawOffset = fromView.clientPlayer.rotationYaw - toView.clientPlayer.rotationYaw
     private val cameraPosOffset =
-            Mat4d.add(fromView.camera.pos.toJavaX()) * Mat4d.rotYaw(cameraYawOffset) * Mat4d.sub(toView.camera.pos.toJavaX())
+            Mat4d.add(fromView.clientPlayer.pos.toJavaX()) * Mat4d.rotYaw(cameraYawOffset) * Mat4d.sub(toView.clientPlayer.pos.toJavaX())
     private var ticksPassed = 0
 
     init {
         // Copy current pitch onto new camera to prevent sudden camera jumps when switching views
         // TODO we currently send a teleport packet from the server which overwrites any changes we do here.
         //      not sure what the best approach to fixing that is
-        toView.camera.deriveClientPosRotFrom(fromView.camera, Mat4d.inverse(cameraPosOffset), -cameraYawOffset)
+        toView.clientPlayer.deriveClientPosRotFrom(fromView.clientPlayer, Mat4d.inverse(cameraPosOffset), -cameraYawOffset)
     }
 
     private fun getProgress(partialTicks: Float) = ((ticksPassed + partialTicks) * 50 / duration.toMillis()).coerceIn(0f, 1f)

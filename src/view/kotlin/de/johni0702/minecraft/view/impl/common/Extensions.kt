@@ -3,16 +3,16 @@ package de.johni0702.minecraft.view.impl.common
 import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
-import de.johni0702.minecraft.betterportals.common.server
+import com.google.common.util.concurrent.ListenableFutureTask
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.LOGGER
+import de.johni0702.minecraft.view.impl.client.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.view.impl.client.render.ViewRenderManager
 import de.johni0702.minecraft.view.impl.net.Net
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.LazyLoadBase
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
-import net.minecraftforge.fml.relauncher.Side
+import java.util.concurrent.Executors
 
 fun initView(
         init: (() -> Unit) -> Unit,
@@ -75,13 +75,14 @@ internal fun EntityPlayer.swapPosRotWith(e2: EntityPlayer) {
 
 internal val <T> LazyLoadBase<T>.maybeValue get() = if (isLoaded) value else null
 
-internal fun MessageContext.sync(task: () -> Unit) = when(side!!) {
-    Side.CLIENT -> syncOnClient(task)
-    Side.SERVER -> syncOnServer(task)
+internal fun clientSyncIgnoringView(task: () -> Unit) {
+    val mc = Minecraft.getMinecraft()
+    synchronized(mc.scheduledTasks) {
+        mc.scheduledTasks.offer(ViewDemuxingTaskQueue.ViewWrappedFutureTask({
+            null
+        }, ListenableFutureTask.create(Executors.callable(task)).logFailure()))
+    }
 }
-// Note: must be in separate method so we can access client-only methods/classes
-private fun syncOnClient(task: () -> Unit) = Minecraft.getMinecraft().addScheduledTask(task).logFailure()
-private fun MessageContext.syncOnServer(task: () -> Unit) = serverHandler.player.serverWorld.server.addScheduledTask(task).logFailure()
 internal fun <L : ListenableFuture<T>, T> L.logFailure(): L {
     Futures.addCallback(this, object : FutureCallback<T> {
         override fun onSuccess(result: T?) = Unit

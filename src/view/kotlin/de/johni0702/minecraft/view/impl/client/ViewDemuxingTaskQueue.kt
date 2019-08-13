@@ -1,6 +1,5 @@
 package de.johni0702.minecraft.view.impl.client
 
-import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.common.maybeValue
@@ -24,7 +23,7 @@ internal class ViewDemuxingTaskQueue(
         val viewManager = ClientViewAPIImpl.viewManagerImpl
 
         // Determine the view which this task most likely belongs to
-        val view: () -> ClientView = when {
+        val view: () -> ClientViewImpl = when {
             // We already know this one
             inner is ViewWrappedFutureTask ->
                 return inner
@@ -69,11 +68,16 @@ internal class ViewDemuxingTaskQueue(
     }
 
     class ViewWrappedFutureTask<T>(
-            private val view: () -> ClientView,
+            private val viewGetter: () -> ClientViewImpl?,
             private val wrapped: FutureTask<T>
     ) : FutureTask<T>({
-        view().withView {
+        val view = viewGetter()
+        if (view == null) {
             wrapped.run()
+        } else {
+            ClientViewAPIImpl.viewManagerImpl.updateView(view) {
+                wrapped.run()
+            }
         }
         wrapped.get()
     })

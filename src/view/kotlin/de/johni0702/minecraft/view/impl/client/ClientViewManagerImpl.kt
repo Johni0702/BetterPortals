@@ -26,7 +26,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
     val mc: Minecraft = Minecraft.getMinecraft()
 
     override val player: EntityPlayerSP
-        get() = mc.player
+        get() = mainView.clientPlayer
 
     override var mainView: ClientViewImpl = ClientViewImpl(this, 0, null, null, null, null).apply {
         captureState(mc)
@@ -37,26 +37,60 @@ internal class ClientViewManagerImpl : ClientViewManager {
     override val views = mutableListOf(mainView)
 
     override var activeView = mainView
+    private var inUpdate = false
+
+    override val serverMainView
+        get() = unconfirmedChanges.firstOrNull()?.old ?: mainView
 
     /**
-     * Differs from [mainView] only after a call to [makeMainView] until the server acknowledges the switch.
-     * For that duration, this is still the old mainView and is the view with the actual network connection.
+     * Queue containing the changes of main view which have not yet been confirmed by the server.
+     * New changes are appended to the end. Whenever the server confirms an transaction, the first element is removed.
      */
-    internal var serverMainView = mainView
+    private val unconfirmedChanges = mutableListOf<MainViewChange>()
 
-    /**
-     * Queue containing the ids of views which we have made the main view but which have not yet been confirmed by
-     * the server.
-     * Specifically contains Triple(oldMainView, newMainView, newMainView.camera.position).
-     * New ids are appended to the end. Whenever the server confirms one transaction, the first element will be removed.
-     * See [ViewEntity.setPositionAndRotation] for why this is necessary.
-     */
-    private val serverMainViewQueue = mutableListOf<Triple<ClientViewImpl, ClientViewImpl, Vec3d>>()
+    fun getServerPlayer(view: ClientViewImpl): EntityPlayerSP {
+        val serverView = if (inUpdate) {
+            view
+        } else {
+            unconfirmedChanges.asReversed().fold(view) { curr, change ->
+                if (change.new == curr) {
+                    change.old
+                } else {
+                    curr
+                }
+            }
+        }
+        return if (activeView == serverView) {
+            mc.player
+        } else {
+            serverView.thePlayer!!
+        }
+    }
+
+    fun getClientPlayer(view: ClientViewImpl): EntityPlayerSP {
+        val clientView = if (inUpdate) {
+            unconfirmedChanges.fold(view) { curr, change ->
+                if (change.old == curr) {
+                    change.new
+                } else {
+                    curr
+                }
+            }
+        } else {
+            view
+        }
+        return if (activeView == clientView) {
+            mc.player
+        } else {
+            clientView.thePlayer!!
+        }
+    }
 
     private fun reset() {
+        unconfirmedChanges.clear()
+
         views.remove(mainView)
         mainView = ClientViewImpl(this, 0, null, null, null, null).also { it.captureState(mc) }
-        serverMainView = mainView
         activeView = mainView
 
         unusedViews.addAll(views)
@@ -87,11 +121,10 @@ internal class ClientViewManagerImpl : ClientViewManager {
         if (activeView != mainView) throw IllegalStateException("Main view must be active")
         if (view == mainView) throw IllegalArgumentException("Cannot remove main view")
 
-        view.withView {
+        withView(view) {
             mc.renderGlobal.setWorldAndLoadRenderers(null)
         }
 
-        if (view.camera is ViewEntity) view.world?.removeEntity(view.camera)
         view.checkValid()
         check(views.remove(view)) { "Unknown view $view" }
         view.isValid = false
@@ -107,7 +140,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
             }
             val channel = view.channel
             if (channel != null) {
-                view.withView {
+                updateView(view) {
                     data.retain()
                     channel.writeInbound(data)
                 }
@@ -119,125 +152,114 @@ internal class ClientViewManagerImpl : ClientViewManager {
         }
     }
 
-    private var withViewDepth = 0
+    fun <T> updateView(view: ClientViewImpl, block: () -> T): T {
+        if (inUpdate) {
+            throw IllegalStateException("nested updateView")
+        }
+        if (activeView != mainView) {
+            throw IllegalStateException("already in withView")
+        }
 
-    override fun <T> withView(view: ClientView, block: () -> T): T {
-        if (view == activeView) return block()
-        if (view !is ClientViewImpl) throw UnsupportedOperationException("Unsupported ClientView impl: ${view::class}")
-        view.checkValid()
-        val previousView = activeView
-        previousView.captureState(mc)
-        view.restoreState(mc)
+        // Reverse any unconfirmed client changes and switch to view
+        mainView.captureState(mc)
+        unconfirmedChanges.asReversed().forEach { change ->
+            change.old.swapThePlayer(change.new, false)
+        }
         activeView = view
-        withViewDepth++
+        activeView.restoreState(mc)
+
+        inUpdate = true
         try {
+            // Run updates
             return block()
         } finally {
-            if (withViewDepth > 0) {
-                withViewDepth--
-                activeView = previousView
-                view.captureState(mc)
-                previousView.restoreState(mc)
+            inUpdate = false
+
+            // Re-apply any remaining unconfirmed client changes and switch back
+            activeView.captureState(mc)
+            unconfirmedChanges.forEach { change ->
+                change.old.swapThePlayer(change.new, false)
             }
+            activeView = mainView
+            activeView.restoreState(mc)
         }
     }
 
-    internal fun makeMainView(newMainView: ClientViewImpl) {
-        with(mainView.camera) {
+    fun <T> withView(view: ClientViewImpl, block: () -> T): T {
+        if (activeView != mainView) {
+            throw IllegalStateException("already in withView")
+        }
+        if (view == mainView) {
+            return block()
+        }
+        activeView.captureState(mc)
+        activeView = view
+        activeView.restoreState(mc)
+        try {
+            return block()
+        } finally {
+            activeView.captureState(mc)
+            activeView = mainView
+            activeView.restoreState(mc)
+        }
+    }
+
+    internal fun makeClientMainView(newMainView: ClientViewImpl) {
+        if (inUpdate) {
+            throw IllegalStateException("Cannot change main view during update / packet handling")
+        }
+        if (activeView != mainView) {
+            throw IllegalStateException("Needs to be called with the current main view active")
+        }
+
+        with(player) {
             connection.sendPacket(CPacketPlayer.PositionRotation(
                     posX, entityBoundingBox.minY, posZ, rotationYaw, rotationPitch, onGround))
         }
-        val oldMainView = mainView
 
-        makeClientMainView(newMainView)
+        LOGGER.info("Swapping main view $mainView with $newMainView")
 
-        serverMainViewQueue.add(Triple(oldMainView, newMainView, oldMainView.camera.pos))
+        makeMainView(newMainView)
+    }
 
-        // TODO we might be sending the wrong packets from here till the ack (the ones from the view entity)
+    private fun makeMainView(newMainView: ClientViewImpl) {
+        unconfirmedChanges.add(MainViewChange(mainView, newMainView, mainView.clientPlayer.pos))
+
+        activeView.captureState(mc)
+        newMainView.swapThePlayer(activeView, true)
+        newMainView.copyRenderState(activeView)
+        newMainView.restoreState(mc)
+        activeView = newMainView
+        mainView = newMainView
+
+        stopMusic()
     }
 
     /**
      * Rewinds all changes of main view which haven't been confirmed by the server.
-     * Must only be called when it is safe to discard withView stack and call makeMainView (see comments in method body)
+     * Must only be called from main view during update (i.e. caused by a teleport packet sent from the server).
      */
     internal fun rewindMainView() {
-        if (serverMainViewQueue.isEmpty()) return
+        val fallbackPos = unconfirmedChanges.firstOrNull()?.fallbackPos ?: return
 
         LOGGER.warn("Got teleport in old main view, rewinding main view changes to before that change..")
 
-        // Usually the main view can only be safely changed if it is currently active with no withView calls (otherwise
-        // withView will restore the wrong state once it's finished and not end up with the mainView in the end).
-        // Here however, we know the call path (exactly one withView(serverMainView)) and therefore also know that
-        // no significant changes to any withView views will be made before returning to the mainView after exiting this
-        // method. We can therefore just store the active view state here and discard the withView stack.
-        activeView.captureState(mc)
-        withViewDepth = 0
-        // Switch to main view here and now
-        activeView = mainView
-        activeView.restoreState(mc)
-
-        // Undo all previous changes in reverse order, this should always leave us with [mainView] == [serverMainView].
-        serverMainViewQueue.asReversed().forEach { (oldMainView, newMainView, newCamPos) ->
-            makeClientMainView(oldMainView)
-            newMainView.camera.setPosition(newCamPos.x, newCamPos.y, newCamPos.z)
+        if (!inUpdate) {
+            throw IllegalStateException("rewind outside update")
+        }
+        if (activeView != serverMainView) {
+            throw IllegalStateException("rewind outside server main view")
         }
 
-        // Clear change queue
-        serverMainViewQueue.clear()
+        // Since we're inUpdate (where all state is already the server state), rewinding the changes is trivial
+        unconfirmedChanges.clear()
+        mainView = activeView
+        with(fallbackPos) { player.setPosition(x, y, z) }
+
+        stopMusic()
     }
 
-    private fun makeClientMainView(newMainView: ClientViewImpl) {
-        if (withViewDepth > 0) throw IllegalStateException("Cannot change main view while inside ClientView.withView")
-        if (activeView != mainView) throw IllegalStateException("Needs to be called with the current main view active")
-
-        val oldMainView = mainView
-
-        val viewPlayer = newMainView.camera
-        val mainPlayer = oldMainView.camera
-
-        LOGGER.info("Swapping main view $oldMainView with $newMainView")
-
-        val viewWorld = viewPlayer.world
-        val mainWorld = mainPlayer.world
-
-        // Capture all (possibly modified) state into the main view
-        oldMainView.captureState(mc)
-
-        // Transfer camera entities from their world to the other one
-        viewWorld?.removeEntityDangerously(viewPlayer)
-        mainWorld?.removeEntityDangerously(mainPlayer)
-
-        mainPlayer.isDead = false
-        viewPlayer.isDead = false
-
-        mainPlayer.setWorld(viewWorld)
-        viewPlayer.setWorld(mainWorld)
-
-        mainPlayer.dimension = viewPlayer.dimension.also { viewPlayer.dimension = mainPlayer.dimension }
-
-        mainPlayer.swapClientPosRotWith(viewPlayer)
-
-        viewWorld?.spawnEntity(mainPlayer)
-        mainWorld?.spawnEntity(viewPlayer)
-
-        // And swap the views they belong to
-        newMainView.player = mainPlayer
-        oldMainView.player = viewPlayer
-        if (newMainView.renderViewEntity == viewPlayer) {
-            newMainView.renderViewEntity = mainPlayer
-        }
-        if (oldMainView.renderViewEntity == mainPlayer) {
-            oldMainView.renderViewEntity = viewPlayer
-        }
-
-        // Sync some additional state from the old main view to the new one
-        newMainView.copyRenderState(oldMainView)
-
-        // Switch main view
-        mainView = newMainView
-        activeView = newMainView
-        newMainView.restoreState(mc)
-
+    private fun stopMusic() {
         // Certain mods (e.g. Aether Legacy and Aether II) have their own music manager which relies on the
         // world change to cancel any previous music (because changing worlds usually stops all sounds).
         // There isn't any good way to detect these mods and always stopping music would be wasteful, so instead
@@ -255,26 +277,23 @@ internal class ClientViewManagerImpl : ClientViewManager {
     fun makeMainViewAck(viewId: Int) {
         LOGGER.info("Ack for swap of {}", viewId)
 
-
-        val expectedId = serverMainViewQueue.getOrNull(0)?.second?.id
+        val expectedId = unconfirmedChanges.getOrNull(0)?.new?.id
         if (expectedId != viewId) {
             // We haven't requested this change, someone must have called `PlayerList.transferPlayerToDimension` on the server.
             // Rewind all view changes which haven't yet been confirmed by the server (it'll ignore them because it decided for us to go elsewhere)
             rewindMainView()
             // So, let's act as if we did request it
-            makeClientMainView(views.find { it.id == viewId }!!)
+            makeMainView(views.find { it.id == viewId }!!)
         }
-        serverMainViewQueue.removeAtOrNull(0)
 
-        val newMainView = views.find { it.id == viewId }!!
-        val oldMainView = serverMainView
+        val change = unconfirmedChanges.removeAtOrNull(0)!!
+        val newMainView = change.new
+        val oldMainView = change.old
 
         activeView.captureState(mc)
 
         oldMainView.channel = newMainView.channel.also { newMainView.channel = oldMainView.channel }
         oldMainView.netManager = newMainView.netManager.also { newMainView.netManager = oldMainView.netManager }
-
-        serverMainView = newMainView
 
         activeView.restoreState(mc)
     }
@@ -289,7 +308,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
         mc.mcProfiler.startSection("tickViews")
 
         views.filter { !it.isMainView }.forEach { view ->
-            view.withView {
+            withView(view) {
                 tickView()
             }
         }
@@ -375,3 +394,9 @@ internal class ClientViewManagerImpl : ClientViewManager {
         fun updateClientState(mc: Minecraft)
     }
 }
+
+internal data class MainViewChange(
+        val old: ClientViewImpl,
+        val new: ClientViewImpl,
+        val fallbackPos: Vec3d
+)

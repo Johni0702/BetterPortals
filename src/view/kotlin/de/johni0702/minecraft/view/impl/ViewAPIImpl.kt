@@ -47,7 +47,7 @@ internal object ClientViewAPIImpl : ClientViewAPI {
 
 internal object ServerViewAPIImpl : ServerViewAPI {
     override fun getViewManager(connection: NetHandlerPlayServer): ServerViewManager = (connection as IViewManagerHolder).viewManager
-    override fun getView(player: EntityPlayerMP): ServerView? = player.viewManager.views.find { it.camera == player }
+    override fun getView(player: EntityPlayerMP): ServerView? = player.viewManager.views.find { it.player == player }
 }
 
 internal interface IViewManagerHolder {

@@ -48,7 +48,7 @@ internal object PortalRenderManager {
         var hitVisualPosition = false
         var hitPassenger = false
         while (true) {
-            val hitInfo = view.camera.world.portalManager.loadedPortals.flatMap { agent ->
+            val hitInfo = view.world.portalManager.loadedPortals.flatMap { agent ->
                 val portal = agent.portal
 
                 // Ignore portals which haven't yet been loaded
@@ -127,7 +127,7 @@ internal object PortalRenderManager {
 
         var changed = false
         val parentPortal = portalDetail?.parent
-        view.camera.world.portalManager.loadedPortals.forEach {
+        view.world.portalManager.loadedPortals.forEach {
             val portal = it.portal
 
             // check if there's already a pass for this portal

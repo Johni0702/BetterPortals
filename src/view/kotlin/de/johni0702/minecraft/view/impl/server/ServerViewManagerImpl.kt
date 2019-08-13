@@ -96,10 +96,10 @@ internal class ServerViewManagerImpl(
         DestroyView(view.id).sendTo(connection.player)
         view.isValid = false
 
-        val camera = view.camera
-        val world = camera.serverWorld
-        world.removeEntity(camera)
-        world.playerChunkMap.removePlayer(camera)
+        val player = view.player
+        val world = view.world
+        world.removeEntity(player)
+        world.playerChunkMap.removePlayer(player)
     }
 
     private fun destroy() {
@@ -109,10 +109,10 @@ internal class ServerViewManagerImpl(
             if (view.isMainView) return@forEach
             view.isValid = false
 
-            val camera = view.camera
-            val world = camera.serverWorld
-            world.removeEntity(camera)
-            world.playerChunkMap.removePlayer(camera)
+            val player = view.player
+            val world = view.world
+            world.removeEntity(player)
+            world.playerChunkMap.removePlayer(player)
         }
         views.clear()
     }
@@ -135,7 +135,7 @@ internal class ServerViewManagerImpl(
             }
         }
         flushEntityPackets(connection.player)
-        views.forEach { flushEntityPackets(it.camera) }
+        views.forEach { flushEntityPackets(it.player) }
 
         // Flush view packets via main connection
         views.forEach { view ->
@@ -176,7 +176,7 @@ internal class ServerViewManagerImpl(
 
         @SubscribeEvent
         fun onWorldUnload(event: WorldEvent.Unload) {
-            views.filter { !it.isMainView && it.camera.world === event.world }.forEach {
+            views.filter { !it.isMainView && it.world === event.world }.forEach {
                 if (it.tickets.isNotEmpty()) {
                     LOGGER.warn("View $it has ${it.tickets.size} active tickets even though its world is unloaded!")
                     LOGGER.warn("Initial allocation stack traces for all remaining tickets:")
@@ -193,7 +193,7 @@ internal class ServerViewManagerImpl(
         fun onPlayerRespawn(event: PlayerEvent.PlayerRespawnEvent) {
             val player = event.player
             if (player is EntityPlayerMP && player.connection === connection) {
-                mainView.camera = player
+                mainView.player = player
             }
         }
     }

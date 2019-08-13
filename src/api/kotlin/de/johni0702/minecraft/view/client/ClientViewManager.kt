@@ -1,6 +1,5 @@
 package de.johni0702.minecraft.view.client
 
-import de.johni0702.minecraft.view.common.ViewAPI
 import de.johni0702.minecraft.view.common.ViewManager
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
@@ -8,7 +7,7 @@ import net.minecraft.client.entity.EntityPlayerSP
 /**
  * Manages views sent from the server.
  *
- * Can be obtained from [ViewAPI.getViewManager].
+ * Can be obtained from [ClientViewAPI.getViewManager] or [Minecraft.viewManager].
  */
 interface ClientViewManager : ViewManager {
     override val player: EntityPlayerSP
@@ -16,15 +15,16 @@ interface ClientViewManager : ViewManager {
     override val mainView: ClientView
 
     /**
-     * The currently active view.
-     * @see withView
+     * Differs from [mainView] only after a call to [ClientView.makeMainView] until the server acknowledges the switch.
+     * For that duration, this still refers to the old mainView and is the view on which incoming packets will be
+     * handled.
      */
-    val activeView: ClientView
+    val serverMainView: ClientView
 
     /**
-     * Switches the currently active view to [view] for the duration of the [block].
+     * The currently active view.
      */
-    fun <T> withView(view: ClientView, block: () -> T): T
+    val activeView: ClientView
 }
 
 /**

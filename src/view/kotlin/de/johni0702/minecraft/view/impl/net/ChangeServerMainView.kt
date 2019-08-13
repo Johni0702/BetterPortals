@@ -1,7 +1,7 @@
 package de.johni0702.minecraft.view.impl.net
 
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
-import de.johni0702.minecraft.view.impl.common.sync
+import de.johni0702.minecraft.view.impl.common.clientSyncIgnoringView
 import io.netty.buffer.ByteBuf
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
@@ -21,7 +21,9 @@ internal class ChangeServerMainView(
 
     internal class Handler : IMessageHandler<ChangeServerMainView, IMessage> {
         override fun onMessage(message: ChangeServerMainView, ctx: MessageContext): IMessage? {
-            ctx.sync { ClientViewAPIImpl.viewManagerImpl.makeMainViewAck(message.viewId) }
+            clientSyncIgnoringView {
+                ClientViewAPIImpl.viewManagerImpl.makeMainViewAck(message.viewId)
+            }
             return null
         }
     }

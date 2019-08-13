@@ -3,13 +3,11 @@ package de.johni0702.minecraft.view.impl.client.render
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.view.client.render.*
-import de.johni0702.minecraft.view.client.viewManager
+import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
+import de.johni0702.minecraft.view.impl.client.ClientViewImpl
 import de.johni0702.minecraft.view.impl.client.ViewEntity
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.GLAllocation
-import net.minecraft.client.renderer.GlStateManager
-import net.minecraft.client.renderer.Matrix4f
-import net.minecraft.client.renderer.Tessellator
+import net.minecraft.client.renderer.*
 import net.minecraft.client.renderer.culling.ClippingHelperImpl
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
@@ -63,11 +61,13 @@ internal class ViewRenderManager : RenderPassManager {
      */
     fun renderWorld(partialTicks: Float, finishTimeNano: Long) {
         val mc = Minecraft.getMinecraft()
-        val view = mc.viewManager?.mainView
-        if (view == null) {
+        if (mc.player == null) {
             mc.entityRenderer.renderWorld(partialTicks, finishTimeNano)
             return
         }
+
+        val viewManager = ClientViewAPIImpl.viewManagerImpl
+        val view = viewManager.mainView
 
         if (mc.displayWidth != frameWidth || mc.displayHeight != frameHeight) {
             frameWidth = mc.displayWidth
@@ -89,7 +89,7 @@ internal class ViewRenderManager : RenderPassManager {
         // Capture main view camera settings
         realRenderDistanceChunks = mc.gameSettings.renderDistanceChunks
         GlStateManager.pushMatrix()
-        val camera = view.withView {
+        val camera = viewManager.withView(view) {
             eventHandler.capture = true
             mc.entityRenderer.setupCameraTransform(partialTicks, 0)
             eventHandler.capture = false
@@ -282,7 +282,7 @@ internal class ViewRenderPlan(
         var CURRENT: ViewRenderPlan? = null
         var PREVIOUS_FRAME: ViewRenderPlan? = null
     }
-    val world: World = view.camera.world
+    val world: World = view.world
     override var framebuffer: Framebuffer? = null
     var debugFramebuffer: Framebuffer? = null
 
@@ -340,7 +340,9 @@ internal class ViewRenderPlan(
         }
 
         if (view.manager.activeView != view) {
-            return view.withView { renderSelf(partialTicks, finishTimeNano) }
+            return (view as ClientViewImpl).manager.withView(view) {
+                renderSelf(partialTicks, finishTimeNano)
+            }
         }
         val mc = Minecraft.getMinecraft()
 

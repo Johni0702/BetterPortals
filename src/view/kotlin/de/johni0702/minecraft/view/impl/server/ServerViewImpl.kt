@@ -21,7 +21,7 @@ import net.minecraftforge.fml.common.FMLCommonHandler
 internal class ServerViewImpl(
         override val manager: ServerViewManagerImpl,
         id: Int,
-        override var camera: EntityPlayerMP,
+        override var player: EntityPlayerMP,
         var channel: EmbeddedChannel?
 ) : ServerView {
     override var isValid = true
@@ -80,8 +80,8 @@ internal class ServerViewImpl(
         }
 
         val mainView = manager.mainView
-        val player = mainView.camera
-        val camera = this.camera
+        val player = mainView.player
+        val camera = this.player
 
         LOGGER.info("Swapping main view {}/{}/{} with {}/{}/{}",
                 player.posX, player.posY, player.posZ,
@@ -112,7 +112,7 @@ internal class ServerViewImpl(
         // Make sure all packets which should have been sent by now are actually sent for the correct view
         manager.flushPackets()
 
-        this.camera = mainView.camera.also { mainView.camera = this.camera }
+        this.player = mainView.player.also { mainView.player = this.player }
         this.channel = mainView.channel.also { mainView.channel = this.channel }
 
         ChangeServerMainView(id).sendTo(player)

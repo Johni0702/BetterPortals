@@ -1,7 +1,9 @@
 package de.johni0702.minecraft.view.impl.mixin;
 
 import de.johni0702.minecraft.view.client.ClientView;
-import de.johni0702.minecraft.view.client.ClientViewManagerKt;
+import de.johni0702.minecraft.view.client.ClientViewManager;
+import de.johni0702.minecraft.view.impl.ClientViewAPIImpl;
+import de.johni0702.minecraft.view.impl.client.ClientViewImpl;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -28,11 +30,23 @@ public abstract class MixinWorldClient extends World  {
 
     @Inject(method = "getEntityByID", at = @At("HEAD"), cancellable = true)
     private void getPlayerEntityByID(int entityId, CallbackInfoReturnable<Entity> ci) {
-        for (ClientView view : ClientViewManagerKt.getViewManager(mc).getViews()) {
-            EntityPlayerSP camera = view.getCamera();
-            if (camera.world == this) {
-                if (camera.getEntityId() == entityId) {
-                    ci.setReturnValue(camera);
+        // Note: Cannot get viewManager via mc.viewManager as that'll return null during player swap when mc.player is null
+        ClientViewManager viewManager = ClientViewAPIImpl.INSTANCE.getViewManagerImpl$betterportals_view();
+        for (ClientView view : viewManager.getViews()) {
+            World world = view.getWorld();
+            if (world == this) {
+                if (viewManager.getActiveView() == view) {
+                    if (mc.player == null) {
+                        // The case during player swap, see ClientViewImpl.swapThePlayer
+                        ci.setReturnValue(super.getEntityByID(entityId));
+                    }
+                } else {
+                    EntityPlayerSP player = ((ClientViewImpl) view).getThePlayer();
+                    if (player != null && player.getEntityId() == entityId) {
+                        ci.setReturnValue(player);
+                    } else {
+                        ci.setReturnValue(super.getEntityByID(entityId));
+                    }
                 }
                 return;
             }

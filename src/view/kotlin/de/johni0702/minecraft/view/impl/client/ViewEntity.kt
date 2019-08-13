@@ -23,17 +23,6 @@ internal class ViewEntity constructor(world: WorldClient, connection: NetHandler
     }
 
     override fun setPositionAndRotation(x: Double, y: Double, z: Double, yaw: Float, pitch: Float) {
-        // If this method gets called while this view is the server's main view (i.e. the client went through a portal
-        // but the server doesn't know yet), then the player has been teleported around on the server side and we need
-        // to rewind the local portal usage. The server will ignored our UsePortal message because at the time it
-        // receives the message we have an open teleport still awaiting confirmation (the one which caused this call).
-        val viewManager = ClientViewAPIImpl.viewManagerImpl
-        val serverMainView = viewManager.serverMainView
-        if (serverMainView.camera == this) { // only when we are what the server sees as the main view
-            viewManager.rewindMainView()
-            // Forward pos/rot (camera of view will have been changed to the real player)
-            serverMainView.camera.setPositionAndRotation(x, y, z, yaw, pitch)
-        }
         super.setPositionAndRotation(x, y, z, yaw, pitch)
     }
 

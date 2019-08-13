@@ -1,7 +1,7 @@
 package de.johni0702.minecraft.view.impl.net
 
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
-import de.johni0702.minecraft.view.impl.common.sync
+import de.johni0702.minecraft.view.impl.common.clientSyncIgnoringView
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.util.AbstractReferenceCounted
@@ -42,7 +42,7 @@ internal class ViewData(
     internal class Handler : IMessageHandler<ViewData, IMessage> {
         override fun onMessage(message: ViewData, ctx: MessageContext): IMessage? {
             message.retain()
-            ctx.sync {
+            clientSyncIgnoringView {
                 try {
                     ClientViewAPIImpl.viewManagerImpl.handleViewData(message.viewId, message.data)
                 } finally {

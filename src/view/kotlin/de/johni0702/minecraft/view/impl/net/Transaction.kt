@@ -4,7 +4,7 @@ import de.johni0702.minecraft.betterportals.common.readEnum
 import de.johni0702.minecraft.betterportals.common.writeEnum
 import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.client.ViewDemuxingTaskQueue
-import de.johni0702.minecraft.view.impl.common.sync
+import de.johni0702.minecraft.view.impl.common.clientSyncIgnoringView
 import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft
 import net.minecraft.network.PacketBuffer
@@ -40,7 +40,7 @@ class Transaction(
                     // We need to block the network thread until MC's queue has been replaced.
                     // Otherwise the network thread might be quick enough to synchronize on the original queue, deadlocking
                     val syncedSemaphore = Semaphore(0)
-                    ctx.sync {
+                    clientSyncIgnoringView {
                         if (inTransaction++ == 0) {
                             val mc = Minecraft.getMinecraft()
 
@@ -73,7 +73,7 @@ class Transaction(
                     syncedSemaphore.acquire()
                 }
                 Phase.END -> {
-                    ctx.sync {
+                    clientSyncIgnoringView {
                         if (inTransaction <= 0) throw IllegalStateException("Transaction end without start!")
                         inTransaction--
                     }

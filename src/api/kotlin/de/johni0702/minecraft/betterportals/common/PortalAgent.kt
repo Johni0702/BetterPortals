@@ -142,7 +142,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
 
     open fun getRemoteAgent(): PortalAgent<T, P>? {
         val remoteWorld = if (world.isRemote) {
-            (view ?: return null).camera.world
+            (view ?: return null).world
         } else {
             world.minecraftServer!!.getWorld(portal.remoteDimension ?: return null)
         }
@@ -404,7 +404,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
                 }
 
                 // Update view position
-                view.camera.derivePosRotFrom(entity, portal)
+                view.player.derivePosRotFrom(entity, portal)
 
                 // Forcefully dismount player without changing its position
                 // We cannot just use dismountRidingEntity() as that'll send a position packet to the client.
@@ -413,7 +413,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
 
                 // Swap views
                 trackingPlayers.remove(entity)
-                trackingPlayers.add(view.camera)
+                trackingPlayers.add(view.player)
                 view.makeMainView(ticket)
 
                 entity
@@ -496,7 +496,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         }
 
         // Update view position
-        view.camera.derivePosRotFrom(player, portal)
+        view.player.derivePosRotFrom(player, portal)
 
         // Inform other clients that the entity is going to be teleported
         val trackingPlayers = player.serverWorld.entityTracker.getTracking(player).filterTo(mutableSetOf()) {
@@ -507,6 +507,10 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
 
         // Swap views
         if (!view.isMainView) {
+            if (view.player in trackingPlayers) {
+                trackingPlayers.remove(view.player)
+                trackingPlayers.add(player)
+            }
             view.makeMainView(ticket)
         }
 
@@ -548,8 +552,8 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             // preferably an existing view close by (half server view distance, ignoring y axis)
             val ticket = viewManager.views
                     .asSequence()
-                    .filter { it.camera.world == remoteWorld }
-                    .map { it to it.camera.pos.withoutY().distanceTo(portal.remotePosition.to3d().withoutY()) }
+                    .filter { it.player.world == remoteWorld }
+                    .map { it to it.player.pos.withoutY().distanceTo(portal.remotePosition.to3d().withoutY()) }
                     // at most half of server view distance between cam and portal
                     .filter { it.second < world.minecraftServer!!.playerList.entityViewDistance / 2 }
                     .sortedBy { it.second }
@@ -566,7 +570,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             // If you then move to bring the other overworld portal into view, it (`this`) will link to the already existing
             // view in the nether but its nether end (`remotePortal`) won't be linked back on the client.
             if (viewManager in remotePortal.tracking) {
-                manager.linkPortal(remotePortal, ticket.view.camera, localTicket)
+                manager.linkPortal(remotePortal, ticket.view.player, localTicket)
             }
 
             ticket
@@ -604,7 +608,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         // As such, by the time [afterUsePortal] is called, the portalUser in this world will be the view entity,
         // not the player entity.
         if (entity is EntityPlayerSP) {
-            portalUser = view?.camera
+            portalUser = view?.player
             if (portalUser == null) {
                 manager.logger.warn("Got pre portal usage message for client player on $this even though no view is set")
             }
@@ -629,7 +633,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             return
         }
 
-        val newEntity = view.camera.world.getEntityByID(entityId)
+        val newEntity = view.world.getEntityByID(entityId)
         if (newEntity == null) {
             manager.logger.warn("Oh no! The entity $entity with new id $entityId did not reappear at the other side of $this!")
             return
@@ -668,7 +672,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             manager.logger.warn("Failed to use portal $this because view has not been set")
             return false
         }
-        view.camera.deriveClientPosRotFrom(player, portal)
+        view.clientPlayer.deriveClientPosRotFrom(player, portal)
 
         val remotePortal = getRemoteAgent()
         if (remotePortal == null) {

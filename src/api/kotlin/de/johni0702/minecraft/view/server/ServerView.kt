@@ -2,6 +2,7 @@ package de.johni0702.minecraft.view.server
 
 import de.johni0702.minecraft.view.common.View
 import net.minecraft.entity.player.EntityPlayerMP
+import net.minecraft.world.WorldServer
 
 /**
  * New views can be created by calling [ServerViewManager.createView].
@@ -10,10 +11,12 @@ import net.minecraft.entity.player.EntityPlayerMP
  */
 interface ServerView : View {
     override val manager: ServerViewManager
-    override val camera: EntityPlayerMP
+    override val player: EntityPlayerMP
+    override val world: WorldServer
+        get() = player.serverWorld
 
     /**
-     * Changes this view to be the main view by swapping [camera] entities and designation with the [current main view]
+     * Changes this view to be the main view by swapping [player] entities and designation with the [current main view]
      * [ServerViewManager.mainView].
      *
      * The position, rotation and some other state of the camera entities are swapped as well, such that `camera.pos`

@@ -119,7 +119,7 @@ internal class PortalManagerImpl(override val world: World) : PortalManager {
             // However, actual teleportation will only happen in the main view, since it's
             // the only one containing the player.
             // But worlds will be switched in case there is a teleport, so we map them into a list first.
-            viewManager.views.mapNotNull { it.camera.world }.forEach { tickWorld(it) }
+            viewManager.views.map { it.world }.forEach { tickWorld(it) }
         }
 
         private fun tickWorld(world: World) {
