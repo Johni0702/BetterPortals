@@ -192,6 +192,17 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
         return anyUploadDone
     }
 
+    override fun getDebugInfo(): String {
+        val updates = states.values.sumBy { it.queuedUpdates.size }
+        return if (listWorkerThreads.isEmpty()) {
+            String.format("pN: %1d, pC: %03d, single-threaded", states.size, updates)
+        } else {
+            val uploads = states.values.sumBy { it.queuedUploads.size }
+            val freeBuilders = super.getDebugInfo().splitToSequence(" ").last()
+            String.format("pN: %1d, pC: %03d, pU: %1d, aB: %s", states.size, updates, uploads, freeBuilders)
+        }
+    }
+
     private inner class State(
             val renderGlobal: RenderGlobal
     ) {
