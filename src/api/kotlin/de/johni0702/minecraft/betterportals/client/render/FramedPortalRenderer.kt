@@ -26,7 +26,7 @@ open class FramedPortalRenderer<in P: FinitePortal>(
         with(tessellator.buffer) {
             begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION)
 
-            val blocks = portal.relativeBlocks.map { it.rotate(portal.localRotation) }
+            val blocks = portal.relativeBlocks.mapTo(mutableSetOf()) { it.rotate(portal.localRotation) }
             blocks.forEach { pos ->
                 setTranslation(offset.x + pos.x, offset.y + pos.y, offset.z + pos.z)
                 if (haveContent) {
