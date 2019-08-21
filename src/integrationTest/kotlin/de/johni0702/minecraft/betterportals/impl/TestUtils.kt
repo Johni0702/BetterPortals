@@ -51,6 +51,7 @@ fun launchServer() {
     until(10.seconds, fixedInterval(10.milliseconds), { server.playerList.players.isNotEmpty() }) {
         tickServer()
         updateClient(skipSync = true)
+        tickClient()
     }
 
     // Fully complete handshake and initial world loading, 30 times should be plenty
