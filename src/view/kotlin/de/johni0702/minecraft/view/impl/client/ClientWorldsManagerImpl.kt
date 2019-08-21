@@ -3,8 +3,7 @@ package de.johni0702.minecraft.view.impl.client
 import de.johni0702.minecraft.betterportals.common.popOrNull
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.removeAtOrNull
-import de.johni0702.minecraft.view.client.ClientView
-import de.johni0702.minecraft.view.client.ClientViewManager
+import de.johni0702.minecraft.view.client.ClientWorldsManager
 import de.johni0702.minecraft.view.impl.LOGGER
 import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft
@@ -22,24 +21,33 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.network.FMLNetworkEvent
 
-internal class ClientViewManagerImpl : ClientViewManager {
+internal class ClientWorldsManagerImpl : ClientWorldsManager {
+    override val worlds: List<WorldClient>
+        get() = views.map { it.world }
+
+    override fun changeDimension(newWorld: WorldClient, updatePosition: EntityPlayerSP.() -> Unit) {
+        val view = views.find { it.world == newWorld }
+        check(view != null) { "Unknown world $newWorld" }
+        makeClientMainView(view, updatePosition)
+    }
+
     val mc: Minecraft = Minecraft.getMinecraft()
 
     override val player: EntityPlayerSP
         get() = mainView.clientPlayer
 
-    override var mainView: ClientViewImpl = ClientViewImpl(this, 0, null, null, null, null).apply {
+    var mainView: ClientState = ClientState(this, null, null, null, null).apply {
         captureState(mc)
     }
 
-    private val unusedViews = mutableListOf<ClientViewImpl>()
+    private val unusedViews = mutableListOf<ClientState>()
 
-    override val views = mutableListOf(mainView)
+    val views = mutableListOf(mainView)
 
-    override var activeView = mainView
+    var activeView = mainView
     private var inUpdate = false
 
-    override val serverMainView
+    val serverMainView
         get() = unconfirmedChanges.firstOrNull()?.old ?: mainView
 
     /**
@@ -48,7 +56,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
      */
     private val unconfirmedChanges = mutableListOf<MainViewChange>()
 
-    fun getServerPlayer(view: ClientViewImpl): EntityPlayerSP {
+    fun getServerPlayer(view: ClientState): EntityPlayerSP {
         val serverView = if (inUpdate) {
             view
         } else {
@@ -67,7 +75,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
         }
     }
 
-    fun getClientPlayer(view: ClientViewImpl): EntityPlayerSP {
+    fun getClientPlayer(view: ClientState): EntityPlayerSP {
         val clientView = if (inUpdate) {
             unconfirmedChanges.fold(view) { curr, change ->
                 if (change.old == curr) {
@@ -90,7 +98,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
         unconfirmedChanges.clear()
 
         views.remove(mainView)
-        mainView = ClientViewImpl(this, 0, null, null, null, null).also { it.captureState(mc) }
+        mainView = ClientState(this, null, null, null, null).also { it.captureState(mc) }
         activeView = mainView
 
         unusedViews.addAll(views)
@@ -103,20 +111,13 @@ internal class ClientViewManagerImpl : ClientViewManager {
         MinecraftForge.EVENT_BUS.register(EventHandler())
     }
 
-    fun createView(viewId: Int, world: WorldClient): ClientView? {
-        if (views.find { it.id == viewId } != null) {
-            throw IllegalArgumentException("View id $viewId is already taken")
-        }
-        return try {
-            ClientViewImpl.reuseOrCreate(this, viewId, world, unusedViews.popOrNull()).also { views.add(it) }
-        } catch (t: Throwable) {
-            LOGGER.error("Creating world view:", t)
-            views[viewId] = ClientViewImpl(this, viewId, null, null, null, null)
-            null
-        }
+    fun createState(world: WorldClient): ClientState {
+        val dim = world.provider.dimension
+        check(views.find { it.world.provider.dimension == dim } == null) { "World with dimension $dim already exists" }
+        return ClientState.reuseOrCreate(this, world, unusedViews.popOrNull()).also { views.add(it) }
     }
 
-    fun destroyView(view: ClientViewImpl) {
+    fun destroyState(view: ClientState) {
         LOGGER.debug("Removing view {}", view)
         if (activeView != mainView) throw IllegalStateException("Main view must be active")
         if (view == mainView) throw IllegalArgumentException("Cannot remove main view")
@@ -125,36 +126,35 @@ internal class ClientViewManagerImpl : ClientViewManager {
             mc.renderGlobal.setWorldAndLoadRenderers(null)
         }
 
-        view.checkValid()
         check(views.remove(view)) { "Unknown view $view" }
         view.isValid = false
         unusedViews.add(view)
     }
 
-    fun handleViewData(serverViewId: Int, data: ByteBuf) {
+    fun handleWorldData(dimensionId: Int, data: ByteBuf) {
         try {
-            val view = views.find { it.id == serverViewId }
+            val view = views.find { it.dimension == dimensionId }
             if (view == null) {
-                LOGGER.warn("Received data for unknown view {}", serverViewId)
+                LOGGER.warn("Received data for unknown dimension {}", dimensionId)
                 return
             }
             val channel = view.channel
             if (channel != null) {
-                updateView(view) {
+                updateState(view) {
                     data.retain()
                     channel.writeInbound(data)
                 }
             } else {
-                LOGGER.warn("Received data for main view {} via ViewData message", view)
+                LOGGER.warn("Received data for main dimension {} via WorldData message", view)
             }
         } catch (t: Throwable) {
-            LOGGER.error("Handling view data for view $serverViewId:", t)
+            LOGGER.error("Handling view data for dimension $dimensionId:", t)
         }
     }
 
-    fun <T> updateView(view: ClientViewImpl, block: () -> T): T {
+    fun <T> updateState(view: ClientState, block: () -> T): T {
         if (inUpdate) {
-            throw IllegalStateException("nested updateView")
+            throw IllegalStateException("nested updateState")
         }
         if (activeView != mainView) {
             throw IllegalStateException("already in withView")
@@ -185,7 +185,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
         }
     }
 
-    fun <T> withView(view: ClientViewImpl, block: () -> T): T {
+    fun <T> withView(view: ClientState, block: () -> T): T {
         if (activeView != mainView) {
             throw IllegalStateException("already in withView")
         }
@@ -204,7 +204,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
         }
     }
 
-    internal fun makeClientMainView(newMainView: ClientViewImpl) {
+    internal fun makeClientMainView(newMainView: ClientState, updatePosition: EntityPlayerSP.() -> Unit) {
         if (inUpdate) {
             throw IllegalStateException("Cannot change main view during update / packet handling")
         }
@@ -220,13 +220,14 @@ internal class ClientViewManagerImpl : ClientViewManager {
         LOGGER.info("Swapping main view $mainView with $newMainView")
 
         makeMainView(newMainView)
+        updatePosition(player)
     }
 
-    private fun makeMainView(newMainView: ClientViewImpl) {
+    private fun makeMainView(newMainView: ClientState) {
         unconfirmedChanges.add(MainViewChange(mainView, newMainView, mainView.clientPlayer.pos))
 
         activeView.captureState(mc)
-        newMainView.swapThePlayer(activeView, true)
+        newMainView.swapThePlayer(activeView, false)
         newMainView.copyRenderState(activeView)
         newMainView.restoreState(mc)
         activeView = newMainView
@@ -274,16 +275,16 @@ internal class ClientViewManagerImpl : ClientViewManager {
         }
     }
 
-    fun makeMainViewAck(viewId: Int) {
-        LOGGER.info("Ack for swap of {}", viewId)
+    fun makeMainViewAck(dimensionId: Int) {
+        LOGGER.info("Ack for swap of {}", dimensionId)
 
-        val expectedId = unconfirmedChanges.getOrNull(0)?.new?.id
-        if (expectedId != viewId) {
+        val expectedId = unconfirmedChanges.getOrNull(0)?.new?.dimension
+        if (expectedId != dimensionId) {
             // We haven't requested this change, someone must have called `PlayerList.transferPlayerToDimension` on the server.
             // Rewind all view changes which haven't yet been confirmed by the server (it'll ignore them because it decided for us to go elsewhere)
             rewindMainView()
             // So, let's act as if we did request it
-            makeMainView(views.find { it.id == viewId }!!)
+            makeMainView(views.find { it.dimension == dimensionId }!!)
         }
 
         val change = unconfirmedChanges.removeAtOrNull(0)!!
@@ -307,7 +308,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
 
         mc.mcProfiler.startSection("tickViews")
 
-        views.filter { !it.isMainView }.forEach { view ->
+        views.filter { it != mainView }.forEach { view ->
             withView(view) {
                 tickView()
             }
@@ -319,7 +320,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
     private fun tickView() {
         if (mc.entityRenderer == null) return
 
-        mc.mcProfiler.startSection(activeView.id.toString())
+        mc.mcProfiler.startSection(activeView.dimension.toString())
 
         mc.entityRenderer.getMouseOver(1.0F)
 
@@ -396,7 +397,7 @@ internal class ClientViewManagerImpl : ClientViewManager {
 }
 
 internal data class MainViewChange(
-        val old: ClientViewImpl,
-        val new: ClientViewImpl,
+        val old: ClientState,
+        val new: ClientState,
         val fallbackPos: Vec3d
 )

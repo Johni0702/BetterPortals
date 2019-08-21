@@ -3,20 +3,19 @@ package de.johni0702.minecraft.betterportals.common.tile
 import de.johni0702.minecraft.betterportals.common.Portal
 import de.johni0702.minecraft.betterportals.common.PortalAccessor
 import de.johni0702.minecraft.betterportals.common.PortalAgent
-import de.johni0702.minecraft.view.server.FixedLocationTicket
 import net.minecraft.tileentity.TileEntity
 import net.minecraft.util.ResourceLocation
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 
 interface PortalTileEntity<out P: Portal.Mutable> {
-    val agent: PortalAgent<FixedLocationTicket, P>?
+    val agent: PortalAgent<P>?
 }
 
 class PortalTileEntityAccessor<E, P: Portal.Mutable>(
         private val type: Class<E>,
         private val world: World
-) : PortalAccessor<FixedLocationTicket>
+) : PortalAccessor
         where E: PortalTileEntity<P>,
               E: TileEntity
 {
@@ -43,10 +42,10 @@ class PortalTileEntityAccessor<E, P: Portal.Mutable>(
             return field
         }
     val tileEntities: List<E> get() = tileEntitiesList
-    override val loadedPortals: Iterable<PortalAgent<FixedLocationTicket, Portal.Mutable>> =
+    override val loadedPortals: Iterable<PortalAgent<Portal.Mutable>> =
             Sequence { tileEntities.iterator() }.mapNotNull { it.agent }.asIterable()
 
-    override fun findById(id: ResourceLocation): PortalAgent<FixedLocationTicket, Portal.Mutable>? {
+    override fun findById(id: ResourceLocation): PortalAgent<Portal.Mutable>? {
         if (id.resourceDomain != "minecraft") return null
         if (!id.resourcePath.startsWith("tile/pos/")) return null
         val pos = id.resourcePath.substring("tile/pos/".length).toBlockPos() ?: return null

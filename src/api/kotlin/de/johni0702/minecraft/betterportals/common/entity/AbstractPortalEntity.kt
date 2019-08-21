@@ -1,12 +1,14 @@
 package de.johni0702.minecraft.betterportals.common.entity
 
 import de.johni0702.minecraft.betterportals.common.*
-import de.johni0702.minecraft.view.server.FixedLocationTicket
 import io.netty.buffer.ByteBuf
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.network.PacketBuffer
+import net.minecraft.network.datasync.DataParameter
+import net.minecraft.network.datasync.DataSerializers
+import net.minecraft.network.datasync.EntityDataManager
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.ResourceLocation
 import net.minecraft.util.Rotation
@@ -23,31 +25,15 @@ open class PortalEntityPortalAgent<out E: AbstractPortalEntity>(
         manager: PortalManager,
         val entity: E,
         portalConfig: PortalConfiguration
-) : PortalAgent<FixedLocationTicket, E>(
+) : PortalAgent<E>(
         manager,
         PortalEntityAccessor.getId(entity),
         entity,
-        { it.allocateFixedLocationTicket() },
         portalConfig
 ) {
-    @Deprecated("missing `PortalConfig` argument")
-    constructor(manager: PortalManager, entity: E) : this(manager, entity, PortalConfiguration())
-
     // The entity ID might not be correct before the entity is actually spawned into the world
     override val id: ResourceLocation
         get() = PortalEntityAccessor.getId(entity)
-
-    override fun serverPortalUsed(player: EntityPlayerMP): Boolean {
-        val remotePortal = entity.getRemotePortal()
-        entity.ignoreTracking = true
-        remotePortal?.ignoreTracking = true
-        try {
-            return super.serverPortalUsed(player)
-        } finally {
-            entity.ignoreTracking = false
-            remotePortal?.ignoreTracking = false
-        }
-    }
 }
 
 abstract class AbstractPortalEntity(
@@ -63,19 +49,9 @@ abstract class AbstractPortalEntity(
         portalConfig: PortalConfiguration
 ) : Entity(world), PortalEntity<FinitePortal.Mutable>, FinitePortal.Mutable, IEntityAdditionalSpawnData {
 
-    @Deprecated("missing `PortalConfig` argument")
-    constructor(
-            world: World,
-            plane: EnumFacing.Plane,
-            relativeBlocks: Set<BlockPos>,
-            localDimension: Int,
-            localPosition: BlockPos,
-            localRotation: Rotation,
-            remoteDimension: Int?,
-            remotePosition: BlockPos,
-            remoteRotation: Rotation
-    ) : this(world, plane, relativeBlocks, localDimension, localPosition, localRotation, remoteDimension, remotePosition, remoteRotation,
-            PortalConfiguration())
+    companion object {
+        private val PORTAL = EntityDataManager.createKey(AbstractPortalEntity::class.java, DataSerializers.COMPOUND_TAG)
+    }
 
     override var localPosition: BlockPos by Delegates.observable(localPosition) { _, _, _ -> updatePortalFields() }
     override var localRotation: Rotation by Delegates.observable(localRotation) { _, _, _ -> updatePortalFields() }
@@ -113,6 +89,7 @@ abstract class AbstractPortalEntity(
 
         with(localPosition.to3d()) { setPosition(x + 0.5, y + 0.5, z + 0.5) }
         setRotation(localRotation.degrees.toFloat(), 0f)
+        dataManager[PORTAL] = writePortalToNBT()
     }
 
     init {
@@ -138,8 +115,15 @@ abstract class AbstractPortalEntity(
         this.setRotation(localRotation.degrees.toFloat(), 0f)
     }
 
-
     override fun entityInit() {
+        dataManager.register(PORTAL, NBTTagCompound())
+    }
+
+    override fun notifyDataManagerChange(key: DataParameter<*>) {
+        super.notifyDataManagerChange(key)
+        if (world.isRemote) {
+            readPortalFromNBT(dataManager.get(PORTAL))
+        }
     }
 
     override fun onUpdate() {
@@ -173,7 +157,7 @@ abstract class AbstractPortalEntity(
 
     fun getRemotePortal(): AbstractPortalEntity? {
         val remoteWorld = if (world.isRemote) {
-            (agent.view ?: return null).world
+            agent.remoteWorld ?: return null
         } else {
             world.minecraftServer!!.getWorld(remoteDimension ?: return null)
         }
@@ -189,28 +173,17 @@ abstract class AbstractPortalEntity(
     //  Server-side
     //
 
-    // When switching main view of a player, we need to ignore any add/removeTrackingPlayer calls
-    // as otherwise we'll release our ticket for the player and might not be able to get it back.
-    internal var ignoreTracking = false
     private val trackingPlayers = mutableListOf<EntityPlayerMP>()
 
     override fun addTrackingPlayer(player: EntityPlayerMP) {
         super.addTrackingPlayer(player)
-
         trackingPlayers.add(player)
-
-        if (ignoreTracking) return
-
         agent.addTrackingPlayer(player)
     }
 
     override fun removeTrackingPlayer(player: EntityPlayerMP) {
         super.removeTrackingPlayer(player)
-
         trackingPlayers.remove(player)
-
-        if (ignoreTracking) return
-
         agent.removeTrackingPlayer(player)
     }
 

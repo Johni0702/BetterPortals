@@ -3,7 +3,6 @@ package de.johni0702.minecraft.betterportals.common.entity
 import de.johni0702.minecraft.betterportals.common.Portal
 import de.johni0702.minecraft.betterportals.common.PortalAccessor
 import de.johni0702.minecraft.betterportals.common.PortalAgent
-import de.johni0702.minecraft.view.server.FixedLocationTicket
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayer
@@ -15,7 +14,7 @@ import net.minecraft.world.IWorldEventListener
 import net.minecraft.world.World
 
 interface PortalEntity<out P: Portal.Mutable> {
-    val agent: PortalAgent<FixedLocationTicket, P>
+    val agent: PortalAgent<P>
 
     interface OneWay<out P: Portal.Mutable> : PortalEntity<P> {
         /**
@@ -38,13 +37,13 @@ interface PortalEntity<out P: Portal.Mutable> {
 class PortalEntityAccessor<E, P: Portal.Mutable>(
         private val type: Class<E>,
         private val world: World
-) : PortalAccessor<FixedLocationTicket>
+) : PortalAccessor
         where E: PortalEntity<P>,
               E: Entity
 {
     val entities: List<E>
         get() = world.getEntities(type) { it?.isDead == false }
-    override val loadedPortals: Iterable<PortalAgent<FixedLocationTicket, Portal.Mutable>>
+    override val loadedPortals: Iterable<PortalAgent<Portal.Mutable>>
         get() = entities.map { it.agent }
 
     private val changeCallbacks = mutableListOf<() -> Unit>()
@@ -75,7 +74,7 @@ class PortalEntityAccessor<E, P: Portal.Mutable>(
         })
     }
 
-    override fun findById(id: ResourceLocation): PortalAgent<FixedLocationTicket, Portal.Mutable>? {
+    override fun findById(id: ResourceLocation): PortalAgent<Portal.Mutable>? {
         if (id.resourceDomain != "minecraft") return null
         if (!id.resourcePath.startsWith("entity/id/")) return null
         val entityId = id.resourcePath.substring("entity/id/".length).toIntOrNull() ?: return null

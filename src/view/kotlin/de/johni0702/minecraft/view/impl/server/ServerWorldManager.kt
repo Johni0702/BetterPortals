@@ -2,85 +2,127 @@ package de.johni0702.minecraft.view.impl.server
 
 import de.johni0702.minecraft.betterportals.common.haveCubicChunks
 import de.johni0702.minecraft.view.impl.LOGGER
-import de.johni0702.minecraft.view.impl.common.swapPosRotWith
-import de.johni0702.minecraft.view.impl.net.ChangeServerMainView
+import de.johni0702.minecraft.view.impl.mixin.AccessorCubeWatcher_CC
+import de.johni0702.minecraft.view.impl.net.ChangeServerMainWorld
 import de.johni0702.minecraft.view.impl.net.sendTo
-import de.johni0702.minecraft.view.server.*
+import de.johni0702.minecraft.view.impl.worldsManagerImpl
+import de.johni0702.minecraft.view.server.View
+import io.github.opencubicchunks.cubicchunks.core.server.CubeWatcher
 import io.github.opencubicchunks.cubicchunks.core.server.PlayerCubeMap
-import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.advancements.CriteriaTriggers
 import net.minecraft.entity.EntityTrackerEntry
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.server.management.PlayerChunkMapEntry
+import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
 import net.minecraft.world.DimensionType
+import net.minecraft.world.WorldServer
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.world.ChunkWatchEvent
 import net.minecraftforge.fml.common.FMLCommonHandler
 
-internal class ServerViewImpl(
-        override val manager: ServerViewManagerImpl,
-        id: Int,
-        override var player: EntityPlayerMP,
-        var channel: EmbeddedChannel?
-) : ServerView {
-    override var isValid = true
-    override val id: Int = id
-        get() = checkValid().let { field }
-    internal var tickets = mutableListOf<TicketImpl>()
-    private var fixedLocationTickets = 0
-    private var exclusiveTickets = 0
+internal class ServerWorldManager(
+        private val manager: ServerWorldsManagerImpl,
+        val world: WorldServer,
+        var player: EntityPlayerMP
+) {
+    val views = mutableListOf<View>()
+    var activeViews = mutableListOf<View>()
 
-    override fun allocatePlainTicket(): Ticket = checkValid().let { TicketImpl(this).also { tickets.add(it) } }
+    var trackedColumns = mutableSetOf<ChunkPos>()
+    var trackedCubes = mutableSetOf<Vec3i>()
 
-    override fun allocateFixedLocationTicket(): FixedLocationTicket? = checkValid().let {
-        if (exclusiveTickets > 0) {
-            null
-        } else {
-            fixedLocationTickets += 1
-            FixedLocationTicketImpl(this).also { tickets.add(it) }
-        }
-    }
+    var needsUpdate = false
 
-    override fun allocateExclusiveTicket(): ExclusiveTicket? = checkValid().let {
-        if (fixedLocationTickets > 0 || exclusiveTickets > 0) {
-            null
-        } else {
-            exclusiveTickets += 1
-            ExclusiveTicketImpl(this).also { tickets.add(it) }
-        }
-    }
+    fun updateTrackedColumns(getOrCreateEntry: (ChunkPos) -> PlayerChunkMapEntry) {
+        val updatedColumns = mutableSetOf<ChunkPos>()
 
-    internal fun releaseTicket(ticket: TicketImpl) {
-        tickets.remove(ticket)
-        if (ticket is FixedLocationTicket) {
-            fixedLocationTickets -= 1
-        }
-        if (ticket is ExclusiveTicket) {
-            exclusiveTickets -= 1
-        }
-    }
-
-    override fun makeMainView(ticket: CanMakeMainView) {
-        checkValid()
-        ticket.ensureValid(this)
-        makeMainView()
-    }
-
-    override fun releaseAndMakeMainView(ticket: CanMakeMainView) {
-        checkValid()
-        ticket.ensureValid(this)
-        ticket.release()
-        makeMainView()
-    }
-
-    private fun makeMainView() {
-        if (isMainView) {
-            throw IllegalStateException("makeMainView called on main view")
+        // Always need to keep our current chunk loaded (even for views) as otherwise we'll be removed from the world
+        val selfPos = with(player) { ChunkPos(chunkCoordX, chunkCoordZ) }
+        updatedColumns.add(selfPos)
+        if (selfPos !in trackedColumns) {
+            getOrCreateEntry(selfPos).addPlayer(player)
         }
 
-        val mainView = manager.mainView
-        val player = mainView.player
+        activeViews.forEach {
+            it.cubeSelector.forEachColumn { pos ->
+                if (updatedColumns.add(pos)) {
+                    if (pos !in trackedColumns) {
+                        getOrCreateEntry(pos).addPlayer(player)
+                    }
+                }
+            }
+        }
+
+        trackedColumns.forEach { pos ->
+            if (pos !in updatedColumns) {
+                getOrCreateEntry(pos).removePlayer(player)
+            }
+        }
+
+        trackedColumns = updatedColumns
+    }
+
+    fun updateTrackedColumnsAndCubes(
+            getOrCreateColumnWatcher: (ChunkPos) -> PlayerChunkMapEntry,
+            getOrCreateCubeWatcher: (Vec3i) -> CubeWatcher
+    ) {
+        val getOrCreateCubeWatcherAccessor = { pos: Vec3i ->
+            getOrCreateCubeWatcher(pos) as AccessorCubeWatcher_CC
+        }
+        val updatedColumns = mutableSetOf<ChunkPos>()
+        val updatedCubes = mutableSetOf<Vec3i>()
+
+        // Always need to keep our current cube loaded (even for views) as otherwise we'll be removed from the world
+        val selfColumnPos = with(player) { ChunkPos(chunkCoordX, chunkCoordZ) }
+        val selfCubePos = with(player) { Vec3i(chunkCoordX, chunkCoordY, chunkCoordZ) }
+        updatedColumns.add(selfColumnPos)
+        updatedCubes.add(selfCubePos)
+        if (selfColumnPos !in trackedColumns) {
+            getOrCreateColumnWatcher(selfColumnPos).addPlayer(player)
+        }
+        if (selfCubePos !in trackedCubes) {
+            getOrCreateCubeWatcherAccessor(selfCubePos).invokeAddPlayer(player)
+        }
+
+        activeViews.forEach {
+            it.cubeSelector.forEachCube { cubePos ->
+                if (updatedCubes.add(cubePos)) {
+                    val columnPos = ChunkPos(cubePos.x, cubePos.z)
+                    if (updatedColumns.add(columnPos)) {
+                        if (columnPos !in trackedColumns) {
+                            getOrCreateColumnWatcher(columnPos).addPlayer(player)
+                        }
+                    }
+                    if (cubePos !in trackedCubes) {
+                        getOrCreateCubeWatcherAccessor(cubePos).invokeAddPlayer(player)
+                    }
+                }
+            }
+        }
+
+        trackedCubes.forEach { cubePos ->
+            if (cubePos !in updatedCubes) {
+                getOrCreateCubeWatcherAccessor(cubePos).invokeRemovePlayer(player)
+            }
+        }
+
+        trackedColumns.forEach { columnPos ->
+            if (columnPos !in updatedColumns) {
+                getOrCreateColumnWatcher(columnPos).removePlayer(player)
+            }
+        }
+
+        trackedColumns = updatedColumns
+        trackedCubes = updatedCubes
+    }
+
+    internal fun makeMainWorld(updatePosition: EntityPlayerMP.() -> Unit) {
+        check(player is ViewEntity) { "makeMainWorld called on main view" }
+
+        val main = manager.mainWorldManager
+        val player = main.player
         val camera = this.player
 
         LOGGER.info("Swapping main view {}/{}/{} with {}/{}/{}",
@@ -112,21 +154,18 @@ internal class ServerViewImpl(
         // Make sure all packets which should have been sent by now are actually sent for the correct view
         manager.flushPackets()
 
-        this.player = mainView.player.also { mainView.player = this.player }
-        this.channel = mainView.channel.also { mainView.channel = this.channel }
+        this.player = main.player.also { main.player = this.player }
 
-        ChangeServerMainView(id).sendTo(player)
-
-        manager.mainView = this
+        ChangeServerMainWorld(world.provider.dimension).sendTo(player)
 
         manager.server.playerList.updatePermissionLevel(player)
 
-        player.swapPosRotWith(camera)
-
-        player.connection.captureCurrentPosition()
-
         player.dimension = newDim
         camera.dimension = oldDim
+
+        updatePosition(player)
+
+        player.connection.captureCurrentPosition()
 
         player.setWorld(newWorld)
         camera.setWorld(oldWorld)
@@ -177,30 +216,23 @@ internal object EntityTrackerHandler : SwapHandler {
 
 internal object PlayerChunkMapHandler : SwapHandler {
     override fun swap(prevPlayer: EntityPlayerMP): (EntityPlayerMP) -> Unit {
-        val managedPosX = prevPlayer.managedPosX
-        val managedPosZ = prevPlayer.managedPosZ
-        val chunkPosX = managedPosX.toInt() shr 4
-        val chunkPosZ = managedPosZ.toInt() shr 4
-        val viewRadius = prevPlayer.mcServer.playerList.viewDistance
-        val playerChunkMap = prevPlayer.serverWorld.playerChunkMap
+        val world = prevPlayer.serverWorld
+        val worldManager = prevPlayer.worldsManagerImpl.worldManagers.getValue(world)
+        val playerChunkMap = world.playerChunkMap
         val knownChunks = mutableListOf<PlayerChunkMapEntry>()
-        for (x in chunkPosX - viewRadius..chunkPosX + viewRadius) {
-            for (z in chunkPosZ - viewRadius..chunkPosZ + viewRadius) {
-                val entry = playerChunkMap.getEntry(x, z)
-                if (entry != null && entry.players.remove(prevPlayer)) {
-                    if (entry.isSentToPlayers) {
-                        MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.UnWatch(entry.chunk, prevPlayer))
-                    }
-                    knownChunks.add(entry)
+        worldManager.trackedColumns.forEach {
+            val entry = playerChunkMap.getEntry(it.x, it.z)
+            if (entry != null && entry.players.remove(prevPlayer)) {
+                if (entry.isSentToPlayers) {
+                    MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.UnWatch(entry.chunk, prevPlayer))
                 }
+                knownChunks.add(entry)
             }
         }
 
         playerChunkMap.players.remove(prevPlayer)
 
         return { newPlayer ->
-            newPlayer.managedPosX = managedPosX
-            newPlayer.managedPosZ = managedPosZ
             knownChunks.forEach {
                 it.players.add(newPlayer)
                 if (it.isSentToPlayers) {
@@ -214,12 +246,6 @@ internal object PlayerChunkMapHandler : SwapHandler {
 
 internal object PlayerCubeMapHandler : SwapHandler {
     /**
-     * Ordinarily CC would run its chunk GC when we call [PlayerCubeMap.updateMovingPlayer]. Since we're calling
-     * from a non-standard location, that might not be safe though.
-     */
-    var suppressChunkGc = false
-
-    /**
      * This is where the magic happens. When this is `true`, we suppress the ordinary chunk (un-)load packets because
      * we don't need them (the client will just swap its world and then it'll already have them).
      */
@@ -229,14 +255,6 @@ internal object PlayerCubeMapHandler : SwapHandler {
         val playerChunkMap = prevPlayer.serverWorld.playerChunkMap
                 as? PlayerCubeMap
                 ?: return PlayerChunkMapHandler.swap(prevPlayer)
-
-
-        // Make sure their managedPos matches their pos
-        // Irrelevant for vanilla as we'll swap the exact managedPos anyway but crucial for CubicChunks because
-        // access to its internals is quite difficult (i.e. would require lots of reflection).
-        suppressChunkGc = true
-        playerChunkMap.updateMovingPlayer(prevPlayer)
-        suppressChunkGc = false
 
         swapInProgress = true
         playerChunkMap.removePlayer(prevPlayer)
@@ -248,4 +266,12 @@ internal object PlayerCubeMapHandler : SwapHandler {
             swapInProgress = false
         }
     }
+}
+
+// This is here as a workaround for https://github.com/SpongePowered/Mixin/issues/305 or (or 288, not sure)
+fun CubeWatcher.removePlayer(player: EntityPlayerMP) {
+    (this as AccessorCubeWatcher_CC).invokeRemovePlayer(player)
+}
+fun CubeWatcher.addPlayer(player: EntityPlayerMP) {
+    (this as AccessorCubeWatcher_CC).invokeAddPlayer(player)
 }

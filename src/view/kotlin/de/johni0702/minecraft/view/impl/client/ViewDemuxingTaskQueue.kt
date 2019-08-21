@@ -23,7 +23,7 @@ internal class ViewDemuxingTaskQueue(
         val viewManager = ClientViewAPIImpl.viewManagerImpl
 
         // Determine the view which this task most likely belongs to
-        val view: () -> ClientViewImpl = when {
+        val view: () -> ClientState = when {
             // We already know this one
             inner is ViewWrappedFutureTask ->
                 return inner
@@ -68,14 +68,14 @@ internal class ViewDemuxingTaskQueue(
     }
 
     class ViewWrappedFutureTask<T>(
-            private val viewGetter: () -> ClientViewImpl?,
+            private val viewGetter: () -> ClientState?,
             private val wrapped: FutureTask<T>
     ) : FutureTask<T>({
         val view = viewGetter()
         if (view == null) {
             wrapped.run()
         } else {
-            ClientViewAPIImpl.viewManagerImpl.updateView(view) {
+            ClientViewAPIImpl.viewManagerImpl.updateState(view) {
                 wrapped.run()
             }
         }

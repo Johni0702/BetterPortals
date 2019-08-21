@@ -55,7 +55,6 @@ fun runTests(): Boolean {
             .selectors(selectClass(SinglePortalWithSecondNearbyTraversalTest::class.java))
             .selectors(selectClass(DoublePortalTraversalTests::class.java))
             .selectors(selectClass(NearTeleporterTraversalTests::class.java))
-            //.selectors(selectClass(DistinctViewsOnNearTeleporterTraversalTests::class.java))
             .build()
     val launcher = LauncherFactory.create()
     val testPlan = launcher.discover(request)

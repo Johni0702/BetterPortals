@@ -14,11 +14,11 @@ interface ClientViewAPI {
     }
 
     /**
-     * Returns the client-side view manager responsible for the given instance of the Minecraft client.
-     * Returns `null` when no view manager is currently present (e.g. while still in the main menu or not yet fully
+     * Returns the client-side worlds manager responsible for the given instance of the Minecraft client.
+     * Returns `null` when no worlds manager is currently present (e.g. while still in the main menu or not yet fully
      * connected).
      */
-    fun getViewManager(minecraft: Minecraft): ClientViewManager?
+    fun getWorldsManager(minecraft: Minecraft): ClientWorldsManager?
 
     /**
      * Return the [RenderPassManager] responsible for the given instance of the Minecraft client.

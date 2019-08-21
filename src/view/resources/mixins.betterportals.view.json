@@ -3,10 +3,12 @@
   "package": "de.johni0702.minecraft.view.impl.mixin",
   "plugin": "de.johni0702.minecraft.view.impl.BetterPortalsMixinConfigPlugin",
   "mixins": [
-    "MixinChunkGc_CC",
+    "AccessorCubeWatcher_CC",
     "MixinColumnWatcher_CC",
     "MixinCubeWatcher_CC",
+    "MixinEntityTrackerEntry",
     "MixinNetHandlerPlayerServer",
+    "MixinPlayerChunkMap",
     "MixinPlayerCubeMap_CC",
     "MixinPlayerList",
     "MixinServerWorldEventHandler"
@@ -19,9 +21,11 @@
     "MixinEntityRenderer_OF",
     "MixinIntegratedServer",
     "MixinNetHandlerPlayerClient",
+    "MixinRenderChunk",
     "MixinRenderGlobal",
     "MixinRenderLivingBase",
     "MixinRenderPlayer",
+    "MixinViewFrustum",
     "MixinWorldClient"
   ],
   "compatibilityLevel": "JAVA_8",

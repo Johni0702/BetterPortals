@@ -1,6 +1,6 @@
 package de.johni0702.minecraft.view.client.render
 
-import de.johni0702.minecraft.view.client.ClientView
+import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.shader.Framebuffer
 import net.minecraftforge.fml.common.eventhandler.Cancelable
 import net.minecraftforge.fml.common.eventhandler.Event
@@ -23,9 +23,9 @@ interface RenderPass {
     val parent: RenderPass?
 
     /**
-     * The view which will be rendered.
+     * The world which will be rendered.
      */
-    val view: ClientView
+    val world: WorldClient
 
     /**
      * The camera from which the view will be rendered.
@@ -49,7 +49,7 @@ interface RenderPass {
      * Optionally, a render pass from a previous frame can be passed which allows tracking of certain information
      * (e.g. occlusion queries) across multiple frames.
      */
-    fun addChild(view: ClientView, camera: Camera, previousFrame: RenderPass?): RenderPass
+    fun addChild(world: WorldClient, camera: Camera, previousFrame: RenderPass?): RenderPass
 
     /**
      * Set detail of given type.

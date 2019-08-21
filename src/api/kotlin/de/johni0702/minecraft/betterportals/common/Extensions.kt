@@ -4,6 +4,7 @@ import io.github.opencubicchunks.cubicchunks.api.util.CubePos
 import io.github.opencubicchunks.cubicchunks.api.world.ICubeProviderServer
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld
 import io.github.opencubicchunks.cubicchunks.core.server.CubeProviderServer
+import io.github.opencubicchunks.cubicchunks.core.server.ICubicPlayerList
 import net.minecraft.block.state.IBlockState
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.entity.Entity
@@ -15,6 +16,7 @@ import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.network.PacketBuffer
+import net.minecraft.server.management.PlayerList
 import net.minecraft.util.BitArray
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.Rotation
@@ -89,12 +91,14 @@ fun Vec3i.to3d(): Vec3d = Vec3d(this.x.toDouble(), this.y.toDouble(), this.z.toD
 fun Vec3i.to3dMid(): Vec3d = this.to3d() + Vec3d(0.5, 0.5, 0.5)
 operator fun BlockPos.plus(other: Vec3i): BlockPos = add(other)
 operator fun Vec3i.plus(other: Vec3i): Vec3i = Vec3i(x + other.x, y + other.y, z + other.z)
+operator fun Vec3i.minus(other: Vec3i): Vec3i = Vec3i(x - other.x, y - other.y, z - other.z)
 operator fun Vec3i.times(n: Int): Vec3i = Vec3i(x * n, y * n, z * n)
 operator fun Vec3d.plus(other: Vec3d): Vec3d = add(other)
 operator fun Vec3d.minus(other: Vec3d): Vec3d = subtract(other)
 operator fun Vec3d.unaryMinus(): Vec3d = times(-1)
 operator fun Vec3d.times(n: Int): Vec3d = Vec3d(x * n, y * n, z * n)
 operator fun Vec3d.times(d: Double): Vec3d = Vec3d(x * d, y * d, z * d)
+fun Vec3i.toCubePos() = Vec3i(x shr 4, y shr 4, z shr 4)
 fun Vec3d.withoutY(): Vec3d = Vec3d(x, 0.0, z)
 fun Vec3d.abs(): Vec3d = Vec3d(Math.abs(x), Math.abs(y), Math.abs(z))
 fun Vec3d.toJavaX() = Vector3d(x, y, z)
@@ -495,7 +499,7 @@ fun Entity.derivePosRotFrom(from: Entity, matrix: Matrix4d, yawOffset: Float) {
     to.isSprinting = from.isSprinting
 }
 
-fun World.findPortal(start: Vec3d, end: Vec3d): Triple<World, Vec3d, PortalAgent<*, *>?> {
+fun World.findPortal(start: Vec3d, end: Vec3d): Triple<World, Vec3d, PortalAgent<*>?> {
     return portalManager.loadedPortals.filter { agent ->
         val portal = agent.portal
         val vec = portal.localFacing.directionVec.to3d() * 0.5
@@ -507,7 +511,7 @@ fun World.findPortal(start: Vec3d, end: Vec3d): Triple<World, Vec3d, PortalAgent
         val negVec = vec * -1
         portal.localDetailedBounds.mapNotNull {
             it.contract(vec).contract(negVec).calculatePlaneIntercept(start, end)?.let { hitVec ->
-                Triple(agent.view?.world ?: return@let null, hitVec, agent)
+                Triple(agent.remoteWorld ?: return@let null, hitVec, agent)
             }
         }
     }.minBy {
@@ -545,7 +549,7 @@ fun World.rayTraceBlocksWithPortals(
             ignoreBlockWithoutBoundingBox,
             returnLastUncollidableBlock
     )
-    val remoteWorld = agent.view?.world ?: return localResult
+    val remoteWorld = agent.remoteWorld ?: return localResult
     localResult?.let {
         if (it.typeOfHit != RayTraceResult.Type.MISS) {
             return it
@@ -580,10 +584,14 @@ fun World.rayTraceBlocksWithPortals(
 }
 
 val haveCubicChunks by lazy { Loader.isModLoaded("cubicchunks") }
-// Only safe to call when CC is loaded!
+
 val World.isCubicWorld get() = haveCubicChunks && isCubicWorldUnsafe
 // Only safe to call when CC is loaded!
 private val World.isCubicWorldUnsafe get() = (this as ICubicWorld).isCubicWorld
+
+val PlayerList.verticalViewDistance get() = if (haveCubicChunks) verticalViewDistanceUnsafe else viewDistance
+// Only safe to call when CC is loaded!
+private val PlayerList.verticalViewDistanceUnsafe get() = (this as ICubicPlayerList).verticalViewDistance
 
 operator fun <T, V> ThreadLocal<V>.provideDelegate(thisRef: T, prop: KProperty<*>): ReadWriteProperty<T, V?> = object : ReadWriteProperty<T, V?> {
     override fun getValue(thisRef: T, property: KProperty<*>): V? = get()

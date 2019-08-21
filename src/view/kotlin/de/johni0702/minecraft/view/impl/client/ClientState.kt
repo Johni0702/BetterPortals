@@ -1,7 +1,6 @@
 package de.johni0702.minecraft.view.impl.client
 
 import de.johni0702.minecraft.betterportals.common.forceSpawnEntity
-import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.view.impl.LOGGER
 import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.client.Minecraft
@@ -18,19 +17,20 @@ import net.minecraft.network.*
 import net.minecraft.util.math.RayTraceResult
 import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher
 
-internal class ClientViewImpl(
-        override val manager: ClientViewManagerImpl,
-        override val id: Int,
+internal class ClientState(
+        val manager: ClientWorldsManagerImpl,
         private var _world: WorldClient?,
         var thePlayer: EntityPlayerSP?,
         var channel: EmbeddedChannel?,
         var netManager: NetworkManager?
-) : ClientView {
-    override var isValid = true
-    override val player: EntityPlayerSP get() = manager.getServerPlayer(this)
-    override val clientPlayer: EntityPlayerSP get() = manager.getClientPlayer(this)
+) {
+    val isMainView: Boolean get() = manager.mainView == this
+    val dimension: Int get() = world.provider.dimension
+    var isValid = true
+    val player: EntityPlayerSP get() = manager.getServerPlayer(this)
+    val clientPlayer: EntityPlayerSP get() = manager.getClientPlayer(this)
 
-    override val world: WorldClient
+    val world: WorldClient
         get() = if (manager.activeView == this) {
             Minecraft.getMinecraft().world
         } else {
@@ -41,7 +41,7 @@ internal class ClientViewImpl(
      * Swaps thePlayer entities with the given view.
      * **Warning:** Must be followed by restoreView as otherwise Minecraft's state will be invalid!
      */
-    internal fun swapThePlayer(with: ClientViewImpl, swapPos: Boolean) {
+    internal fun swapThePlayer(with: ClientState, swapPos: Boolean) {
         val thisPlayer = this.thePlayer!!
         val withPlayer = with.thePlayer!!
 
@@ -120,7 +120,7 @@ internal class ClientViewImpl(
     private var objectMouseOver: RayTraceResult? = null
     private var guiBossOverlay: GuiBossOverlay? = null
 
-    override fun toString(): String = "View $id of $_world from $player"
+    override fun toString(): String = "ClientState for world ${world.provider.dimension}"
 
     internal fun captureState(mc: Minecraft) {
         itemRenderer = mc.itemRenderer
@@ -164,13 +164,7 @@ internal class ClientViewImpl(
         }
     }
 
-    override fun makeMainView() {
-        if (isMainView) return
-
-        manager.makeClientMainView(this)
-    }
-
-    internal fun copyRenderState(from: ClientViewImpl) {
+    internal fun copyRenderState(from: ClientState) {
         entityRenderer!!.fovModifierHand = from.entityRenderer!!.fovModifierHand
         entityRenderer!!.fovModifierHandPrev = from.entityRenderer!!.fovModifierHandPrev
         itemRenderer!!.itemStackMainHand = from.itemRenderer!!.itemStackMainHand
@@ -182,7 +176,7 @@ internal class ClientViewImpl(
     }
 
     companion object {
-        fun reuseOrCreate(manager: ClientViewManagerImpl, viewId: Int, world: WorldClient, oldView: ClientViewImpl?): ClientViewImpl {
+        fun reuseOrCreate(manager: ClientWorldsManagerImpl, world: WorldClient, oldView: ClientState?): ClientState {
             val mc = manager.mc
             val connection = mc.connection ?: throw IllegalStateException("Cannot create view without active connection")
             val networkManager = ViewNetworkManager()
@@ -206,14 +200,14 @@ internal class ClientViewImpl(
             val camera = ViewEntity(world, connection)
             world.spawnEntity(camera)
 
-            val view: ClientViewImpl
+            val view: ClientState
             if (oldView == null) {
                 LOGGER.debug("Creating new view")
-                view = ClientViewImpl(manager, viewId, world, camera, channel, networkManager)
+                view = ClientState(manager, world, camera, channel, networkManager)
 
             } else {
                 LOGGER.debug("Reusing stored view")
-                view = ClientViewImpl(manager, viewId, world, camera, channel, networkManager)
+                view = ClientState(manager, world, camera, channel, networkManager)
                 view.itemRenderer = oldView.itemRenderer
                 view.renderGlobal = oldView.renderGlobal
                 view.entityRenderer = oldView.entityRenderer

@@ -14,18 +14,12 @@ interface ServerViewAPI {
     }
 
     /**
-     * Returns the server-side view manager responsible for the given connection.
+     * Returns the server-side world manager responsible for the given connection.
      */
-    fun getViewManager(connection: NetHandlerPlayServer): ServerViewManager
+    fun getWorldsManager(connection: NetHandlerPlayServer): ServerWorldsManager
 
     /**
-     * Returns the server-side view manager responsible for the given player.
+     * Returns the server-side world manager responsible for the given player.
      */
-    fun getViewManager(player: EntityPlayerMP) = getViewManager(player.connection)
-
-    /**
-     * Returns the server-side view for which the given player is the camera.
-     * Can return null e.g. for [net.minecraftforge.common.util.FakePlayer].
-     */
-    fun getView(player: EntityPlayerMP): ServerView?
+    fun getWorldsManager(player: EntityPlayerMP) = getWorldsManager(player.connection)
 }

@@ -1,12 +1,14 @@
 package de.johni0702.minecraft.betterportals.common
 
 import de.johni0702.minecraft.betterportals.client.deriveClientPosRotFrom
-import de.johni0702.minecraft.view.client.ClientView
+import de.johni0702.minecraft.view.client.worldsManager
 import de.johni0702.minecraft.view.server.*
 import net.minecraft.block.material.Material
+import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.AbstractClientPlayer
 import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP
+import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.culling.ICamera
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityList
@@ -27,18 +29,18 @@ import net.minecraftforge.fml.relauncher.SideOnly
 import org.apache.logging.log4j.Logger
 import java.lang.IllegalArgumentException
 
-interface PortalAccessor<T: CanMakeMainView> {
+interface PortalAccessor {
     /**
      * Collection of all, currently loaded portals known to this accessor.
      *
      * When implementing, take note of [onChange].
      */
-    val loadedPortals: Iterable<PortalAgent<T, *>>
+    val loadedPortals: Iterable<PortalAgent<*>>
 
     /**
      * Retrieve an agent by id. See [PortalAgent.id].
      */
-    fun findById(id: ResourceLocation): PortalAgent<T, *>?
+    fun findById(id: ResourceLocation): PortalAgent<*>?
 
     /**
      * The [loadedPortals] field (or rather [PortalManager.loadedPortals]) needs to be accessed **very** often (e.g.
@@ -63,17 +65,17 @@ interface PortalManager {
      *
      * This method must perform well (both CPU and garbage wise) as it will be called **very** often.
      */
-    val loadedPortals: Iterable<PortalAgent<*, *>>
+    val loadedPortals: Iterable<PortalAgent<*>>
 
     /**
      * Registers a new source for [loadedPortals].
      */
-    fun registerPortals(accessor: PortalAccessor<*>)
+    fun registerPortals(accessor: PortalAccessor)
 
     /**
      * Retrieve an agent by id. See [PortalAccessor.findById].
      */
-    fun findById(id: ResourceLocation): PortalAgent<*, *>?
+    fun findById(id: ResourceLocation): PortalAgent<*>?
 
     /**
      * Called immediately after the client player uses a portal to inform the server of that action.
@@ -82,7 +84,7 @@ interface PortalManager {
      * Passing an agent which is not in [loadedPortals] is an error.
      */
     @SideOnly(Side.CLIENT)
-    fun clientUsePortal(agent: PortalAgent<*, *>)
+    fun clientUsePortal(agent: PortalAgent<*>)
 
     /**
      * Called right before an entity uses a portal to ensure clients are prepared for it.
@@ -90,7 +92,7 @@ interface PortalManager {
      *
      * Passing an agent which is not in [loadedPortals] is an error.
      */
-    fun serverBeforeUsePortal(agent: PortalAgent<*, *>, oldEntity: Entity, trackingPlayers: Iterable<EntityPlayerMP>)
+    fun serverBeforeUsePortal(agent: PortalAgent<*>, oldEntity: Entity, trackingPlayers: Iterable<ServerWorldsManager>)
 
     /**
      * Called right after an entity uses a portal to allow clients to properly display the transition.
@@ -98,17 +100,7 @@ interface PortalManager {
      *
      * Passing an agent which is not in [loadedPortals] is an error.
      */
-    fun serverAfterUsePortal(agent: PortalAgent<*, *>, newEntity: Entity, trackingPlayers: Iterable<EntityPlayerMP>)
-
-    /**
-     * Link the given portal agent to the given view on the client.
-     */
-    fun linkPortal(agent: PortalAgent<*, *>, player: EntityPlayerMP, ticket: CanMakeMainView)
-
-    /**
-     * Unlink the given portal agent on the client.
-     */
-    fun unlinkPortal(agent: PortalAgent<*, *>, player: EntityPlayerMP)
+    fun serverAfterUsePortal(agent: PortalAgent<*>, newEntity: Entity, trackingPlayers: Iterable<ServerWorldsManager>)
 
     /**
      * Whether to (by default) prevent the next fall damage after passing through a vertical portal.
@@ -118,7 +110,7 @@ interface PortalManager {
 
 val World.portalManager get() = BetterPortalsAPI.instance.getPortalManager(this)
 
-open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
+open class PortalAgent<out P: Portal.Mutable>(
         val manager: PortalManager,
         /**
          * A unique (per world/manager) id for this agent.
@@ -127,29 +119,27 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
          */
         open val id: ResourceLocation,
         val portal: P,
-        val allocateTicket: (ServerView) -> T?,
         val portalConfig: PortalConfiguration
 ) {
-    @Deprecated("missing `PortalConfig` argument")
-    constructor(manager: PortalManager, id: ResourceLocation, portal: P, allocateTicket: (ServerView) -> T?)
-            : this(manager, id, portal, allocateTicket, PortalConfiguration())
-
     val world get() = manager.world
     open val preventFallAfterVerticalPortal get() = manager.preventFallAfterVerticalPortal
 
-    open fun isLinked(other: PortalAgent<*, *>): Boolean =
+    open fun isLinked(other: PortalAgent<*>): Boolean =
             other.portal.isTarget(portal) && portal.isTarget(other.portal)
 
-    open fun getRemoteAgent(): PortalAgent<T, P>? {
-        val remoteWorld = if (world.isRemote) {
-            (view ?: return null).world
+    val remoteWorld: World?
+        get() = if (world.isRemote) {
+            remoteClientWorld
         } else {
-            world.minecraftServer!!.getWorld(portal.remoteDimension ?: return null)
+            portal.remoteDimension?.let { world.minecraftServer!!.getWorld(it) }
         }
+
+    open fun getRemoteAgent(): PortalAgent<P>? {
+        val remoteWorld = remoteWorld ?: return null
         remoteWorld.getBlockState(portal.remotePosition) // make sure the portal is loaded
         val remotePortal = remoteWorld.portalManager.loadedPortals.find { isLinked(it) }
         @Suppress("UNCHECKED_CAST")
-        return remotePortal as PortalAgent<T, P>?
+        return remotePortal as PortalAgent<P>?
     }
 
     private var lastTickPos = mutableMapOf<Entity, Vec3d>()
@@ -371,10 +361,8 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
 
         // Inform other clients that the entity is going to be teleported
         // Don't bother informing those that don't track the bottom most entity, they can't react to it anyway
-        val trackingPlayers = localWorld.entityTracker.getTracking(entity).filterTo(mutableSetOf()) {
-            views.containsKey(it.viewManager)
-        }
-        trackingPlayers.forEach { it.viewManager.beginTransaction() }
+        val trackingPlayers = localWorld.entityTracker.getTracking(entity).map { it.worldsManager }
+        trackingPlayers.forEach { it.beginTransaction() }
 
         fun transfer(entity: Entity): Entity? {
             val newPassengers = entity.passengers.mapNotNull { transfer(it) }
@@ -389,32 +377,20 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             manager.serverBeforeUsePortal(this, entity, trackingPlayers)
 
             val newEntity = if (entity is EntityPlayerMP) {
-                val viewManager = entity.viewManager
-                val ticket = views[viewManager]
-                if (ticket == null) {
-                    manager.logger.warn("Player $entity is using portal $this as passenger but doesn't have a view for it!?")
-                    return null
+                if (localWorld == remoteWorld) {
+                    entity.derivePosRotFrom(entity, portal)
+                } else {
+                    val worldsManager = entity.worldsManager
+
+                    // Forcefully dismount player without changing its position
+                    // We cannot just use dismountRidingEntity() as that'll send a position packet to the client.
+                    // There's no need to remove them from their vehicle because it'll be killed in the transfer anyway.
+                    entity.ridingEntity = null
+
+                    worldsManager.changeDimension(remoteWorld) {
+                        derivePosRotFrom(this, portal)
+                    }
                 }
-                val view = ticket.view
-
-                val remoteTicket = remotePortal.views[viewManager]
-                if (remoteTicket == null) {
-                    manager.logger.warn("Player $entity is using portal $this but our remote doesn't have a ticket for it!?")
-                    return null
-                }
-
-                // Update view position
-                view.player.derivePosRotFrom(entity, portal)
-
-                // Forcefully dismount player without changing its position
-                // We cannot just use dismountRidingEntity() as that'll send a position packet to the client.
-                // There's no need to remove them from their vehicle because it'll be killed in the transfer anyway.
-                entity.ridingEntity = null
-
-                // Swap views
-                trackingPlayers.remove(entity)
-                trackingPlayers.add(view.player)
-                view.makeMainView(ticket)
 
                 entity
             } else {
@@ -455,7 +431,7 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             }
 
             // Inform other clients that the teleportation has happened
-            trackingPlayers.forEach { it.viewManager.flushPackets() }
+            trackingPlayers.forEach { it.flushPackets() }
             manager.serverAfterUsePortal(this, newEntity, trackingPlayers)
 
             return newEntity
@@ -468,20 +444,13 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
         // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
         remotePortal.updateEntityPosWithoutTeleport(remoteEntity)
 
-        trackingPlayers.forEach { it.viewManager.endTransaction() }
+        trackingPlayers.forEach { it.endTransaction() }
     }
 
-    private val views = mutableMapOf<ServerViewManager, T>()
-    private val tracking = mutableMapOf<ServerViewManager, Int>()
+    private val views = mutableMapOf<EntityPlayerMP, View>()
 
     open fun serverPortalUsed(player: EntityPlayerMP): Boolean {
-        val viewManager = player.viewManager
-        val ticket = views[viewManager]
-        if (ticket == null) {
-            manager.logger.warn("Received use portal request from $player which has no view for portal $this")
-            return false
-        }
-        val view = ticket.view
+        val worldsManager = player.worldsManager
 
         val remotePortal = getRemoteAgent()
         if (remotePortal == null) {
@@ -489,35 +458,24 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             return false
         }
 
-        val remoteTicket = remotePortal.views[viewManager]
-        if (remoteTicket == null) {
-            manager.logger.warn("Received use portal request from $player for $this but our remote portal has no ticket!?")
-            return false
-        }
-
-        // Update view position
-        view.player.derivePosRotFrom(player, portal)
-
         // Inform other clients that the entity is going to be teleported
-        val trackingPlayers = player.serverWorld.entityTracker.getTracking(player).filterTo(mutableSetOf()) {
-            views.containsKey(it.viewManager)
-        }
-        trackingPlayers.forEach { it.viewManager.beginTransaction() }
+        val trackingPlayers = player.serverWorld.entityTracker.getTracking(player).map { it.worldsManager }
+        trackingPlayers.forEach { it.beginTransaction() }
         manager.serverBeforeUsePortal(this, player, trackingPlayers)
 
-        // Swap views
-        if (!view.isMainView) {
-            if (view.player in trackingPlayers) {
-                trackingPlayers.remove(view.player)
-                trackingPlayers.add(player)
+        // Teleport
+        if (world == remotePortal.world) {
+            player.derivePosRotFrom(player, portal)
+        } else {
+            worldsManager.changeDimension(remotePortal.world as WorldServer) {
+                derivePosRotFrom(this, portal)
             }
-            view.makeMainView(ticket)
         }
 
         // Inform other clients that the teleportation has happened
-        trackingPlayers.forEach { it.viewManager.flushPackets() }
+        trackingPlayers.forEach { it.flushPackets() }
         manager.serverAfterUsePortal(this, player, trackingPlayers)
-        trackingPlayers.forEach { it.viewManager.endTransaction() }
+        trackingPlayers.forEach { it.endTransaction() }
 
         // In case of horizontal portals, be nice and protect the player from fall damage for the next 10 seconds
         if (portal.plane == EnumFacing.Plane.HORIZONTAL && preventFallAfterVerticalPortal) {
@@ -528,74 +486,26 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
     }
 
     open fun addTrackingPlayer(player: EntityPlayerMP) {
-        val viewManager = player.viewManager
-
-        tracking[viewManager] = (tracking[viewManager] ?: 0) + 1
-
-        // If we already have a view for this player, then just link to it.
-        // This can happen either because this is the remote portal to some other portal which we've already dealt with
-        // or when multiple view entities have the same portal nearby.
-        val ticket = views.getOrPut(viewManager) {
-            // otherwise, it's time to find a suitable view
+        views.getOrPut(player) {
             val remotePortal = getRemoteAgent() ?: return
             val remoteWorld = remotePortal.world as WorldServer
-
-            // Disable recursive portals, to be removed once cycle detection (and some recursion limit) is in place
-            if (viewManager.player != player) return
-
-            // Allocate a ticket for our local world which we can later give to our remote end
-            // If this fails, someone is holding an exclusive ticket to our current world, so we fail soft
-            val localView = player.view ?: return
-            val localTicket = allocateTicket(localView) ?: return
-            remotePortal.views[viewManager] = localTicket
-
-            // preferably an existing view close by (half server view distance, ignoring y axis)
-            val ticket = viewManager.views
-                    .asSequence()
-                    .filter { it.player.world == remoteWorld }
-                    .map { it to it.player.pos.withoutY().distanceTo(portal.remotePosition.to3d().withoutY()) }
-                    // at most half of server view distance between cam and portal
-                    .filter { it.second < world.minecraftServer!!.playerList.entityViewDistance / 2 }
-                    .sortedBy { it.second }
-                    .fold(null as T?) { acc, view ->
-                        acc ?: allocateTicket(view.first)
-                    }
-                    // but we'll also create a new one if we can't find one
-                    ?: allocateTicket(viewManager.createView(remoteWorld, portal.remotePosition.to3d()))!!
-
-            // If the remote portal is at first not linked due to the recursion-limit, then we need to manually link it
-            // This can happen if you have two overworld portals with a bit of distance between with their two nether ends
-            // close to each other. If you then only load one of the overworld portals, both nether portals will be loaded
-            // but one won't yet be linked since that would require recursive loading (its overworld end is out of view).
-            // If you then move to bring the other overworld portal into view, it (`this`) will link to the already existing
-            // view in the nether but its nether end (`remotePortal`) won't be linked back on the client.
-            if (viewManager in remotePortal.tracking) {
-                manager.linkPortal(remotePortal, ticket.view.player, localTicket)
-            }
-
-            ticket
+            val anchor = Pair(world as WorldServer, portal.localPosition.toCubePos())
+            // TODO use view with reduced load distance to put a sensible limit on recursion
+            player.worldsManager.createView(remoteWorld, remotePortal.portal.localPosition.to3dMid(), anchor)
         }
-
-        manager.linkPortal(this, player, ticket)
     }
 
     open fun removeTrackingPlayer(player: EntityPlayerMP) {
-        val viewManager = player.viewManager
-
-        manager.unlinkPortal(this, player)
-
-        val remaining = tracking[viewManager]!! - 1
-        if (remaining <= 0) {
-            views.remove(viewManager)?.release()
-        }
+        views.remove(player)?.dispose()
     }
 
     //
     // Client-side
     //
 
-    @SideOnly(Side.CLIENT)
-    var view: ClientView? = null
+    val remoteClientWorld: WorldClient?
+        @SideOnly(Side.CLIENT)
+        get() = Minecraft.getMinecraft().worldsManager?.worlds?.find { it.provider.dimension == portal.remoteDimension }
 
     @SideOnly(Side.CLIENT)
     private var portalUser: Entity? = null
@@ -603,16 +513,6 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
     @SideOnly(Side.CLIENT)
     fun beforeUsePortal(entity: Entity) {
         portalUser = entity
-
-        // If this is the client player, then a swap of main view (and view entities!) is soon to come.
-        // As such, by the time [afterUsePortal] is called, the portalUser in this world will be the view entity,
-        // not the player entity.
-        if (entity is EntityPlayerSP) {
-            portalUser = view?.player
-            if (portalUser == null) {
-                manager.logger.warn("Got pre portal usage message for client player on $this even though no view is set")
-            }
-        }
     }
 
     @SideOnly(Side.CLIENT)
@@ -627,13 +527,13 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
             manager.logger.warn("Entity $entity is still alive post portal usage!")
         }
 
-        val view = view
-        if (view == null) {
-            manager.logger.warn("Failed syncing of $entity after usage of portal $this because view has not been set")
+        val remoteWorld = remoteWorld
+        if (remoteWorld == null) {
+            manager.logger.warn("Failed syncing of $entity after usage of portal $this because remote world is not loaded")
             return
         }
 
-        val newEntity = view.world.getEntityByID(entityId)
+        val newEntity = remoteWorld.getEntityByID(entityId)
         if (newEntity == null) {
             manager.logger.warn("Oh no! The entity $entity with new id $entityId did not reappear at the other side of $this!")
             return
@@ -667,26 +567,31 @@ open class PortalAgent<T: CanMakeMainView, out P: Portal.Mutable>(
     protected open fun teleportPlayer(player: EntityPlayer, from: EnumFacing): Boolean {
         if (player !is EntityPlayerSP || player.entityId < 0) return false
 
-        val view = view
-        if (view == null) {
-            manager.logger.warn("Failed to use portal $this because view has not been set")
+        val remoteWorld = remoteClientWorld
+        if (remoteWorld == null) {
+            manager.logger.warn("Failed to use portal $this because remote world is not loaded")
             return false
         }
-        view.clientPlayer.deriveClientPosRotFrom(player, portal)
 
         val remotePortal = getRemoteAgent()
         if (remotePortal == null) {
-            manager.logger.warn("Failed to use portal $this because remote portal in $view couldn't be found")
+            manager.logger.warn("Failed to use portal $this because remote portal in $remoteWorld couldn't be found")
             return false
         }
 
-        view.makeMainView()
+        if (remoteWorld == world) {
+            player.deriveClientPosRotFrom(player, portal)
+        } else {
+            player.worldsManager.changeDimension(remoteWorld) {
+                deriveClientPosRotFrom(this, portal)
+            }
+        }
         manager.clientUsePortal(this)
 
         // make sure the remote portal has the current position
         // otherwise, if the entity immediately reverses direction, it'll be on the wrong side by the next tick
         remotePortal.updateEntityPosWithoutTeleport(player)
-        // also update the position for this portal in case we stayed within the same view
+        // also update the position for this portal in case we stayed within the same world
         updateEntityPosWithoutTeleport(player)
 
         return true

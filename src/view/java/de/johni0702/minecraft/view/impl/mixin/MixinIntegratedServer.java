@@ -3,7 +3,7 @@ package de.johni0702.minecraft.view.impl.mixin;
 import com.mojang.authlib.GameProfileRepository;
 import com.mojang.authlib.minecraft.MinecraftSessionService;
 import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
-import de.johni0702.minecraft.view.impl.client.ClientViewManagerImpl;
+import de.johni0702.minecraft.view.impl.client.ClientWorldsManagerImpl;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.settings.GameSettings;
@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 @SideOnly(Side.CLIENT)
 @Mixin(IntegratedServer.class)
-public abstract class MixinIntegratedServer extends MinecraftServer implements ClientViewManagerImpl.IIntegratedServer {
+public abstract class MixinIntegratedServer extends MinecraftServer implements ClientWorldsManagerImpl.IIntegratedServer {
     public MixinIntegratedServer(File anvilFileIn, Proxy proxyIn, DataFixer dataFixerIn, YggdrasilAuthenticationService authServiceIn, MinecraftSessionService sessionServiceIn, GameProfileRepository profileRepoIn, PlayerProfileCache profileCacheIn) {
         super(anvilFileIn, proxyIn, dataFixerIn, authServiceIn, sessionServiceIn, profileRepoIn, profileCacheIn);
     }

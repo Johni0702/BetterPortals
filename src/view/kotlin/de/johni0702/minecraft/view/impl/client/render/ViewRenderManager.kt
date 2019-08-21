@@ -1,19 +1,17 @@
 package de.johni0702.minecraft.view.impl.client.render
 
 import de.johni0702.minecraft.betterportals.common.*
-import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.view.client.render.*
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
-import de.johni0702.minecraft.view.impl.client.ClientViewImpl
 import de.johni0702.minecraft.view.impl.client.ViewEntity
 import net.minecraft.client.Minecraft
+import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.*
 import net.minecraft.client.renderer.culling.ClippingHelperImpl
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.client.shader.Framebuffer
 import net.minecraft.util.math.Vec3d
-import net.minecraft.world.World
 import net.minecraftforge.client.event.DrawBlockHighlightEvent
 import net.minecraftforge.client.event.EntityViewRenderEvent
 import net.minecraftforge.common.MinecraftForge
@@ -143,8 +141,8 @@ internal class ViewRenderManager : RenderPassManager {
         mc.mcProfiler.endStartSection("determineRootRenderPass")
 
         // Build render plan
-        var plan = with(DetermineRootPassEvent(this, partialTicks, view, camera).post()) {
-            ViewRenderPlan(this@ViewRenderManager, null, this.view, this.camera)
+        var plan = with(DetermineRootPassEvent(this, partialTicks, view.world, camera).post()) {
+            ViewRenderPlan(this@ViewRenderManager, null, this.world, this.camera)
         }
 
         mc.mcProfiler.endStartSection("populateRenderPassTree")
@@ -262,9 +260,8 @@ internal class ViewRenderManager : RenderPassManager {
 
         @SubscribeEvent(priority = EventPriority.LOW)
         fun onRenderBlockHighlights(event: DrawBlockHighlightEvent) {
-            val plan = ViewRenderPlan.CURRENT ?: return
             // Render block outlines only in main view (where the player entity is located)
-            if (!plan.view.isMainView) {
+            if (Minecraft.getMinecraft().player is ViewEntity) {
                 event.isCanceled = true
             }
         }
@@ -274,7 +271,7 @@ internal class ViewRenderManager : RenderPassManager {
 internal class ViewRenderPlan(
         override val manager: ViewRenderManager,
         override val parent: RenderPass?,
-        override val view: ClientView,
+        override val world: WorldClient,
         override val camera: Camera
 ) : RenderPass {
     companion object {
@@ -282,15 +279,13 @@ internal class ViewRenderPlan(
         var CURRENT: ViewRenderPlan? = null
         var PREVIOUS_FRAME: ViewRenderPlan? = null
     }
-    val world: World = view.world
     override var framebuffer: Framebuffer? = null
     var debugFramebuffer: Framebuffer? = null
 
     override val children = mutableListOf<ViewRenderPlan>()
 
-    override fun addChild(view: ClientView, camera: Camera, previousFrame: RenderPass?): ViewRenderPlan {
-        view.checkValid()
-        val child = ViewRenderPlan(manager, this, view, camera)
+    override fun addChild(world: WorldClient, camera: Camera, previousFrame: RenderPass?): ViewRenderPlan {
+        val child = ViewRenderPlan(manager, this, world, camera)
         if (previousFrame != null) {
             child.occlusionDetail = previousFrame.occlusionDetail.also {
                 previousFrame.occlusionDetail = child.occlusionDetail
@@ -339,15 +334,16 @@ internal class ViewRenderPlan(
             }
         }
 
+        val view = ClientViewAPIImpl.viewManagerImpl.views.find { it.world == world }!!
         if (view.manager.activeView != view) {
-            return (view as ClientViewImpl).manager.withView(view) {
+            return view.manager.withView(view) {
                 renderSelf(partialTicks, finishTimeNano)
             }
         }
         val mc = Minecraft.getMinecraft()
 
         // Render GUI only in main view
-        if (!mc.gameSettings.hideGUI && !view.isMainView) {
+        if (!mc.gameSettings.hideGUI && mc.player is ViewEntity) {
             mc.gameSettings.hideGUI = true
             try {
                 return renderSelf(partialTicks, finishTimeNano)
@@ -359,7 +355,7 @@ internal class ViewRenderPlan(
         val framebuffer = manager.allocFramebuffer()
         this.framebuffer = framebuffer
 
-        world.profiler.startSection("renderView" + view.id)
+        world.profiler.startSection("renderWorld" + world.provider.dimension)
 
         // Inject the entity from which the world will be rendered
         // We do not spawn it into the world as we don't need it there (until some third-party mod does)

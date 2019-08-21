@@ -2,7 +2,6 @@ package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.to3dMid
-import de.johni0702.minecraft.betterportals.impl.worlds.DistinctViewOnNearTeleporterSetup
 import de.johni0702.minecraft.betterportals.impl.worlds.DoubleNetherPortalSetup
 import de.johni0702.minecraft.betterportals.impl.worlds.NearTeleporterSetup
 import de.johni0702.minecraft.betterportals.impl.worlds.SingleNetherPortalSetup
@@ -224,8 +223,6 @@ open class DoublePortalTraversalTests : AnnotationSpec() {
         testSimpleTraversal()
     }
 
-    /* FIXME these should start working once either recursive portal loading or lazy unloading is implemented
-
     /**
      * Same as [testSimpleTraversal] but with network lag while in the nether.
      */
@@ -241,7 +238,6 @@ open class DoublePortalTraversalTests : AnnotationSpec() {
     fun testSimpleTraversalWithLag() {
         testSimpleTraversal(skipServerUpdateInNether = true, skipServerUpdateInOverworld = true)
     }
-     */
 }
 
 open class NearTeleporterTraversalTests : AnnotationSpec() {
@@ -304,8 +300,4 @@ open class NearTeleporterTraversalTests : AnnotationSpec() {
         updateClient()
         mc.player.pos shouldBe prevPos
     }
-}
-
-class DistinctViewsOnNearTeleporterTraversalTests : NearTeleporterTraversalTests() {
-    override fun listeners(): List<TestListener> = listOf(DistinctViewOnNearTeleporterSetup(negativePowered = false))
 }

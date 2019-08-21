@@ -1,10 +1,9 @@
 package de.johni0702.minecraft.betterportals.impl.transition.client.renderer
 
-import de.johni0702.minecraft.betterportals.client.deriveClientPosRotFrom
 import de.johni0702.minecraft.betterportals.common.*
-import de.johni0702.minecraft.view.client.ClientView
 import de.johni0702.minecraft.view.client.render.*
 import net.minecraft.client.Minecraft
+import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.client.shader.ShaderManager
@@ -17,27 +16,27 @@ import org.lwjgl.opengl.GL11
 import java.time.Duration
 
 internal class TransferToDimensionRenderer(
-        val fromView: ClientView,
-        toView: ClientView,
         private val whenDone: () -> Unit,
-        val duration: Duration = Duration.ofSeconds(10)
+        private val duration: Duration = Duration.ofSeconds(10)
 ) {
     private val mc = Minecraft.getMinecraft()
 
     private val shader = ShaderManager(mc.resourceManager, "betterportals:dimension_transition")
     private val eventHandler = EventHandler()
 
-    private val cameraYawOffset = fromView.clientPlayer.rotationYaw - toView.clientPlayer.rotationYaw
-    private val cameraPosOffset =
-            Mat4d.add(fromView.clientPlayer.pos.toJavaX()) * Mat4d.rotYaw(cameraYawOffset) * Mat4d.sub(toView.clientPlayer.pos.toJavaX())
+    private val fromWorld = mc.world
+    private val fromInitialPitch = mc.player.rotationPitch
+    private val fromInitialYaw = mc.player.rotationYaw
+    private val fromInitialPos = mc.player.pos
+    private var toInitialized = false
+    private var toWorld: WorldClient = fromWorld
+    private var toInitialYaw = fromInitialYaw
+    private var toInitialPos = fromInitialPos
+    private val cameraYawOffset
+        get() = toInitialYaw - fromInitialYaw
+    private val cameraPosOffset
+        get() = Mat4d.add(fromInitialPos.toJavaX()) * Mat4d.rotYaw(cameraYawOffset) * Mat4d.sub(toInitialPos.toJavaX())
     private var ticksPassed = 0
-
-    init {
-        // Copy current pitch onto new camera to prevent sudden camera jumps when switching views
-        // TODO we currently send a teleport packet from the server which overwrites any changes we do here.
-        //      not sure what the best approach to fixing that is
-        toView.clientPlayer.deriveClientPosRotFrom(fromView.clientPlayer, Mat4d.inverse(cameraPosOffset), -cameraYawOffset)
-    }
 
     private fun getProgress(partialTicks: Float) = ((ticksPassed + partialTicks) * 50 / duration.toMillis()).coerceIn(0f, 1f)
 
@@ -53,9 +52,23 @@ internal class TransferToDimensionRenderer(
         val prevRoot = root.manager.previous
         val prevChild = prevRoot?.children?.find { it.get<TransferToDimensionRenderer>() == this }
 
+        if (!toInitialized) {
+            with(mc.player) {
+                // Copy current pitch onto new camera to prevent sudden camera jumps when switching views
+                rotationPitch = fromInitialPitch
+                prevRotationPitch = fromInitialPitch
+
+                // Initialize to-values
+                toWorld = mc.world
+                toInitialYaw = rotationYaw
+                toInitialPos = pos
+                toInitialized = true
+            }
+        }
+
         // TODO this isn't quite right once we use a portal in the new view while the transition is still active
         val camera = root.camera.transformed(cameraPosOffset)
-        root.addChild(fromView, camera, prevChild).set(this)
+        root.addChild(fromWorld, camera, prevChild).set(this)
         event.changed = true
     }
 

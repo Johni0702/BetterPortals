@@ -34,7 +34,7 @@ internal object PortalRenderManager {
         //   - then up the entity stack to the frame-interpolated position of the view entity (camera.eyePosition)
         //   - finally to the (potentially third-person mode) camera position (camera.viewPosition)
         val mc = Minecraft.getMinecraft()
-        var view = event.view
+        var world = event.world
         var camera = event.camera
         val viewEntity = mc.renderViewEntity ?: mc.player
         val vehicle = viewEntity.lowestRidingEntity
@@ -48,11 +48,11 @@ internal object PortalRenderManager {
         var hitVisualPosition = false
         var hitPassenger = false
         while (true) {
-            val hitInfo = view.world.portalManager.loadedPortals.flatMap { agent ->
+            val hitInfo = world.portalManager.loadedPortals.flatMap { agent ->
                 val portal = agent.portal
 
                 // Ignore portals which haven't yet been loaded
-                agent.view ?: return@flatMap listOf<Pair<Pair<PortalAgent<*, *>, Vec3d>, Double>>()
+                agent.getRemoteAgent() ?: return@flatMap listOf<Pair<Pair<PortalAgent<*>, Vec3d>, Double>>()
 
                 // FIXME handle one-way portals
 
@@ -80,7 +80,7 @@ internal object PortalRenderManager {
                 // If we hit a portal, switch to its view and transform the camera/entity positions accordingly
                 // also change the current position to be in the portal so we don't accidentally match any portals
                 // behind the one we're looking through.
-                view = agent.view!!
+                world = agent.remoteClientWorld!!
                 target = (portal.localToRemoteMatrix * target.toPoint()).toMC()
                 vehicleInterpPos = (portal.localToRemoteMatrix * vehicleInterpPos.toPoint()).toMC()
                 camera = camera.transformed(portal.localToRemoteMatrix)
@@ -108,7 +108,7 @@ internal object PortalRenderManager {
         }
 
         event.camera = camera
-        event.view = view
+        event.world = world
     }
 
     @SubscribeEvent
@@ -127,15 +127,13 @@ internal object PortalRenderManager {
 
         var changed = false
         val parentPortal = portalDetail?.parent
-        view.world.portalManager.loadedPortals.forEach {
+        world.portalManager.loadedPortals.forEach {
             val portal = it.portal
 
             // check if there's already a pass for this portal
             if (children.any { it.portalDetail?.parent == portal }) return@forEach
-            // portal must be visible (i.e. must not be frustum culled)
-            if (!it.canBeSeen(camera.frustum)) return@forEach
             // its view must have been loaded (otherwise there's nothing to render)
-            it.view ?: return@forEach
+            it.getRemoteAgent() ?: return@forEach
             // it must not be our parent (the portal from which this world is being viewed)
             if (parentPortal?.isTarget(portal) == true) return@forEach
 
@@ -144,9 +142,9 @@ internal object PortalRenderManager {
             val childCamera = camera.transformed(portal.localToRemoteMatrix).let {
                 it.withFrustum(PortalCamera(portal, it.viewPosition, it.frustum))
             }
-            val plan = addChild(it.view!!, childCamera, childPreviousFrame)
+            val plan = addChild(it.remoteClientWorld!!, childCamera, childPreviousFrame)
             val cameraSide = portal.localFacing.axis.toFacing(camera.viewPosition - portal.localPosition.to3dMid())
-            plan.portalDetail = PortalDetail(portal, cameraSide)
+            plan.portalDetail = PortalDetail(it, cameraSide)
             plan.chunkVisibilityDetail.origin = portal.remotePosition
             plan.computeFogAndRenderDistance(it)
             changed = true
@@ -161,7 +159,7 @@ internal object PortalRenderManager {
         return changed
     }
 
-    private fun RenderPass.computeFogAndRenderDistance(agent: PortalAgent<*, *>) {
+    private fun RenderPass.computeFogAndRenderDistance(agent: PortalAgent<*>) {
         val portalBB = agent.portal.remoteBoundingBox
         val config = agent.portalConfig
         val dist = camera.viewPosition.distanceTo(portalBB.center)
@@ -173,6 +171,21 @@ internal object PortalRenderManager {
         val fog = ((dist - distMin) / (distMax - distMin)).coerceIn(0.0..1.0)
         portalFogDetail = PortalFogDetail(fog)
         renderDistanceDetail.renderDistance = if (fog == 1.0) 0.0 else renderDist - fog * (renderDist - dist)
+    }
+
+    @SubscribeEvent
+    fun prepareRenderPass(event: RenderPassEvent.Prepare) {
+        val renderPass = event.renderPass
+        val parentPass = renderPass.parent ?: return
+        val portalDetail = renderPass.portalDetail ?: return
+        // We can skip the render pass and all of its children if the portal isn't visible (i.e. frustum culled).
+        // We only do this check now as it depends on where the camera looks and completely omitting the render pass
+        // would result in chunks potentially being dropped (which would require an expensive re-upload).
+        if (!portalDetail.parentAgent.canBeSeen(parentPass.camera.frustum)) {
+            event.isCanceled = true
+            return
+        }
+        // Occlusion culling is already handled by the view api itself.
     }
 
     @SubscribeEvent

@@ -20,7 +20,7 @@ ext {
     twilightforestDepBase = 'the-twilight-forest:twilightforest-1.12.2:3.9.984'
     twilightforestDep = "$twilightforestDepBase:universal"
     mekanismDepBase = 'mekanism:Mekanism:1.12.2'
-    mekanismDep = "$mekanismDepBase:9.7.9.380" // yes, the classifier is the version (really, CF?!)...
+    mekanismDep = "$mekanismDepBase:9.8.1.383" // yes, the classifier is the version (really, CF?!)...
     aetherDepBase = 'the-aether:aether_legacy:1.12.2'
     aetherDep = "$aetherDepBase:v1.4.4"
     cubicChunksDepBase = 'opencubicchunks:CubicChunks-1.12.2-0.0.970.0:SNAPSHOT'

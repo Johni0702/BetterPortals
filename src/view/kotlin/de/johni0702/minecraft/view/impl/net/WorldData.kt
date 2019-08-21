@@ -11,21 +11,21 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 
-internal class ViewData(
-        var viewId: Int = 0,
+internal class WorldData(
+        var dimensionId: Int = 0,
         var data: ByteBuf = Unpooled.EMPTY_BUFFER
 ) : IMessage, AbstractReferenceCounted() {
 
     override fun fromBytes(buf: ByteBuf) {
         with(PacketBuffer(buf)) {
-            viewId = readVarInt()
+            dimensionId = readVarInt()
             data = readBytes(buf.readableBytes())
         }
     }
 
     override fun toBytes(buf: ByteBuf) {
         with(PacketBuffer(buf)) {
-            writeVarInt(viewId)
+            writeVarInt(dimensionId)
             writeBytes(data)
         }
     }
@@ -39,12 +39,12 @@ internal class ViewData(
         data.release()
     }
 
-    internal class Handler : IMessageHandler<ViewData, IMessage> {
-        override fun onMessage(message: ViewData, ctx: MessageContext): IMessage? {
+    internal class Handler : IMessageHandler<WorldData, IMessage> {
+        override fun onMessage(message: WorldData, ctx: MessageContext): IMessage? {
             message.retain()
             clientSyncIgnoringView {
                 try {
-                    ClientViewAPIImpl.viewManagerImpl.handleViewData(message.viewId, message.data)
+                    ClientViewAPIImpl.viewManagerImpl.handleWorldData(message.dimensionId, message.data)
                 } finally {
                     message.release()
                 }

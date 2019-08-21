@@ -8,28 +8,28 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 
-internal class DestroyView(
-        var viewId: Int = 0
+internal class DestroyWorld(
+        var dimensionID: Int = 0
 ) : IMessage {
 
     override fun fromBytes(buf: ByteBuf) {
-        viewId = buf.readInt()
+        dimensionID = buf.readInt()
     }
 
     override fun toBytes(buf: ByteBuf) {
-        buf.writeInt(viewId)
+        buf.writeInt(dimensionID)
     }
 
-    internal class Handler : IMessageHandler<DestroyView, IMessage> {
-        override fun onMessage(message: DestroyView, ctx: MessageContext): IMessage? {
+    internal class Handler : IMessageHandler<DestroyWorld, IMessage> {
+        override fun onMessage(message: DestroyWorld, ctx: MessageContext): IMessage? {
             clientSyncIgnoringView {
                 val manager = ClientViewAPIImpl.viewManagerImpl
-                val view = manager.views.find { it.id == message.viewId }
+                val view = manager.views.find { it.dimension == message.dimensionID }
                 if (view == null) {
-                    LOGGER.warn("Received destroy view message for unknown view with id ${message.viewId}")
+                    LOGGER.warn("Received destroy world message for unknown dimension with id ${message.dimensionID}")
                     return@clientSyncIgnoringView
                 }
-                manager.destroyView(view)
+                manager.destroyState(view)
             }
             return null
         }

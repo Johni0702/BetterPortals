@@ -15,7 +15,6 @@ internal object Net {
         var nextId = 0
         with(INSTANCE) {
             registerMessage(UsePortal.Handler(), UsePortal::class.java, ++nextId, Side.SERVER)
-            registerMessage(LinkPortal.Handler(), LinkPortal::class.java, ++nextId, Side.CLIENT)
             registerMessage(EntityUsePortal.Handler(), EntityUsePortal::class.java, ++nextId, Side.CLIENT)
         }
     }

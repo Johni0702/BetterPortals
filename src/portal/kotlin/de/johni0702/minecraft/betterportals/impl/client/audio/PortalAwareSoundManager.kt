@@ -1,10 +1,10 @@
 package de.johni0702.minecraft.betterportals.impl.client.audio
 
 import de.johni0702.minecraft.betterportals.common.*
-import de.johni0702.minecraft.view.client.ClientView
-import de.johni0702.minecraft.view.client.viewManager
+import de.johni0702.minecraft.view.client.worldsManager
 import net.minecraft.client.Minecraft
 import net.minecraft.client.audio.ISound
+import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.util.math.Vec3d
 
 // Current shortcomings:
@@ -22,14 +22,14 @@ import net.minecraft.util.math.Vec3d
 object PortalAwareSoundManager {
     lateinit var dropRemoteSounds: () -> Boolean
     private val mc = Minecraft.getMinecraft()
-    private val viewForSound = mutableMapOf<ISound, ClientView>()
-    private val soundPaths = mutableMapOf<ISound, List<PortalAgent<*, *>>>()
+    private val viewForSound = mutableMapOf<ISound, WorldClient>()
+    private val soundPaths = mutableMapOf<ISound, List<PortalAgent<*>>>()
     var listenerPos = Vec3d(0.0, 0.0, 0.0)
 
     fun recordView(sound: ISound): Boolean {
-        val viewManager = mc.viewManager ?: return true
-        val view = viewForSound.computeIfAbsent(sound) { viewManager.activeView }
-        return view.isMainView || !dropRemoteSounds()
+        val viewManager = mc.worldsManager ?: return true
+        val world = viewForSound.computeIfAbsent(sound) { mc.world }
+        return world == viewManager.player.world || !dropRemoteSounds()
     }
 
     fun beforePlay(sound: ISound) {
@@ -39,16 +39,16 @@ object PortalAwareSoundManager {
         soundPaths[sound] = paths.first()
     }
 
-    private fun findMainView(from: ClientView, visited: Set<ClientView>): Set<List<PortalAgent<*, *>>> = if (from.isMainView) {
+    private fun findMainView(from: WorldClient, visited: Set<WorldClient>): Set<List<PortalAgent<*>>> = if (from == mc.worldsManager?.player?.world) {
         setOf(emptyList())
     } else {
-        val portalManager = from.world.portalManager
-        portalManager.loadedPortals.flatMapTo(mutableSetOf<List<PortalAgent<*, *>>>()) { portalAgent ->
-            val view = portalAgent.view ?: return@flatMapTo emptySet()
-            if (view in visited) {
+        val portalManager = from.portalManager
+        portalManager.loadedPortals.flatMapTo(mutableSetOf<List<PortalAgent<*>>>()) { portalAgent ->
+            val remoteWorld = portalAgent.remoteClientWorld ?: return@flatMapTo emptySet()
+            if (remoteWorld in visited) {
                 emptySet()
             } else {
-                findMainView(view, visited + setOf(view)).map { listOf(portalAgent) + it }
+                findMainView(remoteWorld, visited + setOf(remoteWorld)).map { listOf(portalAgent) + it }
             }
         }
     }
@@ -59,7 +59,7 @@ object PortalAwareSoundManager {
             soundPaths[this] ?: emptyList()
     )
 
-    private fun calcApparentLocation(pos: Vec3d, listener: Vec3d, portalStack: List<PortalAgent<*, *>>): Vec3d {
+    private fun calcApparentLocation(pos: Vec3d, listener: Vec3d, portalStack: List<PortalAgent<*>>): Vec3d {
         val portalAgent = portalStack.lastOrNull() ?: return pos
         val portal = portalAgent.portal
         val apparentPos = with(portal) {

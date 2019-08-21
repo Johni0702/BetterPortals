@@ -50,7 +50,7 @@ internal class ViewCameraEntity constructor(world: WorldClient)
     override fun shouldRenderInPass(pass: Int): Boolean = false
     override fun isInvisible(): Boolean = true
 
-    private val actualPlayer = ClientViewAPI.instance.getViewManager(mc)?.player
+    private val actualPlayer = ClientViewAPI.instance.getWorldsManager(mc)?.player
     override fun getActivePotionMap(): MutableMap<Potion, PotionEffect> = actualPlayer?.activePotionMap ?: mutableMapOf()
     override fun getActivePotionEffects(): MutableCollection<PotionEffect> = actualPlayer?.activePotionEffects ?: mutableListOf()
     override fun getActivePotionEffect(potionIn: Potion): PotionEffect? = actualPlayer?.getActivePotionEffect(potionIn)

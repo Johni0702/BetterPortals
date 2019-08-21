@@ -2,9 +2,9 @@ package de.johni0702.minecraft.view.impl.server
 
 import com.mojang.authlib.GameProfile
 import de.johni0702.minecraft.betterportals.common.server
-import de.johni0702.minecraft.view.impl.IViewManagerHolder
-import de.johni0702.minecraft.view.server.ServerViewManager
-import de.johni0702.minecraft.view.server.viewManager
+import de.johni0702.minecraft.view.impl.IWorldsManagerHolder
+import de.johni0702.minecraft.view.impl.worldsManagerImpl
+import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.advancements.Advancement
 import net.minecraft.advancements.PlayerAdvancements
 import net.minecraft.entity.Entity
@@ -25,13 +25,17 @@ import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 import java.io.File
 
-internal class ViewEntity(world: WorldServer, profile: GameProfile, val parentConnection: NetHandlerPlayServer)
-    : EntityPlayerMP(world.server, world, profile, PlayerInteractionManager(world)) {
+internal class ViewEntity(
+        world: WorldServer,
+        profile: GameProfile,
+        val parentConnection: NetHandlerPlayServer,
+        val channel: EmbeddedChannel
+) : EntityPlayerMP(world.server, world, profile, PlayerInteractionManager(world)) {
     init {
         interactionManager.gameType = GameType.SPECTATOR
-        connection = object : NetHandlerPlayServer(world.server, NetworkManager(EnumPacketDirection.SERVERBOUND), this), IViewManagerHolder {
-            override val viewManager: ServerViewManager
-                get() = parentConnection.viewManager
+        connection = object : NetHandlerPlayServer(world.server, NetworkManager(EnumPacketDirection.SERVERBOUND), this), IWorldsManagerHolder {
+            override val worldsManager: ServerWorldsManagerImpl
+                get() = parentConnection.worldsManagerImpl
         }
     }
 

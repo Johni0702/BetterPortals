@@ -16,7 +16,7 @@ public abstract class MixinPlayerList {
             at = @At("HEAD"),
             cancellable = true)
     private void betterPortalPlayerToDimension(EntityPlayerMP player, int dimensionIn, ITeleporter teleporter, CallbackInfo ci) {
-        if (DimensionTransitionHandler.INSTANCE.transferPlayerToDimension((PlayerList)(Object)this, player, dimensionIn, teleporter)) {
+        if (DimensionTransitionHandler.INSTANCE.transferPlayerToDimension(player, dimensionIn, teleporter)) {
             ci.cancel();
         }
     }

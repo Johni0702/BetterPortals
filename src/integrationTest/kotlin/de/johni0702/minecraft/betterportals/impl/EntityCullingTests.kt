@@ -2,7 +2,7 @@ package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.impl.worlds.SingleNetherPortalSetup
-import de.johni0702.minecraft.view.client.viewManager
+import de.johni0702.minecraft.view.client.worldsManager
 import io.kotlintest.TestCaseConfig
 import io.kotlintest.extensions.TestListener
 import io.kotlintest.minutes
@@ -42,7 +42,7 @@ class EntityCullingTests : AnnotationSpec() {
         tickClient()
 
         val local = mc.world as World
-        val remote = mc.viewManager!!.views.map { it.world }.find { it != local }!!
+        val remote = mc.worldsManager!!.worlds.find { it != local }!!
 
         local.provider.dimension shouldBe 0
         remote.provider.dimension shouldBe -1
@@ -83,7 +83,7 @@ class EntityCullingTests : AnnotationSpec() {
         tickClient()
 
         val local = mc.world as World
-        val remote = mc.viewManager!!.views.map { it.world }.find { it != local }!!
+        val remote = mc.worldsManager!!.worlds.find { it != local }!!
 
         // Local world, inside portal, bottom/far side
         TestEntity.shouldNotBeVisible(local, localPortal + slightlyBelow)
@@ -131,7 +131,7 @@ class EntityCullingTests : AnnotationSpec() {
         tickClient()
 
         val local = mc.world as World
-        val remote = mc.viewManager!!.views.map { it.world }.find { it != local }!!
+        val remote = mc.worldsManager!!.worlds.find { it != local }!!
 
         // Local world, inside portal, bottom side
         TestEntity.shouldBeVisible(local, localPortal + slightlyBelow)
@@ -193,7 +193,7 @@ class EntityTraversalRenderTests : AnnotationSpec() {
         tickClient()
 
         val local = mc.world as World
-        val remote = mc.viewManager!!.views.map { it.world }.find { it != local }!!
+        val remote = mc.worldsManager!!.worlds.find { it != local }!!
 
         local.provider.dimension shouldBe 0
         remote.provider.dimension shouldBe -1

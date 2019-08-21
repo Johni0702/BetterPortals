@@ -1,12 +1,10 @@
 package de.johni0702.minecraft.view.impl.client
 
-import de.johni0702.minecraft.view.client.viewManager
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.LOGGER
 import io.netty.channel.ChannelHandlerContext
 import io.netty.util.concurrent.Future
 import io.netty.util.concurrent.GenericFutureListener
-import net.minecraft.client.Minecraft
 import net.minecraft.network.EnumPacketDirection
 import net.minecraft.network.NetworkManager
 import net.minecraft.network.Packet
@@ -52,6 +50,6 @@ internal class ViewNetworkManager : NetworkManager(EnumPacketDirection.CLIENTBOU
 
     @Throws(Exception::class)
     override fun exceptionCaught(ctx: ChannelHandlerContext?, t: Throwable) {
-        LOGGER.error("Error handing view data for view ${Minecraft.getMinecraft().viewManager?.activeView}:", t)
+        LOGGER.error("Error handing view data for view ${ClientViewAPIImpl.viewManagerImpl.activeView}:", t)
     }
 }

@@ -9,9 +9,11 @@ import de.johni0702.minecraft.betterportals.common.toRotation
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.CONFIG_MEKANISM_PORTALS
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.LOGGER
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.compareTo
-import de.johni0702.minecraft.view.server.FixedLocationTicket
+import io.netty.buffer.ByteBuf
 import mekanism.api.Coord4D
+import mekanism.api.TileNetworkList
 import mekanism.common.Mekanism
+import mekanism.common.PacketHandler
 import mekanism.common.config.MekanismConfig
 import mekanism.common.network.PacketPortalFX
 import mekanism.common.tile.TileEntityTeleporter
@@ -26,6 +28,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
+import net.minecraftforge.fml.common.FMLCommonHandler
 
 private val RELATIVE_PORTAL_BLOCKS: Set<BlockPos> = setOf(BlockPos.ORIGIN, BlockPos.ORIGIN.up())
 
@@ -56,11 +59,10 @@ class LinkedTeleporterPortal(
 class TeleporterPortalAgent(
         val tileEntity: TileEntityBetterTeleporter,
         portal: LinkedTeleporterPortal
-) : PortalAgent<FixedLocationTicket, LinkedTeleporterPortal>(
+) : PortalAgent<LinkedTeleporterPortal>(
         tileEntity.world.portalManager,
         PortalTileEntityAccessor.getId(tileEntity),
         portal,
-        { it.allocateFixedLocationTicket() },
         CONFIG_MEKANISM_PORTALS
 ) {
     override fun modifyAABBs(entity: Entity, queryAABB: AxisAlignedBB, aabbList: MutableList<AxisAlignedBB>, queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>) {
@@ -194,6 +196,9 @@ class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<Link
 
         this.trackingPlayers.forEach { this.agent?.addTrackingPlayer(it) }
         remote.trackingPlayers.forEach { remote.agent?.addTrackingPlayer(it) }
+
+        Mekanism.packetHandler.sendUpdatePacket(this)
+        Mekanism.packetHandler.sendUpdatePacket(remote)
     }
 
     private fun destroyAgent() {
@@ -202,6 +207,8 @@ class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<Link
 
         trackingPlayers.forEach { agent.removeTrackingPlayer(it) }
         this.agent = null
+
+        Mekanism.packetHandler.sendUpdatePacket(this)
 
         remoteAgent?.tileEntity?.destroyAgent()
     }
@@ -276,4 +283,27 @@ class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<Link
     // Disable normal teleport behavior
     override fun teleport() = Unit
     override fun getToTeleport(): MutableList<Entity> = mutableListOf()
+
+    override fun getNetworkedData(data: TileNetworkList): TileNetworkList {
+        super.getNetworkedData(data)
+        val agent = agent
+        if (agent != null) {
+            data.add(true)
+            data.add(agent.portal.writePortalToNBT())
+        } else {
+            data.add(false)
+        }
+        return data
+    }
+
+    override fun handlePacketData(dataStream: ByteBuf) {
+        super.handlePacketData(dataStream)
+        if (FMLCommonHandler.instance().effectiveSide.isClient) {
+            if (dataStream.readBoolean()) {
+                agent!!.portal.readPortalFromNBT(PacketHandler.readNBT(dataStream))
+            } else {
+                agent!!.portal.remoteDimension = null
+            }
+        }
+    }
 }

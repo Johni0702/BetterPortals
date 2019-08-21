@@ -14,10 +14,10 @@ internal object Net {
     init {
         var nextId = 0
         with(INSTANCE) {
-            registerMessage(CreateView.Handler(), CreateView::class.java, ++nextId, Side.CLIENT)
-            registerMessage(ViewData.Handler(), ViewData::class.java, ++nextId, Side.CLIENT)
-            registerMessage(DestroyView.Handler(), DestroyView::class.java, ++nextId, Side.CLIENT)
-            registerMessage(ChangeServerMainView.Handler(), ChangeServerMainView::class.java, ++nextId, Side.CLIENT)
+            registerMessage(CreateWorld.Handler(), CreateWorld::class.java, ++nextId, Side.CLIENT)
+            registerMessage(WorldData.Handler(), WorldData::class.java, ++nextId, Side.CLIENT)
+            registerMessage(DestroyWorld.Handler(), DestroyWorld::class.java, ++nextId, Side.CLIENT)
+            registerMessage(ChangeServerMainWorld.Handler(), ChangeServerMainWorld::class.java, ++nextId, Side.CLIENT)
             registerMessage(Transaction.Handler(), Transaction::class.java, ++nextId, Side.CLIENT)
         }
     }

@@ -14,8 +14,7 @@ import net.minecraftforge.fml.common.network.simpleimpl.IMessage
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 
-internal class CreateView(
-        var viewId: Int = 0,
+internal class CreateWorld(
         var dimensionID: Int = 0,
         var difficulty: EnumDifficulty? = null,
         var gameType: GameType? = null,
@@ -24,7 +23,6 @@ internal class CreateView(
 
     override fun fromBytes(byteBuf: ByteBuf) {
         val buf = PacketBuffer(byteBuf)
-        viewId = buf.readInt()
         dimensionID = buf.readInt()
         difficulty = EnumDifficulty.getDifficultyEnum(buf.readUnsignedByte().toInt())
         gameType = GameType.getByID(buf.readUnsignedByte().toInt())
@@ -36,15 +34,14 @@ internal class CreateView(
 
     override fun toBytes(byteBuf: ByteBuf) {
         val buf = PacketBuffer(byteBuf)
-        buf.writeInt(viewId)
         buf.writeInt(dimensionID)
         buf.writeByte(difficulty!!.difficultyId)
         buf.writeByte(gameType!!.id)
         buf.writeString(worldType!!.name)
     }
 
-    internal class Handler : IMessageHandler<CreateView, IMessage> {
-        override fun onMessage(message: CreateView, ctx: MessageContext): IMessage? {
+    internal class Handler : IMessageHandler<CreateWorld, IMessage> {
+        override fun onMessage(message: CreateWorld, ctx: MessageContext): IMessage? {
             clientSyncIgnoringView {
                 val mc = Minecraft.getMinecraft()
                 val world = WorldClient(mc.connection!!,
@@ -56,7 +53,7 @@ internal class CreateView(
                         message.dimensionID,
                         message.difficulty!!,
                         mc.mcProfiler)
-                ClientViewAPIImpl.viewManagerImpl.createView(message.viewId, world)
+                ClientViewAPIImpl.viewManagerImpl.createState(world)
             }
             return null
         }

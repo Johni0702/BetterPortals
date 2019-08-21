@@ -1,7 +1,7 @@
 package de.johni0702.minecraft.view.impl.mixin;
 
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl;
-import de.johni0702.minecraft.view.impl.client.ClientViewManagerImpl;
+import de.johni0702.minecraft.view.impl.client.ClientWorldsManagerImpl;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.network.play.server.SPacketPlayerPosLook;
@@ -21,7 +21,7 @@ public class MixinNetHandlerPlayerClient {
         // but the server doesn't know yet), then the player has been teleported around on the server side and we need
         // to rewind the local portal usage. The server will ignored our UsePortal message because at the time it
         // receives the message we have an open teleport still awaiting confirmation (the one which caused this call).
-        ClientViewManagerImpl viewManager = ClientViewAPIImpl.INSTANCE.getViewManagerImpl$betterportals_view();
+        ClientWorldsManagerImpl viewManager = ClientViewAPIImpl.INSTANCE.getViewManagerImpl$betterportals_view();
         // only when we are what the server sees as the main view
         if (viewManager.getActiveView() == viewManager.getServerMainView()) {
             viewManager.rewindMainView$betterportals_view();

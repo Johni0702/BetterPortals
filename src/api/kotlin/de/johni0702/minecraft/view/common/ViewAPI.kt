@@ -1,14 +1,12 @@
 package de.johni0702.minecraft.view.common
 
 import de.johni0702.minecraft.view.client.ClientViewAPI
-import de.johni0702.minecraft.view.client.ClientViewManager
+import de.johni0702.minecraft.view.client.ClientWorldsManager
 import de.johni0702.minecraft.view.client.render.RenderPass
 import de.johni0702.minecraft.view.client.render.RenderPassManager
-import de.johni0702.minecraft.view.server.ServerView
 import de.johni0702.minecraft.view.server.ServerViewAPI
-import de.johni0702.minecraft.view.server.ServerViewManager
+import de.johni0702.minecraft.view.server.ServerWorldsManager
 import net.minecraft.client.Minecraft
-import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.network.NetHandlerPlayServer
 import net.minecraftforge.fml.client.FMLClientHandler
 import net.minecraftforge.fml.common.FMLCommonHandler
@@ -51,7 +49,7 @@ private object FailureFallbackViewAPI : ViewAPI {
     override val server: ServerViewAPI by lazy { FailureFallbackServerViewAPI }
 
     private object FailureFallbackClientViewAPI : ClientViewAPI {
-        override fun getViewManager(minecraft: Minecraft): ClientViewManager? = null
+        override fun getWorldsManager(minecraft: Minecraft): ClientWorldsManager? = null
         override fun getRenderPassManager(minecraft: Minecraft): RenderPassManager = FailureFallbackRenderPassManager
 
         private object FailureFallbackRenderPassManager : RenderPassManager {
@@ -62,7 +60,6 @@ private object FailureFallbackViewAPI : ViewAPI {
     }
 
     object FailureFallbackServerViewAPI : ServerViewAPI {
-        override fun getViewManager(connection: NetHandlerPlayServer): ServerViewManager = throw UnsupportedOperationException()
-        override fun getView(player: EntityPlayerMP): ServerView? = throw UnsupportedOperationException()
+        override fun getWorldsManager(connection: NetHandlerPlayServer): ServerWorldsManager = throw UnsupportedOperationException()
     }
 }

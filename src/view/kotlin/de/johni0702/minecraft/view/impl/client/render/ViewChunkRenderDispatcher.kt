@@ -2,7 +2,7 @@ package de.johni0702.minecraft.view.impl.client.render
 
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.ListenableFutureTask
-import de.johni0702.minecraft.view.client.viewManager
+import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.BufferBuilder
 import net.minecraft.client.renderer.RegionRenderCacheBuilder
@@ -157,8 +157,8 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
             states.values.all { it.queuedUpdates.isEmpty() && it.queuedUploads.isEmpty() }
 
     override fun stopWorkerThreads() {
-        val viewManager = Minecraft.getMinecraft().viewManager
-        if (viewManager == null || viewManager.activeView == viewManager.mainView) {
+        val viewManager = ClientViewAPIImpl.viewManagerImpl
+        if (viewManager.activeView == viewManager.mainView) {
             states.values.forEach { it.stopChunkUpdates() }
             super.stopWorkerThreads()
         } else {
