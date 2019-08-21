@@ -252,7 +252,15 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
             // Finally, unforce the chunk we force to prevent the world from being unload
             ForgeChunkManager.releaseTicket(ticket)
             // and unload all chunks which we had to load just for finding the frame
-            remoteWorld.chunkProvider.queueUnloadAll()
+            if (!remoteWorld.isCubicWorld) { // CC will run GC by itself
+                val playerChunkMap = remoteWorld.playerChunkMap
+                val chunkProvider = remoteWorld.chunkProvider
+                chunkProvider.loadedChunks.forEach {
+                    if (!playerChunkMap.contains(it.x, it.z)) {
+                        chunkProvider.queueUnload(it)
+                    }
+                }
+            }
         }, { remoteWorld.server.addScheduledTask(it) })
     }
 
