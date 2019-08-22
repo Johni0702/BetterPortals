@@ -50,7 +50,7 @@ abstract class OneWayPortalEntity(
          * Not to be confused with the exit portal which spawns after the dragon fight; its tail end is in the overworld.
          * A pair of one-way portals cannot be entered from the tail end.
          */
-        override var isTailEnd: Boolean,
+        isTailEnd: Boolean,
 
         world: World, plane: EnumFacing.Plane, relativeBlocks: Set<BlockPos>,
         localDimension: Int, localPosition: BlockPos, localRotation: Rotation,
@@ -63,6 +63,13 @@ abstract class OneWayPortalEntity(
         portalConfig
 ), PortalEntity.OneWay<FinitePortal.Mutable> {
 
+    override var isTailEnd: Boolean = isTailEnd
+        set(value) {
+            field = value
+            // FIXME should be superfluous once [Portal] is no longer an interface
+            dataManager[PORTAL] = writePortalToNBT()
+        }
+
     @Deprecated("missing `PortalConfig` argument")
     constructor(
             isTailEnd: Boolean,
@@ -73,6 +80,13 @@ abstract class OneWayPortalEntity(
             PortalConfiguration())
 
     override val agent = OneWayPortalEntityPortalAgent(world.portalManager, this, portalConfig)
+
+    init {
+        // Update PORTAL data tracker to include isTailEnd
+        // FIXME should be superfluous once [Portal] is no longer an interface
+        @Suppress("LeakingThis")
+        dataManager[PORTAL] = writePortalToNBT()
+    }
 
     override fun writePortalToNBT(): NBTTagCompound =
             super.writePortalToNBT().apply { setBoolean("IsTailEnd", isTailEnd) }

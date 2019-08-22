@@ -50,7 +50,7 @@ abstract class AbstractPortalEntity(
 ) : Entity(world), PortalEntity<FinitePortal.Mutable>, FinitePortal.Mutable, IEntityAdditionalSpawnData {
 
     companion object {
-        private val PORTAL = EntityDataManager.createKey(AbstractPortalEntity::class.java, DataSerializers.COMPOUND_TAG)
+        val PORTAL = EntityDataManager.createKey(AbstractPortalEntity::class.java, DataSerializers.COMPOUND_TAG)!!
     }
 
     override var localPosition: BlockPos by Delegates.observable(localPosition) { _, _, _ -> updatePortalFields() }
