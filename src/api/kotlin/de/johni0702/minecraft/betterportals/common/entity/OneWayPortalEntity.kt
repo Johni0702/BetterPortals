@@ -106,9 +106,13 @@ abstract class OneWayPortalEntity(
                     }
                 }
             }
+            if (value && travelingInProgressTimer == 0) {
+                travelingInProgressTimer = 20
+            }
         }
     override val isTailEndVisible: Boolean
         get() = isTravelingInProgress
+    var travelingInProgressTimer = 0
 
     /**
      * The type of blocks which form the fake, client-side frame at the tail end of the portal.
@@ -120,9 +124,22 @@ abstract class OneWayPortalEntity(
 
         if (isTravelingInProgress && isTailEnd) {
             // Check whether the player has moved away from the tail end of the portal far enough so we can hide it
-            isTravelingInProgress = world.playerEntities.filter { it is EntityPlayerSP }.any {
+            val nearby = world.playerEntities.filterIsInstance<EntityPlayerSP>().any {
                 // Traveling is still considered in progress if the distance to the portal center is less than 10 blocks
                 localBoundingBox.center.squareDistanceTo(it.pos) < 100.0
+            }
+
+            // or they're no longer inside of it and enough time has passed, e.g. if they're standing next to it
+            val inside = world.playerEntities.filterIsInstance<EntityPlayerSP>().any { player ->
+                val playerAABB = player.entityBoundingBox
+                localDetailedBounds.any { it.intersects(playerAABB) }
+            }
+            if (!inside && travelingInProgressTimer > 0) {
+                travelingInProgressTimer--
+            }
+
+            if (!nearby || travelingInProgressTimer == 0) {
+                isTravelingInProgress = false
             }
         }
     }
