@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.common.block
 
 import de.johni0702.minecraft.betterportals.common.*
 import net.minecraft.block.Block
+import net.minecraft.block.state.IBlockState
 import net.minecraft.crash.CrashReport
 import net.minecraft.entity.Entity
 import net.minecraft.init.Blocks
@@ -31,6 +32,11 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
      * Type of block used for the portal frame.
      */
     val frameBlock: Block
+
+    /**
+     * Whether the given block state is a valid frame for the portal.
+     */
+    fun isFrameBlock(blockState: IBlockState) = blockState.block == frameBlock
 
     /**
      * Type of block used for the steps the player can walk onto after going through the portal.
@@ -190,8 +196,8 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
             }
 
             BlockPos.MutableBlockPos.getAllInBoxMutable(searchMin, searchMax).forEach { pos ->
-                val block = asyncBlockCache[pos].block
-                if (block == frameBlock) {
+                val blockState = asyncBlockCache[pos]
+                if (isFrameBlock(blockState)) {
                     for (potentialStartDirection in plane.facings()) {
                         val portalPos = pos.offset(potentialStartDirection)
                         if (!checkedPositions.add(portalPos)) continue
@@ -206,7 +212,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
                             }
                         }
                     }
-                } else if (block == Blocks.AIR) {
+                } else if (blockState == Blocks.AIR) {
                     for ((rotation, blocks) in rotatedPortalBlocks) {
                         val axis = rotation.axis(plane.opposite)
                         if (considerPlacingPortalAt(asyncBlockCache, blocks, pos, axis)) {
@@ -335,9 +341,11 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
         loop@ while (blockQueue.isNotEmpty()) {
             val pos = blockQueue.takeLast()
             if (pos.maxDist(startPos) > maxPortalSize) return emptySet()
-            when(blockCache[pos].block) {
-                frameBlock -> continue@loop
-                filling, Blocks.FIRE -> {
+            val blockState = blockCache[pos]
+            val block = blockState.block
+            when {
+                isFrameBlock(blockState) -> continue@loop
+                block == filling || block == Blocks.FIRE -> {
                     portalBlocks.add(pos)
                     directions.forEach {
                         queueIfUnknown(pos.offset(it))
@@ -416,7 +424,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
             if (blockCache[pos].block != filling) return false
             axis.parallelFaces.forEach {
                 val offsetPos = pos.offset(it)
-                if (offsetPos !in portalBlocks && blockCache[offsetPos].block != frameBlock) {
+                if (offsetPos !in portalBlocks && !isFrameBlock(blockCache[offsetPos])) {
                     return false
                 }
             }
