@@ -20,6 +20,7 @@
     "MixinEntityRenderer_NoOF",
     "MixinEntityRenderer_OF",
     "MixinIntegratedServer",
+    "MixinNetHandlerLoginClient",
     "MixinNetHandlerPlayerClient",
     "MixinRenderChunk",
     "MixinRenderGlobal",

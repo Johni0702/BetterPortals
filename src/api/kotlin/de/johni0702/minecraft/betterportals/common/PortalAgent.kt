@@ -258,6 +258,7 @@ open class PortalAgent<out P: Portal.Mutable>(
      * May teleport some entities and as such **must not** be called while ticking the world.
      */
     open fun checkTeleportees() {
+        getRemoteAgent() ?: return // not linked
         val facingVec = portal.localFacing.directionVec.to3d().abs() * 2
         val largerBB = portal.localBoundingBox.grow(facingVec)
         val finerBBs = portal.localDetailedBounds.map { it.grow(facingVec) }

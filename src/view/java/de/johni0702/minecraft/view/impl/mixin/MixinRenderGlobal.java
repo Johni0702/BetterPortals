@@ -6,8 +6,10 @@ import de.johni0702.minecraft.view.impl.client.render.ViewCameraEntity;
 import de.johni0702.minecraft.view.impl.client.render.ViewChunkRenderDispatcher;
 import de.johni0702.minecraft.view.impl.client.render.ViewRenderManager;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.client.renderer.chunk.ChunkRenderDispatcher;
+import net.minecraft.client.renderer.culling.ICamera;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
@@ -16,12 +18,16 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.Slice;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(RenderGlobal.class)
 public abstract class MixinRenderGlobal {
     @Shadow @Final private Minecraft mc;
+
+    @Shadow public abstract void loadRenderers();
 
     @Redirect(method = "loadRenderers", at = @At(value = "NEW", target = "net/minecraft/client/renderer/chunk/ChunkRenderDispatcher"))
     private ChunkRenderDispatcher createChunkRenderDispatcher() {
@@ -39,6 +45,45 @@ public abstract class MixinRenderGlobal {
             }
         }
         return new BlockPos(orgX, orgY, orgZ);
+    }
+
+    //
+    // MC and other mods call `loadRenderers()` when some graphic settings have changed and chunks need to be rebuilt.
+    // In order to propagate these calls to other render globals, a static counter is incremented on each of them and
+    // any RenderGlobal which has a private counter that doesn't match the global one is refreshed on the next call to
+    // `setupTerrain()`. Not very idiomatic but very pragmatic.
+    //
+
+    private static int globalRefreshCount = 0;
+    private int refreshCount = globalRefreshCount;
+    private boolean ignoreRefresh = false;
+
+    @Inject(method = "loadRenderers", at = @At("HEAD"))
+    private void refreshOtherViews(CallbackInfo ci) {
+        if (!ignoreRefresh) {
+            globalRefreshCount++;
+            refreshCount = globalRefreshCount;
+        }
+    }
+
+    // Ignore calls from setWorldAndLoadRenderers (i.e. when the local world changes).
+    @Inject(method = "setWorldAndLoadRenderers", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/RenderGlobal;loadRenderers()V"))
+    private void beforeLoadRenderers(WorldClient world, CallbackInfo ci) {
+        ignoreRefresh = true;
+    }
+    @Inject(method = "setWorldAndLoadRenderers", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/RenderGlobal;loadRenderers()V", shift = At.Shift.AFTER))
+    private void afterLoadRenderers(WorldClient world, CallbackInfo ci) {
+        ignoreRefresh = false;
+    }
+
+    @Inject(method = "setupTerrain", at = @At("HEAD"))
+    private void refreshIfOtherViewRefreshed(Entity viewEntity, double partialTicks, ICamera camera, int frameCount, boolean playerSpectator, CallbackInfo ci) {
+        if (refreshCount != globalRefreshCount) {
+            refreshCount = globalRefreshCount;
+            ignoreRefresh = true;
+            loadRenderers();
+            ignoreRefresh = false;
+        }
     }
 
     //

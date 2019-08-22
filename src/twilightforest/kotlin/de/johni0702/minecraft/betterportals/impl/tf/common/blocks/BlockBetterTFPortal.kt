@@ -6,6 +6,7 @@ import de.johni0702.minecraft.betterportals.impl.tf.common.LOGGER
 import de.johni0702.minecraft.betterportals.impl.tf.common.TF_MOD_ID
 import de.johni0702.minecraft.betterportals.impl.tf.common.entity.TFPortalEntity
 import net.minecraft.block.Block
+import net.minecraft.block.material.Material
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.Entity
 import net.minecraft.entity.item.EntityItem
@@ -36,6 +37,8 @@ class BlockBetterTFPortal(override val mod: Any) : BlockTFPortal(), PortalBlock<
         get() = this
     override val frameBlock: Block
         get() = Blocks.GRASS
+    override fun isFrameBlock(blockState: IBlockState): Boolean =
+            blockState.isFullCube && blockState.material.let { it == Material.GRASS || it == Material.GROUND }
     override val frameStepsBlock: Block
         get() = Blocks.GRASS
     override val maxPortalSize: Int
