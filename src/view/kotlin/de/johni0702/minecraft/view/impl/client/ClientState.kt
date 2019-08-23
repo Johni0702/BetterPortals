@@ -113,7 +113,7 @@ internal class ClientState(
 
     private var renderViewEntity: Entity? = null
     private var itemRenderer: ItemRenderer? = null
-    private var renderGlobal: RenderGlobal? = null
+    var renderGlobal: RenderGlobal? = null
     private var entityRenderer: EntityRenderer? = null
     private var particleManager: ParticleManager? = null
     private var pointedEntity: Entity? = null

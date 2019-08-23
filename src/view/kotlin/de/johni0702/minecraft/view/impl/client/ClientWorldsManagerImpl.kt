@@ -15,6 +15,7 @@ import net.minecraft.util.ReportedException
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.EnumDifficulty
+import net.minecraftforge.client.event.RenderGameOverlayEvent
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -388,6 +389,25 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         @SubscribeEvent(priority = EventPriority.LOW)
         fun onDisconnect(event: FMLNetworkEvent.ClientDisconnectionFromServerEvent) {
             reset()
+        }
+
+        @SubscribeEvent
+        fun addWorldsDebugInfo(event: RenderGameOverlayEvent.Text) {
+            val list = event.left
+            list.indexOfFirst { it.startsWith("E: ") }.let { idx ->
+                if (idx == -1) return@let
+                list.removeAt(idx)
+                views.forEach {
+                    list.add(idx, "Dim: ${it.world.provider.dimension}, ${it.renderGlobal?.debugInfoEntities}")
+                }
+            }
+            list.indexOfFirst { it.startsWith("MultiplayerChunkCache: ") }.let { idx ->
+                if (idx == -1) return@let
+                list.removeAt(idx)
+                worlds.forEach {
+                    list.add(idx, "Dim: ${it.provider.dimension}, ${it.providerName}")
+                }
+            }
         }
     }
 
