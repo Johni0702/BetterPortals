@@ -6,6 +6,7 @@ import de.johni0702.minecraft.view.impl.mixin.AccessorCubeWatcher_CC
 import de.johni0702.minecraft.view.impl.net.ChangeServerMainWorld
 import de.johni0702.minecraft.view.impl.net.sendTo
 import de.johni0702.minecraft.view.impl.worldsManagerImpl
+import de.johni0702.minecraft.view.server.CubeSelector
 import de.johni0702.minecraft.view.server.View
 import io.github.opencubicchunks.cubicchunks.core.server.CubeWatcher
 import io.github.opencubicchunks.cubicchunks.core.server.PlayerCubeMap
@@ -29,6 +30,18 @@ internal class ServerWorldManager(
 ) {
     val views = mutableListOf<View>()
     var activeViews = mutableListOf<View>()
+    var activeSelectors = mutableSetOf<CubeSelector>()
+        set(value) {
+            if (field == value) return
+
+            // Selectors changed, need to run a full update for that world
+            // TODO given at this point we know the old selectors, we could probably do some diffing for improved
+            //  performance if needed, considering this happens whenever someone walks 16 blocks, it may or may not
+            //  be worth it
+            needsUpdate = true
+
+            field = value
+        }
 
     var trackedColumns = mutableSetOf<ChunkPos>()
     var trackedCubes = mutableSetOf<Vec3i>()
@@ -45,8 +58,8 @@ internal class ServerWorldManager(
             getOrCreateEntry(selfPos).addPlayer(player)
         }
 
-        activeViews.forEach {
-            it.cubeSelector.forEachColumn { pos ->
+        activeSelectors.forEach {
+            it.forEachColumn { pos ->
                 if (updatedColumns.add(pos)) {
                     if (pos !in trackedColumns) {
                         getOrCreateEntry(pos).addPlayer(player)
@@ -86,8 +99,8 @@ internal class ServerWorldManager(
             getOrCreateCubeWatcherAccessor(selfCubePos).invokeAddPlayer(player)
         }
 
-        activeViews.forEach {
-            it.cubeSelector.forEachCube { cubePos ->
+        activeSelectors.forEach {
+            it.forEachCube { cubePos ->
                 if (updatedCubes.add(cubePos)) {
                     val columnPos = ChunkPos(cubePos.x, cubePos.z)
                     if (updatedColumns.add(columnPos)) {

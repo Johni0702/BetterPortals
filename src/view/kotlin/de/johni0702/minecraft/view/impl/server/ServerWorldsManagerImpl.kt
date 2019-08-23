@@ -28,6 +28,9 @@ import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher
 import java.util.*
+import kotlin.Comparator
+import kotlin.math.ceil
+import kotlin.math.sqrt
 
 internal class ServerWorldsManagerImpl(
         val server: MinecraftServer,
@@ -62,6 +65,7 @@ internal class ServerWorldsManagerImpl(
             )
         }
         override val anchor: Pair<WorldServer, Vec3i>? = anchor
+        override val portalDistance: Int = 1
     }.also { registerView(it) }
 
     override fun registerView(view: View) {
@@ -70,55 +74,79 @@ internal class ServerWorldsManagerImpl(
     }
 
     fun updateActiveViews() {
-        determineActiveViews().forEach { (world, tracked) ->
-            val manager = worldManagers.getValue(world)
-            if (manager.activeViews.toSet() != tracked) {
-                manager.activeViews = tracked
-                manager.needsUpdate = true
-            }
-        }
-    }
+        server.profiler.startSection("updateActiveViews")
 
-    private fun determineActiveViews(): Map<WorldServer, MutableList<View>> {
-        val trackedViews = worldManagers.mapValues { mutableListOf<View>() }
-        val queuedViews = mutableListOf<View>()
+        val anchoredViews = mutableMapOf<WorldServer, MutableList<View>>()
+        val trackedViews = worldManagers.mapValues { Pair(mutableListOf<View>(), mutableSetOf<CubeSelector>()) }
+        val anchorDistances = mutableMapOf<View, Int>()
+        val queuedViews = PriorityQueue<View>(Comparator.comparing<View, Int> { anchorDistances[it]!! })
+
+        // Queue main player view
         if (!player.hasDisconnected()) {
-            queuedViews.add(VanillaView(this, player))
+            queuedViews.add(VanillaView(this, player).also { anchorDistances[it] = 0 })
         }
-        worldManagers.values.forEach { queuedViews.addAll(it.views) }
 
-        while (true) {
-            var changed = false
-            val iter = queuedViews.iterator()
-            while (iter.hasNext()) {
-                val view = iter.next()
-                val anchor = view.anchor
-                val included = if (anchor != null) {
-                    val anchorWorld = anchor.first
-                    val anchorPos = anchor.second
-                    val anchorChunkPos = ChunkPos(anchorPos.x, anchorPos.z)
-                    trackedViews[anchorWorld]?.any {
-                        if (anchorWorld.isCubicWorld) {
-                            it.cubeSelector.isCubeIncluded(anchorPos)
-                        } else {
-                            it.cubeSelector.isColumnIncluded(anchorChunkPos)
-                        }
-                    } == true
+        // Categorize all other views
+        worldManagers.values.forEach { worldManager ->
+            worldManager.views.forEach {
+                val anchor = it.anchor
+                if (anchor == null) {
+                    // directly queue those without anchor (their distance will be zero)
+                    queuedViews.add(it.also { anchorDistances[it] = 0 })
                 } else {
-                    true
+                    // remember anchor for those that have one (for faster lookup later)
+                    anchoredViews.getOrPut(anchor.first, ::mutableListOf).add(it)
                 }
-                if (included) {
-                    trackedViews.getValue(view.world).add(view)
-                    iter.remove()
-                    changed = true
-                }
-            }
-            if (!changed) {
-                break
             }
         }
 
-        return trackedViews
+        // Graph traversal to determine all active views and the shortest distance to each of them
+        while (true) {
+            // Poll view with least distance (it's done, there's no way for its distance to further decrease)
+            val view = queuedViews.poll() ?: break
+            val world = view.world
+            val anchorDistance = anchorDistances[view]!!
+            val selector = view.cubeSelector.withAnchorDistance(anchorDistance)
+
+            // Add view to finished set
+            trackedViews.getValue(world).let { (activeViews, activeSelectors) ->
+                activeViews.add(view)
+                activeSelectors.add(selector)
+            }
+
+            // Update distances of all views with anchors nearby and queue (or re-queue) them
+            val portalDistance = if (view.anchor != null) view.portalDistance else 0
+            val centerDistance = anchorDistance + portalDistance
+            val centerCube = view.center.toBlockPos().toCubePos()
+            anchoredViews[view.world]?.forEach { other ->
+                val otherAnchorPos = other.anchor!!.second
+                val otherAnchorNearViewCenter = if (world.isCubicWorld) {
+                    selector.isCubeIncluded(otherAnchorPos)
+                } else {
+                    selector.isColumnIncluded(ChunkPos(otherAnchorPos.x, otherAnchorPos.z))
+                }
+                if (!otherAnchorNearViewCenter) return@forEach
+
+                val distCenterToOtherAnchor = ceil(sqrt(centerCube.distanceSq(otherAnchorPos))).toInt()
+                val newOtherAnchorDist = centerDistance + distCenterToOtherAnchor
+                val oldOtherAnchorDist = anchorDistances[other] ?: Int.MAX_VALUE
+                if (oldOtherAnchorDist <= newOtherAnchorDist) return@forEach
+
+                queuedViews.remove(other)
+                anchorDistances[other] = newOtherAnchorDist
+                queuedViews.offer(other)
+            }
+        }
+
+        // Update world managers with new active views and selectors
+        trackedViews.forEach { (world, value) ->
+            val (activeViews, activeSelectors) = value
+            val manager = worldManagers.getValue(world)
+            manager.activeViews = activeViews
+            manager.activeSelectors = activeSelectors
+        }
+
+        server.profiler.endSection()
     }
 
     override val worlds: List<WorldServer>
@@ -318,6 +346,7 @@ class VanillaView(
         )
     }
     override val anchor: Pair<WorldServer, Vec3i>? = null
+    override val portalDistance: Int = 0
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
