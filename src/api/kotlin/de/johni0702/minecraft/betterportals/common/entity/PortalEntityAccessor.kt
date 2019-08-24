@@ -1,6 +1,6 @@
 package de.johni0702.minecraft.betterportals.common.entity
 
-import de.johni0702.minecraft.betterportals.common.Portal
+import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.PortalAccessor
 import de.johni0702.minecraft.betterportals.common.PortalAgent
 import net.minecraft.block.state.IBlockState
@@ -13,10 +13,10 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.world.IWorldEventListener
 import net.minecraft.world.World
 
-interface PortalEntity<out P: Portal.Mutable> {
-    val agent: PortalAgent<P>
+interface PortalEntity {
+    val agent: PortalAgent<FinitePortal>
 
-    interface OneWay<out P: Portal.Mutable> : PortalEntity<P> {
+    interface OneWay : PortalEntity {
         /**
          * Whether this portal instance is the tail/exit end of a pair of portals.
          * Not to be confused with the exit portal which spawns after the dragon fight; its tail end is in the overworld.
@@ -34,16 +34,16 @@ interface PortalEntity<out P: Portal.Mutable> {
     }
 }
 
-class PortalEntityAccessor<E, P: Portal.Mutable>(
+class PortalEntityAccessor<E>(
         private val type: Class<E>,
         private val world: World
 ) : PortalAccessor
-        where E: PortalEntity<P>,
+        where E: PortalEntity,
               E: Entity
 {
     val entities: List<E>
         get() = world.getEntities(type) { it?.isDead == false }
-    override val loadedPortals: Iterable<PortalAgent<Portal.Mutable>>
+    override val loadedPortals: Iterable<PortalAgent<FinitePortal>>
         get() = entities.map { it.agent }
 
     private val changeCallbacks = mutableListOf<() -> Unit>()
@@ -74,7 +74,7 @@ class PortalEntityAccessor<E, P: Portal.Mutable>(
         })
     }
 
-    override fun findById(id: ResourceLocation): PortalAgent<Portal.Mutable>? {
+    override fun findById(id: ResourceLocation): PortalAgent<FinitePortal>? {
         if (id.resourceDomain != "minecraft") return null
         if (!id.resourcePath.startsWith("entity/id/")) return null
         val entityId = id.resourcePath.substring("entity/id/".length).toIntOrNull() ?: return null
@@ -91,6 +91,6 @@ class PortalEntityAccessor<E, P: Portal.Mutable>(
     companion object {
         fun <E> getId(entity: E): ResourceLocation
                 where E: Entity,
-                      E: PortalEntity<*> = ResourceLocation("minecraft", "entity/id/" + entity.entityId)
+                      E: PortalEntity = ResourceLocation("minecraft", "entity/id/" + entity.entityId)
     }
 }

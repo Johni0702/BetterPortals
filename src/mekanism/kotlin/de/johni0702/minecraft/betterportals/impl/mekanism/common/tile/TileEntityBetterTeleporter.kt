@@ -32,34 +32,18 @@ import net.minecraftforge.fml.common.FMLCommonHandler
 
 private val RELATIVE_PORTAL_BLOCKS: Set<BlockPos> = setOf(BlockPos.ORIGIN, BlockPos.ORIGIN.up())
 
-class LinkedTeleporterPortal(
-        localDimension: Int,
-        localPosition: BlockPos,
-        localRotation: Rotation,
-        remoteDimension: Int?,
-        remotePosition: BlockPos,
-        remoteRotation: Rotation
-) : FinitePortal.Impl(
-        EnumFacing.Plane.VERTICAL,
-        localDimension,
-        localPosition,
-        localRotation,
-        remoteDimension,
-        remotePosition,
-        remoteRotation,
-        RELATIVE_PORTAL_BLOCKS
-) {
-
-    fun toRemote(): LinkedTeleporterPortal = LinkedTeleporterPortal(
-            remoteDimension!!, remotePosition, remoteRotation,
-            localDimension, localPosition, localRotation
-    )
-}
+fun newTeleporterPortal(localDimension: Int, localPosition: BlockPos, localRotation: Rotation) =
+        FinitePortal(EnumFacing.Plane.VERTICAL, RELATIVE_PORTAL_BLOCKS, localDimension, localPosition, localRotation)
+fun newTeleporterPortal(localDimension: Int, localPosition: BlockPos, localRotation: Rotation,
+                        remoteDimension: Int?, remotePosition: BlockPos, remoteRotation: Rotation) =
+        FinitePortal(EnumFacing.Plane.VERTICAL, RELATIVE_PORTAL_BLOCKS,
+                localDimension, localPosition, localRotation,
+                remoteDimension, remotePosition, remoteRotation)
 
 class TeleporterPortalAgent(
         val tileEntity: TileEntityBetterTeleporter,
-        portal: LinkedTeleporterPortal
-) : PortalAgent<LinkedTeleporterPortal>(
+        portal: FinitePortal
+) : PortalAgent<FinitePortal>(
         tileEntity.world.portalManager,
         PortalTileEntityAccessor.getId(tileEntity),
         portal,
@@ -120,7 +104,7 @@ class TeleporterPortalAgent(
     }
 }
 
-class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<LinkedTeleporterPortal> {
+class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<FinitePortal> {
     override var agent: TeleporterPortalAgent? = null
     private val trackingPlayers = mutableListOf<EntityPlayerMP>()
     val active get() = shouldRender && MekanismUtils.canFunction(this)
@@ -129,14 +113,7 @@ class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<Link
         super.setPos(posIn)
         if (world.isRemote) {
             val localCoord = Coord4D.get(this)
-            val portal = LinkedTeleporterPortal(
-                    world.provider.dimension,
-                    localCoord.pos.up(),
-                    Rotation.NONE,
-                    null,
-                    BlockPos.ORIGIN,
-                    Rotation.NONE
-            )
+            val portal = newTeleporterPortal(world.provider.dimension, localCoord.pos.up(), Rotation.NONE)
             agent = TeleporterPortalAgent(this, portal)
         }
     }
@@ -145,7 +122,7 @@ class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<Link
         EnumFacing.HORIZONTALS.find { bottomPortalBlock.step(it).isAirBlock(world) } ?: EnumFacing.NORTH
     }
 
-    private fun getPortal(): Pair<LinkedTeleporterPortal, TileEntityBetterTeleporter>? {
+    private fun getPortal(): Pair<FinitePortal, TileEntityBetterTeleporter>? {
         if (!hasFrame()) {
             return null
         }
@@ -166,7 +143,7 @@ class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<Link
             remoteFacing = remoteFacing.opposite
         }
 
-        val portal = LinkedTeleporterPortal(
+        val portal = newTeleporterPortal(
                 localCoord.dimensionId,
                 localCoord.pos.up(),
                 localFacing.toRotation(),
@@ -187,7 +164,7 @@ class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<Link
         return remoteCoord
     }
 
-    private fun link(remote: TileEntityBetterTeleporter, portal: LinkedTeleporterPortal) {
+    private fun link(remote: TileEntityBetterTeleporter, portal: FinitePortal) {
         this.destroyAgent()
         remote.destroyAgent()
 
@@ -299,10 +276,11 @@ class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<Link
     override fun handlePacketData(dataStream: ByteBuf) {
         super.handlePacketData(dataStream)
         if (FMLCommonHandler.instance().effectiveSide.isClient) {
+            val agent = agent!!
             if (dataStream.readBoolean()) {
-                agent!!.portal.readPortalFromNBT(PacketHandler.readNBT(dataStream))
+                agent.portal = FinitePortal(PacketHandler.readNBT(dataStream))
             } else {
-                agent!!.portal.remoteDimension = null
+                agent.portal = agent.portal.withoutRemote()
             }
         }
     }

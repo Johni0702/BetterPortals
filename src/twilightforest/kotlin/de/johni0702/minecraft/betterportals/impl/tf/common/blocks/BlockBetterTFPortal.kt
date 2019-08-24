@@ -51,8 +51,8 @@ class BlockBetterTFPortal(override val mod: Any) : BlockTFPortal(), PortalBlock<
         return localWorld.server.getWorld(if (localWorld.provider.dimension == tfDimId) 0 else tfDimId)
     }
 
-    override fun createPortalEntity(localEnd: Boolean, world: World, plane: EnumFacing.Plane, portalBlocks: Set<BlockPos>, localDim: Int, localPos: BlockPos, localRot: Rotation): TFPortalEntity =
-            TFPortalEntity(!localEnd, world, portalBlocks, localDim, localPos, localRot, null, BlockPos.ORIGIN, Rotation.NONE)
+    override fun createPortalEntity(localEnd: Boolean, world: World, portal: FinitePortal): TFPortalEntity =
+            TFPortalEntity(!localEnd, world, portal)
 
     private fun makeBetterPortal(localWorld: WorldServer, pos: BlockPos) {
         val localBlocks = findPortalFrame(localWorld.makeBlockCache(), pos, EnumFacing.Axis.Y, true)
@@ -86,16 +86,18 @@ class BlockBetterTFPortal(override val mod: Any) : BlockTFPortal(), PortalBlock<
         // It also clears five blocks above that portal, so let's just put our tail end up there
         val remotePos = targetPos.up(5)
 
-        val localPortal = createPortalEntity(true, localWorld, EnumFacing.Plane.HORIZONTAL, portalBlocks, localDim, localPos, rot)
+        val localPortal = FinitePortal(EnumFacing.Plane.HORIZONTAL, portalBlocks, localDim, localPos, rot)
+        val localEntity = createPortalEntity(true, localWorld, localPortal)
         localPortal.localBlocks.forEach {
             localWorld.setBlockState(it, portalBlock.defaultState, 2)
         }
-        localWorld.forceSpawnEntity(localPortal)
+        localWorld.forceSpawnEntity(localEntity)
 
-        val remotePortal = createPortalEntity(false, remoteWorld, EnumFacing.Plane.HORIZONTAL, portalBlocks, remoteDim, remotePos, rot)
-        remoteWorld.forceSpawnEntity(remotePortal)
+        val remotePortal = FinitePortal(EnumFacing.Plane.HORIZONTAL, portalBlocks, remoteDim, remotePos, rot)
+        val remoteEntity = createPortalEntity(false, remoteWorld, remotePortal)
+        remoteWorld.forceSpawnEntity(remoteEntity)
 
-        localPortal.link(remotePortal)
+        localEntity.link(remoteEntity)
 
         // Now, TF has already created the exit (or entry, really depends on your perspective) portal for us,
         // time to find it and recursively upgrade it to a better one

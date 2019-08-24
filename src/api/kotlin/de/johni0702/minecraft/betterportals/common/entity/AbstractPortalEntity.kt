@@ -1,36 +1,36 @@
 package de.johni0702.minecraft.betterportals.common.entity
 
 import de.johni0702.minecraft.betterportals.common.*
-import io.netty.buffer.ByteBuf
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.nbt.NBTTagCompound
-import net.minecraft.network.PacketBuffer
 import net.minecraft.network.datasync.DataParameter
 import net.minecraft.network.datasync.DataSerializers
 import net.minecraft.network.datasync.EntityDataManager
-import net.minecraft.util.EnumFacing
 import net.minecraft.util.ResourceLocation
-import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
-import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
-import net.minecraftforge.fml.common.registry.IEntityAdditionalSpawnData
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
-import kotlin.properties.Delegates
 
-open class PortalEntityPortalAgent<out E: AbstractPortalEntity>(
+interface Linkable {
+    val portal: FinitePortal
+    fun link(other: Linkable)
+}
+
+open class PortalEntityPortalAgent(
         manager: PortalManager,
-        val entity: E,
         portalConfig: PortalConfiguration
-) : PortalAgent<E>(
+) : PortalAgent<FinitePortal>(
         manager,
-        PortalEntityAccessor.getId(entity),
-        entity,
+        ResourceLocation(""),
+        FinitePortal.DUMMY,
         portalConfig
 ) {
+    lateinit var entity: AbstractPortalEntity
+        internal set
+
     // The entity ID might not be correct before the entity is actually spawned into the world
     override val id: ResourceLocation
         get() = PortalEntityAccessor.getId(entity)
@@ -38,67 +38,31 @@ open class PortalEntityPortalAgent<out E: AbstractPortalEntity>(
 
 abstract class AbstractPortalEntity(
         world: World,
-        override var plane: EnumFacing.Plane,
-        relativeBlocks: Set<BlockPos>,
-        override var localDimension: Int,
-        localPosition: BlockPos,
-        localRotation: Rotation,
-        override var remoteDimension: Int?,
-        remotePosition: BlockPos,
-        remoteRotation: Rotation,
-        portalConfig: PortalConfiguration
-) : Entity(world), PortalEntity<FinitePortal.Mutable>, FinitePortal.Mutable, IEntityAdditionalSpawnData {
+        portal: FinitePortal,
+        final override val agent: PortalEntityPortalAgent
+) : Entity(world), PortalEntity, Linkable {
+    constructor(world: World, portal: FinitePortal, portalConfig: PortalConfiguration)
+            : this(world, portal, PortalEntityPortalAgent(world.portalManager, portalConfig))
 
     companion object {
-        val PORTAL = EntityDataManager.createKey(AbstractPortalEntity::class.java, DataSerializers.COMPOUND_TAG)!!
-    }
-
-    override var localPosition: BlockPos by Delegates.observable(localPosition) { _, _, _ -> updatePortalFields() }
-    override var localRotation: Rotation by Delegates.observable(localRotation) { _, _, _ -> updatePortalFields() }
-    override var remotePosition: BlockPos by Delegates.observable(remotePosition) { _, _, _ -> updatePortalFields() }
-    override var remoteRotation: Rotation by Delegates.observable(remoteRotation) { _, _, _ -> updatePortalFields() }
-    override var relativeBlocks: Set<BlockPos> by Delegates.observable(relativeBlocks) { _, _, _ -> updatePortalFields() }
-
-    private lateinit var _localBlocks: Set<BlockPos>
-    private lateinit var _remoteBlocks: Set<BlockPos>
-
-    private lateinit var _localDetailedBounds: List<AxisAlignedBB>
-    private lateinit var _remoteDetailedBounds: List<AxisAlignedBB>
-
-    private lateinit var _localBoundingBox: AxisAlignedBB
-    private lateinit var _remoteBoundingBox: AxisAlignedBB
-
-    override val localBlocks: Set<BlockPos> get() = _localBlocks
-    override val remoteBlocks: Set<BlockPos> get() = _remoteBlocks
-
-    override val localDetailedBounds: List<AxisAlignedBB> get() = _localDetailedBounds
-    override val remoteDetailedBounds: List<AxisAlignedBB> get() = _remoteDetailedBounds
-
-    override val localBoundingBox: AxisAlignedBB get() = _localBoundingBox
-    override val remoteBoundingBox: AxisAlignedBB get() = _remoteBoundingBox
-
-    private fun updatePortalFields() {
-        _localBlocks = relativeBlocks.map { it.toLocal() }.toSet()
-        _remoteBlocks = relativeBlocks.map { it.toRemote() }.toSet()
-
-        _localDetailedBounds = localBlocks.map(::AxisAlignedBB)
-        _remoteDetailedBounds = remoteBlocks.map(::AxisAlignedBB)
-
-        _localBoundingBox = localBlocks.toAxisAlignedBB()
-        _remoteBoundingBox = remoteBlocks.toAxisAlignedBB()
-
-        with(localPosition.to3d()) { setPosition(x + 0.5, y + 0.5, z + 0.5) }
-        setRotation(localRotation.degrees.toFloat(), 0f)
-        dataManager[PORTAL] = writePortalToNBT()
+        private val PORTAL: DataParameter<NBTTagCompound> = EntityDataManager.createKey(AbstractPortalEntity::class.java, DataSerializers.COMPOUND_TAG)
     }
 
     init {
-        updatePortalFields()
+        @Suppress("LeakingThis")
+        agent.entity = this
+        agent.portal = portal
+        dataManager[PORTAL] = portal.writePortalToNBT()
     }
 
-    override fun getRenderBoundingBox(): AxisAlignedBB = localBoundingBox
+    override var portal: FinitePortal = portal
+        set(value) {
+            field = value
+            dataManager[PORTAL] = value.writePortalToNBT()
+            agent.portal = value
+        }
 
-    override val agent = PortalEntityPortalAgent(world.portalManager, this, portalConfig)
+    override fun getRenderBoundingBox(): AxisAlignedBB = portal.localBoundingBox
 
     init {
         // MC checks whether entities are completely inside the view frustum which is completely useless/broken for
@@ -111,8 +75,8 @@ abstract class AbstractPortalEntity(
         width = 0f
         height = 0f
 
-        with(localPosition.to3d()) { setPosition(x + 0.5, y + 0.5, z + 0.5) }
-        this.setRotation(localRotation.degrees.toFloat(), 0f)
+        with(portal.localPosition.to3d()) { setPosition(x + 0.5, y + 0.5, z + 0.5) }
+        this.setRotation(portal.localRotation.degrees.toFloat(), 0f)
     }
 
     override fun entityInit() {
@@ -122,7 +86,7 @@ abstract class AbstractPortalEntity(
     override fun notifyDataManagerChange(key: DataParameter<*>) {
         super.notifyDataManagerChange(key)
         if (world.isRemote) {
-            readPortalFromNBT(dataManager.get(PORTAL))
+            portal = FinitePortal(dataManager.get(PORTAL))
         }
     }
 
@@ -140,30 +104,22 @@ abstract class AbstractPortalEntity(
 
     override fun shouldSetPosAfterLoading(): Boolean = false
     override fun readEntityFromNBT(compound: NBTTagCompound) {
-        readPortalFromNBT(compound.getTag("BetterPortal"))
+        portal = FinitePortal(compound.getTag("BetterPortal") as NBTTagCompound)
     }
 
     override fun writeEntityToNBT(compound: NBTTagCompound) {
-        compound.setTag("BetterPortal", writePortalToNBT())
-    }
-
-    override fun readSpawnData(additionalData: ByteBuf) {
-        readPortalFromNBT(PacketBuffer(additionalData).readCompoundTag())
-    }
-
-    override fun writeSpawnData(buffer: ByteBuf) {
-        PacketBuffer(buffer).writeCompoundTag(writePortalToNBT())
+        compound.setTag("BetterPortal", portal.writePortalToNBT())
     }
 
     fun getRemotePortal(): AbstractPortalEntity? {
         val remoteWorld = if (world.isRemote) {
             agent.remoteWorld ?: return null
         } else {
-            world.minecraftServer!!.getWorld(remoteDimension ?: return null)
+            world.minecraftServer!!.getWorld(portal.remoteDimension ?: return null)
         }
-        val chunk = remoteWorld.getChunkFromBlockCoords(remotePosition)
+        val chunk = remoteWorld.getChunkFromBlockCoords(portal.remotePosition)
         val list = mutableListOf<AbstractPortalEntity>()
-        chunk.getEntitiesOfTypeWithinAABB(javaClass, AxisAlignedBB(remotePosition), list) {
+        chunk.getEntitiesOfTypeWithinAABB(javaClass, AxisAlignedBB(portal.remotePosition), list) {
             it?.agent?.isLinked(agent) == true
         }
         return list.firstOrNull()
@@ -187,24 +143,10 @@ abstract class AbstractPortalEntity(
         agent.removeTrackingPlayer(player)
     }
 
-    override fun link(other: Portal.Linkable) {
-        if (this.remoteDimension != null) {
-            // Unlink all tracking players
-            trackingPlayers.toList().forEach {
-                removeTrackingPlayer(it)
-            }
-        }
-
-        super.link(other)
-
-        // Update tracking players
-        trackingPlayers.toList().forEach {
-            addTrackingPlayer(it)
-        }
-        getRemotePortal()?.let { remotePortal ->
-            remotePortal.trackingPlayers.toList().forEach {
-                remotePortal.addTrackingPlayer(it)
-            }
+    override fun link(other: Linkable) {
+        portal = portal.withRemote(other.portal)
+        if (!other.portal.isTarget(portal)) {
+            other.link(this)
         }
     }
 
@@ -218,7 +160,7 @@ abstract class AbstractPortalEntity(
     }
 
     protected open fun removePortal() {
-        localBlocks.forEach { world.setBlockToAir(it) }
+        portal.localBlocks.forEach { world.setBlockToAir(it) }
     }
 
     //

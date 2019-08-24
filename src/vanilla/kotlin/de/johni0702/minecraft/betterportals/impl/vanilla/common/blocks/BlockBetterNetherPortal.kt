@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.betterportals.impl.vanilla.common.blocks
 
+import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.block.PortalBlock
 import de.johni0702.minecraft.betterportals.common.server
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.EMPTY_AABB
@@ -12,8 +13,6 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Blocks
 import net.minecraft.util.EnumBlockRenderType
-import net.minecraft.util.EnumFacing
-import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.IBlockAccess
@@ -35,9 +34,8 @@ class BlockBetterNetherPortal(override val mod: Any) : BlockPortal(), PortalBloc
     override val maxPortalSize: Int = 100
     override val entityType: Class<NetherPortalEntity> = NetherPortalEntity::class.java
 
-    override fun createPortalEntity(localEnd: Boolean, world: World, plane: EnumFacing.Plane, portalBlocks: Set<BlockPos>,
-                                    localDim: Int, localPos: BlockPos, localRot: Rotation): NetherPortalEntity =
-            NetherPortalEntity(world, plane, portalBlocks, localDim, localPos, localRot)
+    override fun createPortalEntity(localEnd: Boolean, world: World, portal: FinitePortal): NetherPortalEntity =
+            NetherPortalEntity(world, portal)
 
     override fun getRemoteWorldFor(localWorld: WorldServer, pos: BlockPos): WorldServer? {
         val server = localWorld.server

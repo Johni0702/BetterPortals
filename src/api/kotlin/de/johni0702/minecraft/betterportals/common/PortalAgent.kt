@@ -110,7 +110,7 @@ interface PortalManager {
 
 val World.portalManager get() = BetterPortalsAPI.instance.getPortalManager(this)
 
-open class PortalAgent<out P: Portal.Mutable>(
+open class PortalAgent<P: Portal>(
         val manager: PortalManager,
         /**
          * A unique (per world/manager) id for this agent.
@@ -118,9 +118,26 @@ open class PortalAgent<out P: Portal.Mutable>(
          * registered must be able to resolve it via [PortalAccessor.findById] on either side.
          */
         open val id: ResourceLocation,
-        val portal: P,
+        portal: P,
         val portalConfig: PortalConfiguration
 ) {
+    var portal = portal
+        set(value) {
+            // If we moved, invalidate all tracked entity positions
+            if (value.localAxis != field.localAxis || value.localPosition != field.localPosition) {
+                lastTickPos.clear()
+            }
+
+            field = value
+
+            if (!world.isRemote) {
+                // Always refresh views since either anchor or target have almost certainly changed
+                val oldViews = views.toMap()
+                views.clear()
+                oldViews.keys.forEach(this::addTrackingPlayer)
+                oldViews.values.forEach(View::dispose)
+            }
+        }
     val world get() = manager.world
     open val preventFallAfterVerticalPortal get() = manager.preventFallAfterVerticalPortal
 

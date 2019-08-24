@@ -15,18 +15,18 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
 import org.lwjgl.opengl.GL11
 
-open class FramedPortalRenderer<in P: FinitePortal>(
+open class FramedPortalRenderer(
         val textureOpacity: () -> Double = { 0.0 },
         private val portalSprite: () -> TextureAtlasSprite? = { null }
-) : PortalRenderer<P>() {
-    override fun renderPortalSurface(portal: P, pos: Vec3d, renderPass: RenderPass, haveContent: Boolean) {
+) : PortalRenderer<FinitePortal>() {
+    override fun renderPortalSurface(portal: FinitePortal, pos: Vec3d, renderPass: RenderPass, haveContent: Boolean) {
         val offset = pos - Vec3d(0.5, 0.5, 0.5)
 
         val tessellator = Tessellator.getInstance()
         with(tessellator.buffer) {
             begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION)
 
-            val blocks = portal.relativeBlocks.mapTo(mutableSetOf()) { it.rotate(portal.localRotation) }
+            val blocks = portal.blocks.mapTo(mutableSetOf()) { it.rotate(portal.localRotation) }
             blocks.forEach { pos ->
                 setTranslation(offset.x + pos.x, offset.y + pos.y, offset.z + pos.z)
                 if (haveContent) {
@@ -75,7 +75,7 @@ open class FramedPortalRenderer<in P: FinitePortal>(
         }
     }
 
-    override fun doRenderTransparent(portal: P, pos: Vec3d, partialTicks: Float) {
+    override fun doRenderTransparent(portal: FinitePortal, pos: Vec3d, partialTicks: Float) {
         super.doRenderTransparent(portal, pos, partialTicks)
         val opacity = textureOpacity()
         if (opacity > 0) {
@@ -83,14 +83,14 @@ open class FramedPortalRenderer<in P: FinitePortal>(
         }
     }
 
-    protected open fun renderPortalBlocks(portal: P, pos: Vec3d, opacity: Double) {
+    protected open fun renderPortalBlocks(portal: FinitePortal, pos: Vec3d, opacity: Double) {
         val offset = pos - Vec3d(0.5, 0.5, 0.5)
 
         val tessellator = Tessellator.getInstance()
         with(tessellator.buffer) {
             begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK)
 
-            val blocks = portal.relativeBlocks.map { it.rotate(portal.localRotation) }
+            val blocks = portal.blocks.map { it.rotate(portal.localRotation) }
             blocks.forEach { pos ->
                 setTranslation(offset.x + pos.x, offset.y + pos.y, offset.z + pos.z)
                 renderPortalBlock(portal, pos, opacity, this)
@@ -110,7 +110,7 @@ open class FramedPortalRenderer<in P: FinitePortal>(
         RenderHelper.enableStandardItemLighting()
     }
 
-    protected open fun renderPortalBlock(portal: P, relativePos: BlockPos, opacity: Double, bufferBuilder: BufferBuilder) {
+    protected open fun renderPortalBlock(portal: FinitePortal, relativePos: BlockPos, opacity: Double, bufferBuilder: BufferBuilder) {
         val sprite = portalSprite() ?: return
         bufferBuilder.markSpriteAsActive(sprite)
         val facing = viewFacing.opposite

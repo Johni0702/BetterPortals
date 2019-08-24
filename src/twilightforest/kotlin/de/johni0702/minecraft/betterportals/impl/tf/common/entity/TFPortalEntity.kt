@@ -1,27 +1,16 @@
 package de.johni0702.minecraft.betterportals.impl.tf.common.entity
 
+import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.entity.OneWayPortalEntity
 import de.johni0702.minecraft.betterportals.impl.tf.common.TF_PORTAL_CONFIG
 import net.minecraft.block.Block
 import net.minecraft.init.Blocks
-import net.minecraft.util.EnumFacing
-import net.minecraft.util.Rotation
-import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 import twilightforest.block.TFBlocks
 
-class TFPortalEntity(
-        isTailEnd: Boolean, world: World, relativeBlocks: Set<BlockPos>,
-        localDimension: Int, localPosition: BlockPos, localRotation: Rotation,
-        remoteDimension: Int?, remotePosition: BlockPos, remoteRotation: Rotation
-) : OneWayPortalEntity(
-        isTailEnd, world, EnumFacing.Plane.HORIZONTAL, relativeBlocks,
-        localDimension, localPosition, localRotation,
-        remoteDimension, remotePosition, remoteRotation,
-        TF_PORTAL_CONFIG
-) {
+class TFPortalEntity(isTailEnd: Boolean, world: World, portal: FinitePortal) : OneWayPortalEntity(isTailEnd, world, portal, TF_PORTAL_CONFIG) {
     @Suppress("unused")
-    constructor(world: World) : this(false, world, emptySet(), 0, BlockPos.ORIGIN, Rotation.NONE, null, BlockPos.ORIGIN, Rotation.NONE)
+    constructor(world: World) : this(false, world, FinitePortal.DUMMY)
 
     override val portalFrameBlock: Block get() = Blocks.GRASS
 
@@ -31,7 +20,7 @@ class TFPortalEntity(
         if (world.isRemote && !isDead) {
             // Cannot replace with AIR because we still need the block light
             val replacementState = Blocks.PORTAL.defaultState
-            localBlocks.forEach {
+            portal.localBlocks.forEach {
                 if (world.getBlockState(it).block == TFBlocks.twilight_portal) {
                     world.setBlockState(it, replacementState)
                 }
@@ -41,7 +30,7 @@ class TFPortalEntity(
 
     override fun removePortal() {
         if (!isTailEnd) {
-            localBlocks.forEach { world.setBlockState(it, Blocks.WATER.defaultState) }
+            portal.localBlocks.forEach { world.setBlockState(it, Blocks.WATER.defaultState) }
         }
     }
 }

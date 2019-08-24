@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.betterportals.impl.vanilla.common.entity
 
+import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.entity.OneWayPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.END_PORTAL_CONFIG
 import net.minecraft.block.Block
@@ -15,9 +16,8 @@ abstract class EndPortalEntity(
         isTailEnd: Boolean, world: World, relativeBlocks: Set<BlockPos>,
         localDimension: Int, localPosition: BlockPos, localRotation: Rotation
 ) : OneWayPortalEntity(
-        isTailEnd, world, EnumFacing.Plane.HORIZONTAL, relativeBlocks,
-        localDimension, localPosition, localRotation,
-        null, BlockPos.ORIGIN, Rotation.NONE,
+        isTailEnd, world,
+        FinitePortal(EnumFacing.Plane.HORIZONTAL, relativeBlocks, localDimension, localPosition, localRotation),
         END_PORTAL_CONFIG
 )
 
@@ -57,7 +57,7 @@ class EndExitPortalEntity(
         if (!world.isRemote && !isTailEnd) {
             // Destruction of the end exit portal does not call [Block.neighborChanged], so we need to check here
             // manually for the disappearance of our portal.
-            if (localBlocks.any { world.getBlockState(it).block !is BlockEndPortal }) {
+            if (portal.localBlocks.any { world.getBlockState(it).block !is BlockEndPortal }) {
                 setDead()
             }
         }

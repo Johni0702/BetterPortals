@@ -7,10 +7,10 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.Vec3d
 
-open class OneWayFramedPortalRenderer<in P: FinitePortal>(
+open class OneWayFramedPortalRenderer(
         textureOpacity: () -> Double = { 0.0 },
         portalSprite: () -> TextureAtlasSprite? = { null }
-) : FramedPortalRenderer<P>(textureOpacity, portalSprite) {
+) : FramedPortalRenderer(textureOpacity, portalSprite) {
     /**
      * Whether to render the tail/exit end of a pair of portals.
      * See [PortalEntity.OneWay.isTailEnd].
@@ -41,13 +41,13 @@ open class OneWayFramedPortalRenderer<in P: FinitePortal>(
         super.renderPartialPortalFace(bufferBuilder, facing)
     }
 
-    override fun render(portal: P, pos: Vec3d, partialTicks: Float) {
+    override fun render(portal: FinitePortal, pos: Vec3d, partialTicks: Float) {
         // For the tail end of the portal, skip drawing unless the player has just passed through it and is still close
         if (isTailEnd && !isTailEndVisible) return
         super.render(portal, pos, partialTicks)
     }
 
-    override fun renderTransparent(portal: P, pos: Vec3d, partialTicks: Float) {
+    override fun renderTransparent(portal: FinitePortal, pos: Vec3d, partialTicks: Float) {
         // For the tail end of the portal, skip drawing unless the player has just passed through it and is still close
         if (isTailEnd && !isTailEndVisible) return
         super.renderTransparent(portal, pos, partialTicks)

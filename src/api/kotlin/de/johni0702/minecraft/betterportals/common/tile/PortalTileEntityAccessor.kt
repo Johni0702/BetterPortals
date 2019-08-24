@@ -8,11 +8,11 @@ import net.minecraft.util.ResourceLocation
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 
-interface PortalTileEntity<out P: Portal.Mutable> {
+interface PortalTileEntity<P: Portal> {
     val agent: PortalAgent<P>?
 }
 
-class PortalTileEntityAccessor<E, P: Portal.Mutable>(
+class PortalTileEntityAccessor<E, P: Portal>(
         private val type: Class<E>,
         private val world: World
 ) : PortalAccessor
@@ -42,10 +42,10 @@ class PortalTileEntityAccessor<E, P: Portal.Mutable>(
             return field
         }
     val tileEntities: List<E> get() = tileEntitiesList
-    override val loadedPortals: Iterable<PortalAgent<Portal.Mutable>> =
+    override val loadedPortals: Iterable<PortalAgent<P>> =
             Sequence { tileEntities.iterator() }.mapNotNull { it.agent }.asIterable()
 
-    override fun findById(id: ResourceLocation): PortalAgent<Portal.Mutable>? {
+    override fun findById(id: ResourceLocation): PortalAgent<P>? {
         if (id.resourceDomain != "minecraft") return null
         if (!id.resourcePath.startsWith("tile/pos/")) return null
         val pos = id.resourcePath.substring("tile/pos/".length).toBlockPos() ?: return null

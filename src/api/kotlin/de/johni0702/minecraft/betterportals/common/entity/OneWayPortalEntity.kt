@@ -6,24 +6,22 @@ import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.renderer.culling.ICamera
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Blocks
-import net.minecraft.nbt.NBTBase
 import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.network.datasync.DataParameter
+import net.minecraft.network.datasync.DataSerializers
+import net.minecraft.network.datasync.EntityDataManager
 import net.minecraft.util.EnumFacing
-import net.minecraft.util.Rotation
-import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 
-open class OneWayPortalEntityPortalAgent<out E: OneWayPortalEntity>(
+open class OneWayPortalEntityPortalAgent(
         manager: PortalManager,
-        entity: E,
         portalConfig: PortalConfiguration
-) : PortalEntityPortalAgent<E>(manager, entity, portalConfig) {
-
-    @Deprecated("missing `PortalConfig` argument")
-    constructor(manager: PortalManager, entity: E) : this(manager, entity, PortalConfiguration())
+) : PortalEntityPortalAgent(manager, portalConfig) {
+    lateinit var oneWayEntity: OneWayPortalEntity
+        internal set
 
     override fun checkTeleportees() {
-        if (entity.isTailEnd) return // Cannot use portal from the tail end
+        if (oneWayEntity.isTailEnd) return // Cannot use portal from the tail end
         super.checkTeleportees()
     }
 
@@ -36,7 +34,7 @@ open class OneWayPortalEntityPortalAgent<out E: OneWayPortalEntity>(
         return success
     }
 
-    override fun canBeSeen(camera: ICamera): Boolean = (!entity.isTailEnd || entity.isTravelingInProgress) && super.canBeSeen(camera)
+    override fun canBeSeen(camera: ICamera): Boolean = (!oneWayEntity.isTailEnd || oneWayEntity.isTravelingInProgress) && super.canBeSeen(camera)
 }
 
 /**
@@ -52,50 +50,40 @@ abstract class OneWayPortalEntity(
          */
         isTailEnd: Boolean,
 
-        world: World, plane: EnumFacing.Plane, relativeBlocks: Set<BlockPos>,
-        localDimension: Int, localPosition: BlockPos, localRotation: Rotation,
-        remoteDimension: Int?, remotePosition: BlockPos, remoteRotation: Rotation,
-        portalConfig: PortalConfiguration
-) : AbstractPortalEntity(
-        world, plane, relativeBlocks,
-        localDimension, localPosition, localRotation,
-        remoteDimension,remotePosition, remoteRotation,
-        portalConfig
-), PortalEntity.OneWay<FinitePortal.Mutable> {
+        world: World,
+        portal: FinitePortal,
+        agent: OneWayPortalEntityPortalAgent
+) : AbstractPortalEntity(world, portal, agent), PortalEntity.OneWay {
+    constructor(isTailEnd: Boolean, world: World, portal: FinitePortal, portalConfig: PortalConfiguration)
+            : this(isTailEnd, world, portal, OneWayPortalEntityPortalAgent(world.portalManager, portalConfig))
 
-    override var isTailEnd: Boolean = isTailEnd
-        set(value) {
-            field = value
-            // FIXME should be superfluous once [Portal] is no longer an interface
-            dataManager[PORTAL] = writePortalToNBT()
-        }
-
-    @Deprecated("missing `PortalConfig` argument")
-    constructor(
-            isTailEnd: Boolean,
-            world: World, plane: EnumFacing.Plane, relativeBlocks: Set<BlockPos>,
-            localDimension: Int, localPosition: BlockPos, localRotation: Rotation,
-            remoteDimension: Int?, remotePosition: BlockPos, remoteRotation: Rotation
-    ) : this(isTailEnd, world, plane, relativeBlocks, localDimension, localPosition, localRotation, remoteDimension, remotePosition, remoteRotation,
-            PortalConfiguration())
-
-    override val agent = OneWayPortalEntityPortalAgent(world.portalManager, this, portalConfig)
-
-    init {
-        // Update PORTAL data tracker to include isTailEnd
-        // FIXME should be superfluous once [Portal] is no longer an interface
-        @Suppress("LeakingThis")
-        dataManager[PORTAL] = writePortalToNBT()
+    companion object {
+        private val IS_TAIL_END: DataParameter<Boolean> = EntityDataManager.createKey(OneWayPortalEntity::class.java, DataSerializers.BOOLEAN)
     }
 
-    override fun writePortalToNBT(): NBTTagCompound =
-            super.writePortalToNBT().apply { setBoolean("IsTailEnd", isTailEnd) }
+    final override var isTailEnd: Boolean
+        get() = dataManager[IS_TAIL_END]
+        set(value) { dataManager[IS_TAIL_END] = value }
 
-    override fun readPortalFromNBT(nbt: NBTBase?) {
-        super.readPortalFromNBT(nbt)
-        (nbt as? NBTTagCompound)?.apply {
-            isTailEnd = getBoolean("IsTailEnd")
-        }
+    init {
+        @Suppress("LeakingThis")
+        agent.oneWayEntity = this
+        this.isTailEnd = isTailEnd
+    }
+
+    override fun entityInit() {
+        super.entityInit()
+        dataManager.register(IS_TAIL_END, false)
+    }
+
+    override fun readEntityFromNBT(compound: NBTTagCompound) {
+        super.readEntityFromNBT(compound)
+        isTailEnd = compound.getCompoundTag("BetterPortal").getBoolean("IsTailEnd")
+    }
+
+    override fun writeEntityToNBT(compound: NBTTagCompound) {
+        super.writeEntityToNBT(compound)
+        compound.getCompoundTag("BetterPortal").setBoolean("IsTailEnd", isTailEnd)
     }
 
     /**
@@ -109,7 +97,7 @@ abstract class OneWayPortalEntity(
             field = value
             val newState = (if (value) portalFrameBlock else Blocks.AIR).defaultState
             val oldState = (if (value) Blocks.AIR else portalFrameBlock).defaultState
-            val portalBlocks = localBlocks
+            val portalBlocks = portal.localBlocks
             portalBlocks.forEach { pos ->
                 EnumFacing.HORIZONTALS.forEach { facing ->
                     val neighbour = pos.offset(facing)
@@ -140,13 +128,13 @@ abstract class OneWayPortalEntity(
             // Check whether the player has moved away from the tail end of the portal far enough so we can hide it
             val nearby = world.playerEntities.filterIsInstance<EntityPlayerSP>().any {
                 // Traveling is still considered in progress if the distance to the portal center is less than 10 blocks
-                localBoundingBox.center.squareDistanceTo(it.pos) < 100.0
+                portal.localBoundingBox.center.squareDistanceTo(it.pos) < 100.0
             }
 
             // or they're no longer inside of it and enough time has passed, e.g. if they're standing next to it
             val inside = world.playerEntities.filterIsInstance<EntityPlayerSP>().any { player ->
                 val playerAABB = player.entityBoundingBox
-                localDetailedBounds.any { it.intersects(playerAABB) }
+                portal.localDetailedBounds.any { it.intersects(playerAABB) }
             }
             if (!inside && travelingInProgressTimer > 0) {
                 travelingInProgressTimer--

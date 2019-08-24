@@ -4,6 +4,7 @@ import com.legacy.aether.Aether
 import com.legacy.aether.AetherConfig
 import com.legacy.aether.blocks.portal.BlockAetherPortal
 import de.johni0702.minecraft.betterportals.common.BlockCache
+import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.block.PortalBlock
 import de.johni0702.minecraft.betterportals.common.server
 import de.johni0702.minecraft.betterportals.impl.aether.common.EMPTY_AABB
@@ -16,7 +17,6 @@ import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Blocks
 import net.minecraft.util.EnumBlockRenderType
 import net.minecraft.util.EnumFacing
-import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.IBlockAccess
@@ -37,9 +37,8 @@ class BlockBetterAetherPortal(override val mod: Any) : BlockAetherPortal(), Port
     override val maxPortalSize: Int = 100
     override val entityType: Class<AetherPortalEntity> = AetherPortalEntity::class.java
 
-    override fun createPortalEntity(localEnd: Boolean, world: World, plane: EnumFacing.Plane, portalBlocks: Set<BlockPos>,
-                                    localDim: Int, localPos: BlockPos, localRot: Rotation): AetherPortalEntity =
-            AetherPortalEntity(world, plane, portalBlocks, localDim, localPos, localRot)
+    override fun createPortalEntity(localEnd: Boolean, world: World, portal: FinitePortal): AetherPortalEntity =
+            AetherPortalEntity(world, portal)
 
     override fun getRemoteWorldFor(localWorld: WorldServer, pos: BlockPos): WorldServer? {
         val server = localWorld.server

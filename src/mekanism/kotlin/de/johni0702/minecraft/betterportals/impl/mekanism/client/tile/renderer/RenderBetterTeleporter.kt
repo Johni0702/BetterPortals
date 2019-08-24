@@ -1,7 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl.mekanism.client.tile.renderer
 
 import de.johni0702.minecraft.betterportals.client.render.FramedPortalRenderer
-import de.johni0702.minecraft.betterportals.impl.mekanism.common.tile.LinkedTeleporterPortal
+import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.tile.TileEntityBetterTeleporter
 import de.johni0702.minecraft.view.client.render.RenderPass
 import mekanism.api.EnumColor
@@ -14,8 +14,8 @@ import org.lwjgl.opengl.GL11
 
 class RenderBetterTeleporter(private val opacity: () -> Double) : RenderTeleporter() {
     private var renderingSkipped = true
-    private val portalRenderer = object : FramedPortalRenderer<LinkedTeleporterPortal>() {
-        override fun renderPortal(portal: LinkedTeleporterPortal, pos: Vec3d, framebuffer: Framebuffer?, renderPass: RenderPass) {
+    private val portalRenderer = object : FramedPortalRenderer() {
+        override fun renderPortal(portal: FinitePortal, pos: Vec3d, framebuffer: Framebuffer?, renderPass: RenderPass) {
             super.renderPortal(portal, pos, framebuffer, renderPass)
             renderingSkipped = false
         }

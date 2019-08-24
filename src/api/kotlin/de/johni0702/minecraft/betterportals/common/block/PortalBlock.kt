@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.betterportals.common.block
 
 import de.johni0702.minecraft.betterportals.common.*
+import de.johni0702.minecraft.betterportals.common.entity.Linkable
 import net.minecraft.block.Block
 import net.minecraft.block.state.IBlockState
 import net.minecraft.crash.CrashReport
@@ -21,7 +22,7 @@ import kotlin.math.*
 /**
  * Interface which can be inherited from by blocks which form arbitrarily shaped portal structures.
  */
-interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePortal.Linkable {
+interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable {
     /**
      * Type of block used as the portal block itself. Usually `this`.
      * Probably shouldn't be solid.
@@ -74,8 +75,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
     /**
      * Create a new portal entity.
      */
-    fun createPortalEntity(localEnd: Boolean, world: World, plane: EnumFacing.Plane, portalBlocks: Set<BlockPos>,
-                           localDim: Int, localPos: BlockPos, localRot: Rotation): EntityType
+    fun createPortalEntity(localEnd: Boolean, world: World, portal: FinitePortal): EntityType
 
     /**
      * Tries to create a new portal pair.
@@ -99,8 +99,9 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
         val remoteDim = remoteWorld.provider.dimension
         val future = findOrCreateRemotePortal(localWorld, localPos, localAxis.perpendicularPlane, portalBlocks, remoteWorld)
 
-        val localPortal = createPortalEntity(true, localWorld, localAxis.perpendicularPlane, portalBlocks, localDim, localPos, localRot)
-        localPortal.localBlocks.forEach {
+        val localPortal = createPortalEntity(true, localWorld,
+                FinitePortal(localAxis.perpendicularPlane, portalBlocks, localDim, localPos, localRot))
+        localPortal.portal.localBlocks.forEach {
             localWorld.setBlockState(it, portalBlock.defaultState, 2)
         }
         localWorld.forceSpawnEntity(localPortal)
@@ -109,8 +110,9 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
             if (localPortal.isDead) return@thenAcceptAsync
 
             val (remotePos, remoteRot) = result
-            val remotePortal = createPortalEntity(false, remoteWorld, localAxis.perpendicularPlane, portalBlocks, remoteDim, remotePos, remoteRot)
-            remotePortal.localBlocks.forEach {
+            val remotePortal = createPortalEntity(false, remoteWorld,
+                    FinitePortal(localAxis.perpendicularPlane, portalBlocks, remoteDim, remotePos, remoteRot))
+            remotePortal.portal.localBlocks.forEach {
                 remoteWorld.setBlockState(it, portalBlock.defaultState, 2)
             }
             remoteWorld.forceSpawnEntity(remotePortal)
@@ -514,7 +516,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: FinitePo
             } else { // Check if the existing portal(s) are still valid
                 entities.forEach {
                     if (it.isDead) return@forEach
-                    if (!checkPortal(world.makeBlockCache(), it.localBlocks, it.localAxis, true)) {
+                    if (!checkPortal(world.makeBlockCache(), it.portal.localBlocks, it.portal.localAxis, true)) {
                         it.setDead()
                     }
                 }

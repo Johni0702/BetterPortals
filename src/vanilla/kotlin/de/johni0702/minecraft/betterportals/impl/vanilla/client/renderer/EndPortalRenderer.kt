@@ -13,9 +13,9 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.math.Vec3d
 import org.lwjgl.opengl.GL14
 
-class EndPortalRenderer<in P: FinitePortal>(
+class EndPortalRenderer(
         textureOpacity: () -> Double = { 0.0 }
-) : OneWayFramedPortalRenderer<P>(textureOpacity) {
+) : OneWayFramedPortalRenderer(textureOpacity) {
     private val tileEntityRenderer = TileEntityEndPortalRenderer().also {
         it.setRendererDispatcher(TileEntityRendererDispatcher.instance)
     }
@@ -37,16 +37,16 @@ class EndPortalRenderer<in P: FinitePortal>(
 
     private var partialTicks = 0f
 
-    override fun doRenderTransparent(portal: P, pos: Vec3d, partialTicks: Float) {
+    override fun doRenderTransparent(portal: FinitePortal, pos: Vec3d, partialTicks: Float) {
         this.partialTicks = partialTicks
         super.doRenderTransparent(portal, pos, partialTicks)
     }
 
-    override fun renderPortalBlocks(portal: P, pos: Vec3d, opacity: Double) {
+    override fun renderPortalBlocks(portal: FinitePortal, pos: Vec3d, opacity: Double) {
         this.opacity = opacity
         val offset = pos - Vec3d(0.5, 0.5, 0.5)
 
-        val blocks = portal.relativeBlocks.map { it.rotate(portal.localRotation) }
+        val blocks = portal.blocks.map { it.rotate(portal.localRotation) }
         blocks.forEach { relativePos ->
             with(offset + relativePos.to3d()) {
                 firstPass = true
