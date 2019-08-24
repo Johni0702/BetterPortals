@@ -60,6 +60,7 @@ abstract class AbstractPortalEntity(
             field = value
             dataManager[PORTAL] = value.writePortalToNBT()
             agent.portal = value
+            with(value.localPosition.to3dMid()) { setPosition(x, y, z) }
         }
 
     override fun getRenderBoundingBox(): AxisAlignedBB = portal.localBoundingBox
