@@ -86,7 +86,7 @@ abstract class AbstractPortalEntity(
 
     override fun notifyDataManagerChange(key: DataParameter<*>) {
         super.notifyDataManagerChange(key)
-        if (world.isRemote) {
+        if (world.isRemote && key == PORTAL) {
             portal = FinitePortal(dataManager.get(PORTAL))
         }
     }

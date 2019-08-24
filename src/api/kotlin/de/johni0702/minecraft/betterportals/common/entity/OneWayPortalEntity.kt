@@ -3,15 +3,18 @@ package de.johni0702.minecraft.betterportals.common.entity
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.util.TickTimer
 import net.minecraft.block.Block
-import net.minecraft.client.entity.EntityPlayerSP
+import net.minecraft.block.material.Material
 import net.minecraft.client.renderer.culling.ICamera
+import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.network.datasync.DataParameter
 import net.minecraft.network.datasync.DataSerializers
 import net.minecraft.network.datasync.EntityDataManager
 import net.minecraft.util.EnumFacing
+import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 import kotlin.math.abs
@@ -23,6 +26,20 @@ open class OneWayPortalEntityPortalAgent(
     lateinit var oneWayEntity: OneWayPortalEntity
         internal set
 
+    override fun modifyAABBs(entity: Entity, queryAABB: AxisAlignedBB, aabbList: MutableList<AxisAlignedBB>, queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>) {
+        if (oneWayEntity.isTailEnd && !oneWayEntity.isTailVisible) {
+            return
+        }
+        super.modifyAABBs(entity, queryAABB, aabbList, queryRemote)
+    }
+
+    override fun isInMaterial(entity: Entity, queryAABB: AxisAlignedBB, material: Material): Boolean? {
+        if (oneWayEntity.isTailEnd && !oneWayEntity.isTailVisible) {
+            return world.isMaterialInBB(queryAABB, material)
+        }
+        return super.isInMaterial(entity, queryAABB, material)
+    }
+
     override fun checkTeleportees() {
         if (oneWayEntity.isTailEnd) return // Cannot use portal from the tail end
         super.checkTeleportees()
@@ -32,12 +49,26 @@ open class OneWayPortalEntityPortalAgent(
         val remotePortal = entity.getRemotePortal() // FIXME for some reason this call fails after the teleport; might be fixed by now
         val success = super.teleportPlayer(player, from)
         if (success) {
-            (remotePortal as OneWayPortalEntity).isTravelingInProgress = true
+            (remotePortal as OneWayPortalEntity).isTailVisible = true
         }
         return success
     }
 
-    override fun canBeSeen(camera: ICamera): Boolean = (!oneWayEntity.isTailEnd || oneWayEntity.isTravelingInProgress) && super.canBeSeen(camera)
+    override fun serverPortalUsed(player: EntityPlayerMP): Boolean {
+        val remotePortal = entity.getRemotePortal()
+        val success = super.serverPortalUsed(player)
+        if (success) {
+            (remotePortal as OneWayPortalEntity).isTailVisible = true
+        }
+        return success
+    }
+
+    override fun teleportNonPlayerEntity(entity: Entity, from: EnumFacing) {
+        super.teleportNonPlayerEntity(entity, from)
+        (this.entity.getRemotePortal() as OneWayPortalEntity).isTailVisible = true
+    }
+
+    override fun canBeSeen(camera: ICamera): Boolean = (!oneWayEntity.isTailEnd || oneWayEntity.isTailVisible) && super.canBeSeen(camera)
 }
 
 /**
@@ -63,6 +94,7 @@ abstract class OneWayPortalEntity(
     companion object {
         private val IS_TAIL_END: DataParameter<Boolean> = EntityDataManager.createKey(OneWayPortalEntity::class.java, DataSerializers.BOOLEAN)
         private val ORIGINAL_TAIL_POS: DataParameter<BlockPos> = EntityDataManager.createKey(OneWayPortalEntity::class.java, DataSerializers.BLOCK_POS)
+        private val IS_TAIL_VISIBLE: DataParameter<Boolean> = EntityDataManager.createKey(OneWayPortalEntity::class.java, DataSerializers.BOOLEAN)
     }
 
     override var isTailEnd: Boolean
@@ -72,6 +104,15 @@ abstract class OneWayPortalEntity(
     var originalTailPos: BlockPos
         get() = dataManager[ORIGINAL_TAIL_POS]
         set(value) { dataManager[ORIGINAL_TAIL_POS] = value }
+
+    var isTailVisible: Boolean
+        get() = dataManager[IS_TAIL_VISIBLE]
+        set(value) {
+            dataManager[IS_TAIL_VISIBLE] = value
+            if (value) {
+                travelingInProgressTimer = 20
+            }
+        }
 
     init {
         @Suppress("LeakingThis")
@@ -84,6 +125,7 @@ abstract class OneWayPortalEntity(
         super.entityInit()
         dataManager.register(IS_TAIL_END, false)
         dataManager.register(ORIGINAL_TAIL_POS, BlockPos.ORIGIN)
+        dataManager.register(IS_TAIL_VISIBLE, false)
     }
 
     override fun readEntityFromNBT(compound: NBTTagCompound) {
@@ -111,23 +153,18 @@ abstract class OneWayPortalEntity(
     override var portal: FinitePortal
         get() = super.portal
         set(value) {
-            // We might have previously put fake blocks in the world and need to remove those in case the portal moves
-            isTravelingInProgress = false
+            // We might have previously put fake blocks in the client world and need to remove those in case the
+            // portal moves
+            isTailVisible = false
 
             super.portal = value
         }
 
-    /**
-     * When the player has just passed through the portal, the other end will still be rendered while the player
-     * hasn't moved away from it.
-     * This is to prevent the portal from disappearing off of half of the screen.
-     */
-    var isTravelingInProgress = false
-        set(value) {
-            if (field == value) return
-            field = value
-            val newState = (if (value) portalFrameBlock else Blocks.AIR).defaultState
-            val oldState = (if (value) Blocks.AIR else portalFrameBlock).defaultState
+    override fun notifyDataManagerChange(key: DataParameter<*>) {
+        super.notifyDataManagerChange(key)
+        if (world.isRemote && key == IS_TAIL_VISIBLE && isTailEnd) {
+            val newState = (if (isTailVisible) portalFrameBlock else Blocks.AIR).defaultState
+            val oldState = (if (isTailVisible) Blocks.AIR else portalFrameBlock).defaultState
             val portalBlocks = portal.localBlocks
             portalBlocks.forEach { pos ->
                 EnumFacing.HORIZONTALS.forEach { facing ->
@@ -139,43 +176,17 @@ abstract class OneWayPortalEntity(
                     }
                 }
             }
-            if (value && travelingInProgressTimer == 0) {
-                travelingInProgressTimer = 20
-            }
         }
+    }
+
     override val isTailEndVisible: Boolean
-        get() = isTravelingInProgress
+        get() = isTailVisible
     var travelingInProgressTimer = 0
 
     /**
      * The type of blocks which form the fake, client-side frame at the tail end of the portal.
      */
     abstract val portalFrameBlock: Block
-
-    override fun onClientUpdate() {
-        super.onClientUpdate()
-
-        if (isTravelingInProgress && isTailEnd) {
-            // Check whether the player has moved away from the tail end of the portal far enough so we can hide it
-            val nearby = world.playerEntities.filterIsInstance<EntityPlayerSP>().any {
-                // Traveling is still considered in progress if the distance to the portal center is less than 10 blocks
-                portal.localBoundingBox.center.squareDistanceTo(it.pos) < 100.0
-            }
-
-            // or they're no longer inside of it and enough time has passed, e.g. if they're standing next to it
-            val inside = world.playerEntities.filterIsInstance<EntityPlayerSP>().any { player ->
-                val playerAABB = player.entityBoundingBox
-                portal.localDetailedBounds.any { it.intersects(playerAABB) }
-            }
-            if (!inside && travelingInProgressTimer > 0) {
-                travelingInProgressTimer--
-            }
-
-            if (!nearby || travelingInProgressTimer == 0) {
-                isTravelingInProgress = false
-            }
-        }
-    }
 
     /**
      * Check whether the tail end is obstructed by blocks when this timer reaches 0.
@@ -192,6 +203,22 @@ abstract class OneWayPortalEntity(
         super.onUpdate()
 
         if (!world.isRemote && isTailEnd) {
+            if (isTailEndVisible) {
+                // Check if everyone has left the portal
+                val inside = world.loadedEntityList.any { entity ->
+                    if (entity is OneWayPortalEntity) return@any false
+                    val entityAABB = entity.entityBoundingBox
+                    portal.localDetailedBounds.any { it.intersects(entityAABB) }
+                }
+                // and after one second, hide the portal
+                if (!inside) {
+                    travelingInProgressTimer--
+                    if (travelingInProgressTimer <= 0) {
+                        isTailVisible = false
+                    }
+                }
+            }
+
             checkTailObstructionDelay.tick("checkPortalObstruction") {
                 if (isObstructed()) {
                     updatePortalPosition()

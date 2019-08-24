@@ -26,7 +26,6 @@ interface PortalEntity {
 
         /**
          * Whether the tail end of the pair of portals is currently visible. Ignored if [isTailEnd] is false.
-         * Ignored on the server.
          *
          * The tail end of a one-way portal pair will usually disappear shortly after you've used it.
          */

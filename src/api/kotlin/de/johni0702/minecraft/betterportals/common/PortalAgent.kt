@@ -230,7 +230,7 @@ open class PortalAgent<P: Portal>(
      *
      * This method is only called for selected portals (those which intersect with the entity BB).
      */
-    fun isInMaterial(entity: Entity, queryAABB: AxisAlignedBB, material: Material): Boolean? {
+    open fun isInMaterial(entity: Entity, queryAABB: AxisAlignedBB, material: Material): Boolean? {
         val world = entity.world
 
         val remotePortal = getRemoteAgent() ?: return null
