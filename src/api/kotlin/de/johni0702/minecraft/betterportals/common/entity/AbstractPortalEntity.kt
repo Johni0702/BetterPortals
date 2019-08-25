@@ -130,17 +130,13 @@ abstract class AbstractPortalEntity(
     //  Server-side
     //
 
-    private val trackingPlayers = mutableListOf<EntityPlayerMP>()
-
     override fun addTrackingPlayer(player: EntityPlayerMP) {
         super.addTrackingPlayer(player)
-        trackingPlayers.add(player)
         agent.addTrackingPlayer(player)
     }
 
     override fun removeTrackingPlayer(player: EntityPlayerMP) {
         super.removeTrackingPlayer(player)
-        trackingPlayers.remove(player)
         agent.removeTrackingPlayer(player)
     }
 
@@ -149,6 +145,8 @@ abstract class AbstractPortalEntity(
         if (!other.portal.isTarget(portal)) {
             other.link(this)
         }
+        // Need to update views after the remote is linked as well
+        agent.updateViews()
     }
 
     override fun setDead() {

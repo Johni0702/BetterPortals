@@ -132,10 +132,7 @@ open class PortalAgent<P: Portal>(
 
             if (!world.isRemote) {
                 // Always refresh views since either anchor or target have almost certainly changed
-                val oldViews = views.toMap()
-                views.clear()
-                oldViews.keys.forEach(this::addTrackingPlayer)
-                oldViews.values.forEach(View::dispose)
+                updateViews()
             }
         }
     val world get() = manager.world
@@ -465,7 +462,7 @@ open class PortalAgent<P: Portal>(
         trackingPlayers.forEach { it.endTransaction() }
     }
 
-    private val views = mutableMapOf<EntityPlayerMP, View>()
+    private val views = mutableMapOf<EntityPlayerMP, View?>()
 
     open fun serverPortalUsed(player: EntityPlayerMP): Boolean {
         val worldsManager = player.worldsManager
@@ -505,7 +502,7 @@ open class PortalAgent<P: Portal>(
 
     open fun addTrackingPlayer(player: EntityPlayerMP) {
         views.getOrPut(player) {
-            val remotePortal = getRemoteAgent() ?: return
+            val remotePortal = getRemoteAgent() ?: return@getOrPut null
             val remoteWorld = remotePortal.world as WorldServer
             val anchor = Pair(world as WorldServer, portal.localPosition.toCubePos())
             // TODO use view with reduced load distance to put a sensible limit on recursion
@@ -515,6 +512,23 @@ open class PortalAgent<P: Portal>(
 
     open fun removeTrackingPlayer(player: EntityPlayerMP) {
         views.remove(player)?.dispose()
+    }
+
+    open fun updateViews() {
+        if (views.isEmpty()) {
+            return
+        }
+
+        if (portal.remoteDimension != null && getRemoteAgent() == null) {
+            // Cannot find our remote but we should have one
+            // We might be temporarily out of sync with it atm (i.e. partially linked), so don't yet throw away all views
+            return
+        }
+
+        val oldViews = views.toMap()
+        views.clear()
+        oldViews.keys.forEach(this::addTrackingPlayer)
+        oldViews.values.forEach { it?.dispose() }
     }
 
     //
