@@ -7,10 +7,20 @@ import net.minecraft.launchwrapper.Launch
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+import net.optifine.render.VboRegion
 
 interface OFRenderChunk {
     val renderChunkNeighbours: Array<RenderChunk>
     var renderChunkNeighboursUpdated: Boolean
+}
+
+interface OFVertexBuffer {
+    fun setVboRegion(region: VboRegion)
+}
+
+interface OFViewFrustum {
+    fun refVboRegion(chunk: RenderChunk)
+    fun unrefVboRegion(chunk: RenderChunk)
 }
 
 internal class OptifineReflection {

@@ -4,6 +4,7 @@ import de.johni0702.minecraft.betterportals.common.ExtensionsKt;
 import de.johni0702.minecraft.view.client.ClientViewAPI;
 import de.johni0702.minecraft.view.client.render.RenderPass;
 import de.johni0702.minecraft.view.impl.compat.OFRenderChunk;
+import de.johni0702.minecraft.view.impl.compat.OFViewFrustum;
 import kotlin.Pair;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderGlobal;
@@ -193,6 +194,10 @@ public abstract class MixinViewFrustum {
             ofChunk.setRenderChunkNeighboursUpdated(true);
         }
 
+        if (this instanceof OFViewFrustum) {
+            ((OFViewFrustum) this).refVboRegion(chunk);
+        }
+
         return chunk;
     }
 
@@ -211,6 +216,10 @@ public abstract class MixinViewFrustum {
                 }
             }
             ofChunk.setRenderChunkNeighboursUpdated(true);
+        }
+
+        if (this instanceof OFViewFrustum) {
+            ((OFViewFrustum) this).unrefVboRegion(chunk);
         }
     }
 

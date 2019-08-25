@@ -196,6 +196,7 @@ jar {
     from sourceSets.mekanism.output
     from sourceSets.aether.output
     exclude 'de/johni0702/minecraft/betterportals/MixinLoader.class'
+    exclude 'net/optifine' // skeletons
     exclude 'mixins.betterportals.test.refmap.json' // MixinGradle is being stupid
     manifest {
         attributes 'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',

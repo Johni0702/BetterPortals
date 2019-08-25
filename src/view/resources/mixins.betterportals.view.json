@@ -27,7 +27,9 @@
     "MixinRenderGlobal",
     "MixinRenderLivingBase",
     "MixinRenderPlayer",
+    "MixinVertexBuffer_OF",
     "MixinViewFrustum",
+    "MixinViewFrustum_OF",
     "MixinWorldClient"
   ],
   "compatibilityLevel": "JAVA_8",
