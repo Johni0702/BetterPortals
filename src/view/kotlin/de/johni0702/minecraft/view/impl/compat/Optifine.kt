@@ -2,10 +2,16 @@ package de.johni0702.minecraft.view.impl.compat
 
 import de.johni0702.minecraft.view.client.render.RenderPassEvent
 import de.johni0702.minecraft.view.impl.LOGGER
+import net.minecraft.client.renderer.chunk.RenderChunk
 import net.minecraft.launchwrapper.Launch
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+
+interface OFRenderChunk {
+    val renderChunkNeighbours: Array<RenderChunk>
+    var renderChunkNeighboursUpdated: Boolean
+}
 
 internal class OptifineReflection {
     private val Shaders = Class.forName("net.optifine.shaders.Shaders")!!

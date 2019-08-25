@@ -23,6 +23,7 @@
     "MixinNetHandlerLoginClient",
     "MixinNetHandlerPlayerClient",
     "MixinRenderChunk",
+    "MixinRenderChunk_OF",
     "MixinRenderGlobal",
     "MixinRenderLivingBase",
     "MixinRenderPlayer",

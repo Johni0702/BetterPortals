@@ -3,6 +3,7 @@ package de.johni0702.minecraft.view.impl.mixin;
 import de.johni0702.minecraft.betterportals.common.ExtensionsKt;
 import de.johni0702.minecraft.view.client.ClientViewAPI;
 import de.johni0702.minecraft.view.client.render.RenderPass;
+import de.johni0702.minecraft.view.impl.compat.OFRenderChunk;
 import kotlin.Pair;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderGlobal;
@@ -10,6 +11,7 @@ import net.minecraft.client.renderer.ViewFrustum;
 import net.minecraft.client.renderer.chunk.IRenderChunkFactory;
 import net.minecraft.client.renderer.chunk.RenderChunk;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
@@ -176,12 +178,40 @@ public abstract class MixinViewFrustum {
         }
         chunk.setPosition(pos.getX(), pos.getY(), pos.getZ());
         chunk.setNeedsUpdate(false);
+
+        if (chunk instanceof OFRenderChunk) {
+            OFRenderChunk ofChunk = (OFRenderChunk) chunk;
+            RenderChunk[] neighbours = ofChunk.getRenderChunkNeighbours();
+            for (EnumFacing facing : EnumFacing.values()) {
+                Pair<RenderChunk, MutableInt> neighbourPair = chunkMap.get(pos.offset(facing, 16));
+                if (neighbourPair != null) {
+                    RenderChunk neighbour = neighbourPair.getFirst();
+                    neighbours[facing.ordinal()] = neighbour;
+                    ((OFRenderChunk) neighbour).getRenderChunkNeighbours()[facing.getOpposite().ordinal()] = chunk;
+                }
+            }
+            ofChunk.setRenderChunkNeighboursUpdated(true);
+        }
+
         return chunk;
     }
 
     private void freeChunk(RenderChunk chunk) {
         chunk.stopCompileTask();
         freeChunks.offerFirst(chunk);
+
+        if (chunk instanceof OFRenderChunk) {
+            OFRenderChunk ofChunk = (OFRenderChunk) chunk;
+            RenderChunk[] neighbours = ofChunk.getRenderChunkNeighbours();
+            for (EnumFacing facing : EnumFacing.values()) {
+                RenderChunk neighbour = neighbours[facing.ordinal()];
+                if (neighbour != null) {
+                    neighbours[facing.ordinal()] = null;
+                    ((OFRenderChunk) neighbour).getRenderChunkNeighbours()[facing.getOpposite().ordinal()] = null;
+                }
+            }
+            ofChunk.setRenderChunkNeighboursUpdated(true);
+        }
     }
 
     @Inject(method = "deleteGlResources", at = @At("HEAD"))
