@@ -24,26 +24,31 @@ import kotlin.math.*
  */
 interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable {
     /**
-     * Type of block used as the portal block itself. Usually `this`.
+     * Type of block used as the portal block itself. Usually `this.defaultState`.
      * Probably shouldn't be solid.
      */
-    val portalBlock: Block
+    val portalBlock: IBlockState
+
+    /**
+     * Whether the given block state is a valid portal block for the portal.
+     */
+    fun isPortalBlock(blockState: IBlockState) = blockState == portalBlock
 
     /**
      * Type of block used for the portal frame.
      */
-    val frameBlock: Block
+    val frameBlock: IBlockState
 
     /**
      * Whether the given block state is a valid frame for the portal.
      */
-    fun isFrameBlock(blockState: IBlockState) = blockState.block == frameBlock
+    fun isFrameBlock(blockState: IBlockState) = blockState == frameBlock
 
     /**
      * Type of block used for the steps the player can walk onto after going through the portal.
      * Irrelevant for lying portals.
      */
-    val frameStepsBlock: Block
+    val frameStepsBlock: IBlockState
 
     /**
      * The maximum distance between the start position and the border right above it which is being searched.
@@ -102,7 +107,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
         val localPortal = createPortalEntity(true, localWorld,
                 FinitePortal(localAxis.perpendicularPlane, portalBlocks, localDim, localPos, localRot))
         localPortal.portal.localBlocks.forEach {
-            localWorld.setBlockState(it, portalBlock.defaultState, 2)
+            localWorld.setBlockState(it, portalBlock, 2)
         }
         localWorld.forceSpawnEntity(localPortal)
 
@@ -113,7 +118,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             val remotePortal = createPortalEntity(false, remoteWorld,
                     FinitePortal(localAxis.perpendicularPlane, portalBlocks, remoteDim, remotePos, remoteRot))
             remotePortal.portal.localBlocks.forEach {
-                remoteWorld.setBlockState(it, portalBlock.defaultState, 2)
+                remoteWorld.setBlockState(it, portalBlock, 2)
             }
             remoteWorld.forceSpawnEntity(remotePortal)
 
@@ -277,7 +282,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
      * Note: This function is thread-safe if [blockCache] is.
      * @param blockCache Cache of blocks in which to check for the portal.
      * @param startPos Position at which the search is initiated from; needs to be one of the portal blocks (not frame!)
-     * @param filled Whether to check if the portal is filled with [portalBlock] (or [Blocks.AIR])
+     * @param filled Whether to check if the portal is filled with [isPortalBlock] (or [Blocks.AIR])
      * @return Pair of a set of positions of all portal blocks (excluding frame and step blocks), empty if no frame was
      *         found, and the axis of the found portal frame
      */
@@ -301,7 +306,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
      * @param blockCache Cache of blocks in which to check for the portal.
      * @param startPos Position at which the search is initiated from; needs to be one of the portal blocks (not frame!)
      * @param axis Axis of the portal frame
-     * @param filled Whether to check if the portal is filled with [portalBlock] (or [Blocks.AIR])
+     * @param filled Whether to check if the portal is filled with [isPortalBlock] (or [Blocks.AIR])
      * @return Set of positions of all portal blocks (excluding frame and step blocks), empty if no frame was found
      */
     fun findPortalFrame(
@@ -323,7 +328,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
         val left = right.opposite
         val directions = listOf(right, down, left, up)
 
-        val filling = if (filled) portalBlock else Blocks.AIR
+        val isFilling: (IBlockState) -> Boolean = if (filled) ::isPortalBlock else ({ it.block == Blocks.AIR })
 
         fun BlockPos.maxDist(other: BlockPos): Int = max(abs(x - other.x), max(abs(y - other.y), abs(z - other.z)))
 
@@ -347,7 +352,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             val block = blockState.block
             when {
                 isFrameBlock(blockState) -> continue@loop
-                block == filling || block == Blocks.FIRE -> {
+                isFilling(blockState) || block == Blocks.FIRE -> {
                     portalBlocks.add(pos)
                     directions.forEach {
                         queueIfUnknown(pos.offset(it))
@@ -412,7 +417,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
      * @param blockCache Cache of blocks in which to check for the portal
      * @param portalBlocks Set of positions of portal blocks (excluding frame and steps)
      * @param axis The axis of the portal
-     * @param filled Whether to check if the portal is filled with [portalBlock] (or [Blocks.AIR])
+     * @param filled Whether to check if the portal is filled with [isPortalBlock] (or [Blocks.AIR])
      * @return `true` if the portal is still valid, `false` otherwise
      */
     fun checkPortal(
@@ -421,9 +426,9 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             axis: EnumFacing.Axis,
             filled: Boolean
     ): Boolean {
-        val filling = if (filled) portalBlock else Blocks.AIR
+        val isFilling: (IBlockState) -> Boolean = if (filled) ::isPortalBlock else ({ it.block == Blocks.AIR })
         portalBlocks.forEach { pos ->
-            if (blockCache[pos].block != filling) return false
+            if (!isFilling(blockCache[pos])) return false
             axis.parallelFaces.forEach {
                 val offsetPos = pos.offset(it)
                 if (offsetPos !in portalBlocks && !isFrameBlock(blockCache[offsetPos])) {
@@ -470,7 +475,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
 
         // Place frame blocks
         frameBlocks.forEach { pos ->
-            world.setBlockState(pos, frameBlock.defaultState)
+            world.setBlockState(pos, frameBlock)
         }
 
         // Place step blocks for the player to step onto when leaving the portal
@@ -482,7 +487,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
                         val stepPos = framePos.offset(axis.toFacing(direction))
                         // Any other (already existing) solid blocks will do as well
                         if (!world.getBlockState(stepPos).material.isSolid) {
-                            world.setBlockState(stepPos, frameStepsBlock.defaultState)
+                            world.setBlockState(stepPos, frameStepsBlock)
                         }
                     }
                 }

@@ -28,9 +28,10 @@ class BlockBetterNetherPortal(override val mod: Any) : BlockPortal(), PortalBloc
         soundType = SoundType.GLASS
     }
 
-    override val portalBlock: Block get() = this
-    override val frameBlock: Block get() = Blocks.OBSIDIAN
-    override val frameStepsBlock: Block get() = Blocks.OBSIDIAN
+    override val portalBlock: IBlockState get() = this.defaultState
+    override fun isPortalBlock(blockState: IBlockState): Boolean = blockState.block == this
+    override val frameBlock: IBlockState get() = Blocks.OBSIDIAN.defaultState
+    override val frameStepsBlock: IBlockState get() = Blocks.OBSIDIAN.defaultState
     override val maxPortalSize: Int = 100
     override val entityType: Class<NetherPortalEntity> = NetherPortalEntity::class.java
 

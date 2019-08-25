@@ -33,14 +33,15 @@ class BlockBetterTFPortal(override val mod: Any) : BlockTFPortal(), PortalBlock<
         setLightLevel(1f)
     }
 
-    override val portalBlock: Block
-        get() = this
-    override val frameBlock: Block
-        get() = Blocks.GRASS
+    override val portalBlock: IBlockState
+        get() = this.defaultState
+    override fun isPortalBlock(blockState: IBlockState): Boolean = blockState.block == this
+    override val frameBlock: IBlockState
+        get() = Blocks.GRASS.defaultState
     override fun isFrameBlock(blockState: IBlockState): Boolean =
             blockState.isFullCube && blockState.material.let { it == Material.GRASS || it == Material.GROUND }
-    override val frameStepsBlock: Block
-        get() = Blocks.GRASS
+    override val frameStepsBlock: IBlockState
+        get() = Blocks.GRASS.defaultState
     override val maxPortalSize: Int
         get() = 100
     override val entityType: Class<TFPortalEntity>
@@ -89,7 +90,7 @@ class BlockBetterTFPortal(override val mod: Any) : BlockTFPortal(), PortalBlock<
         val localPortal = FinitePortal(EnumFacing.Plane.HORIZONTAL, portalBlocks, localDim, localPos, rot)
         val localEntity = createPortalEntity(true, localWorld, localPortal)
         localPortal.localBlocks.forEach {
-            localWorld.setBlockState(it, portalBlock.defaultState, 2)
+            localWorld.setBlockState(it, portalBlock, 2)
         }
         localWorld.forceSpawnEntity(localEntity)
 

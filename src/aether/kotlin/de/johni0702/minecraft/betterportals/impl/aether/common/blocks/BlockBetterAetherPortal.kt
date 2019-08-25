@@ -31,9 +31,10 @@ class BlockBetterAetherPortal(override val mod: Any) : BlockAetherPortal(), Port
         soundType = SoundType.GLASS
     }
 
-    override val portalBlock: Block get() = this
-    override val frameBlock: Block get() = Blocks.GLOWSTONE
-    override val frameStepsBlock: Block get() = Blocks.GLOWSTONE
+    override val portalBlock: IBlockState get() = this.defaultState
+    override fun isPortalBlock(blockState: IBlockState): Boolean = blockState.block == this
+    override val frameBlock: IBlockState get() = Blocks.GLOWSTONE.defaultState
+    override val frameStepsBlock: IBlockState get() = Blocks.GLOWSTONE.defaultState
     override val maxPortalSize: Int = 100
     override val entityType: Class<AetherPortalEntity> = AetherPortalEntity::class.java
 
