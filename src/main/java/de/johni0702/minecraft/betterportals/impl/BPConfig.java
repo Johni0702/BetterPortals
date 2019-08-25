@@ -43,6 +43,10 @@ public class BPConfig {
     @Config.Comment("Configuration for The Aether portals.")
     public static PortalConfig aetherPortals = new PortalConfig();
 
+    @Config.Name("AbyssalCraft Portals")
+    @Config.Comment("Configuration for AbyssalCraft portals (Abyssal Wastelands, Dreadlands and Omothol).")
+    public static PortalConfig abyssalcraftPortals = new PortalConfig();
+
     @Config.Name("Prevent Fall Damage")
     @Config.Comment("Whether to prevent the next fall damage after a player has passed through a lying portal.")
     public static boolean preventFallDamage = true;

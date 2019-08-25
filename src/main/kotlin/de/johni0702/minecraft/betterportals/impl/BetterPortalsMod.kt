@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.BetterPortalsAPI
 import de.johni0702.minecraft.betterportals.common.PortalConfiguration
+import de.johni0702.minecraft.betterportals.impl.abyssalcraft.common.initAbyssalcraft
 import de.johni0702.minecraft.betterportals.impl.aether.common.initAether
 import de.johni0702.minecraft.betterportals.impl.common.initPortal
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.initMekanism
@@ -109,6 +110,15 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 registerBlocks = { registerBlockCallbacks.add(it) },
                 enableAetherPortals = BPConfig.aetherPortals.enabled,
                 configAetherPortals = BPConfig.aetherPortals.toConfiguration()
+        )
+
+        initAbyssalcraft(
+                mod = this,
+                init = { commonInitCallbacks.add(it) },
+                clientPreInit = { clientPreInitCallbacks.add(it) },
+                registerBlocks = { registerBlockCallbacks.add(it) },
+                enableAbyssalcraftPortals = BPConfig.abyssalcraftPortals.enabled,
+                configAbyssalcraftPortals = BPConfig.abyssalcraftPortals.toConfiguration()
         )
     }
 
