@@ -394,6 +394,7 @@ open class PortalAgent<P: Portal>(
             val newEntity = if (entity is EntityPlayerMP) {
                 if (localWorld == remoteWorld) {
                     entity.derivePosRotFrom(entity, portal)
+                    entity.connection.captureCurrentPosition()
                 } else {
                     val worldsManager = entity.worldsManager
 
@@ -481,6 +482,7 @@ open class PortalAgent<P: Portal>(
         // Teleport
         if (world == remotePortal.world) {
             player.derivePosRotFrom(player, portal)
+            player.connection.captureCurrentPosition()
         } else {
             worldsManager.changeDimension(remotePortal.world as WorldServer) {
                 derivePosRotFrom(this, portal)
