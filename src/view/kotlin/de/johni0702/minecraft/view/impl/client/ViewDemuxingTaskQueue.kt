@@ -7,6 +7,7 @@ import de.johni0702.minecraft.view.impl.common.maybeValue
 import net.minecraft.client.Minecraft
 import net.minecraft.network.NetworkManager
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.FutureTask
 
 /**
@@ -18,7 +19,7 @@ internal class ViewDemuxingTaskQueue(
         private val backingQueue: Queue<FutureTask<*>> = ArrayDeque()
 ) : AbstractQueue<FutureTask<*>>() {
 
-    private val knownBadCallers = mutableSetOf<StackTraceElement>()
+    private val knownBadCallers = ConcurrentHashMap.newKeySet<StackTraceElement>()
 
     private fun <T> wrapTask(inner: FutureTask<T>): FutureTask<T> {
         val viewManager = ClientViewAPIImpl.viewManagerImpl
