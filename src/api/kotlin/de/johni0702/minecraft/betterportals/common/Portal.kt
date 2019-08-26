@@ -20,12 +20,14 @@ abstract class Portal(
         val plane: EnumFacing.Plane,
         val detailedBounds: Iterable<AxisAlignedBB>,
         val localDimension: Int,
-        val localPosition: BlockPos,
+        localPosition: BlockPos,
         val localRotation: Rotation,
         val remoteDimension: Int?,
-        val remotePosition: BlockPos,
+        remotePosition: BlockPos,
         val remoteRotation: Rotation
 ) {
+    val localPosition: BlockPos = localPosition.toImmutable()
+    val remotePosition: BlockPos = remotePosition.toImmutable()
 
     val localFacing: EnumFacing = when(plane) {
         EnumFacing.Plane.VERTICAL -> localRotation.facing
@@ -159,7 +161,7 @@ class FinitePortal : Portal {
             remotePosition,
             remoteRotation
     ) {
-        this.blocks = blocks
+        this.blocks = blocks.toImmutable()
     }
 
     constructor(plane: EnumFacing.Plane, blocks: Set<BlockPos>, localDimension: Int, localPosition: BlockPos, localRotation: Rotation)

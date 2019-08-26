@@ -87,6 +87,7 @@ fun EnumFacing.Axis.toFacing(direction: Double)
         = toFacing(if (direction > 0) EnumFacing.AxisDirection.POSITIVE else EnumFacing.AxisDirection.NEGATIVE)
 fun EnumFacing.Axis.toFacing(direction: Vec3d) = toFacing(direction[this])
 val EnumFacing.Axis.parallelFaces get() = EnumFacing.values().filter { it.axis != this }
+fun Set<BlockPos>.toImmutable(): Set<BlockPos> = mapTo(mutableSetOf()) { it.toImmutable() }
 fun Vec3i.to3d(): Vec3d = Vec3d(this.x.toDouble(), this.y.toDouble(), this.z.toDouble())
 fun Vec3i.to3dMid(): Vec3d = this.to3d() + Vec3d(0.5, 0.5, 0.5)
 operator fun BlockPos.plus(other: Vec3i): BlockPos = add(other)
