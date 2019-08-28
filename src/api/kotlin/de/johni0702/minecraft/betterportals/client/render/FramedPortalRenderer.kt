@@ -112,6 +112,7 @@ open class FramedPortalRenderer(
 
     protected open fun renderPortalBlock(portal: FinitePortal, relativePos: BlockPos, opacity: Double, bufferBuilder: BufferBuilder) {
         val sprite = portalSprite() ?: return
+        val spriteUVs = getPortalSpriteUVs(sprite)
         bufferBuilder.markSpriteAsActive(sprite)
         val facing = viewFacing.opposite
         var rotFacing = if (facing.axis == EnumFacing.Axis.Y) EnumFacing.NORTH else EnumFacing.UP
@@ -124,18 +125,20 @@ open class FramedPortalRenderer(
                     pos(x, y, z)
                 }
                 color(1f, 1f, 1f, opacity.toFloat())
-                when (i) {
-                    0 -> tex(sprite.minU.toDouble(), sprite.minV.toDouble())
-                    1 -> tex(sprite.minU.toDouble(), sprite.maxV.toDouble())
-                    2 -> tex(sprite.maxU.toDouble(), sprite.maxV.toDouble())
-                    3 -> tex(sprite.maxU.toDouble(), sprite.minV.toDouble())
-                }
+                spriteUVs[i].let { (u, v) -> tex(u, v) }
                 lightmap(240, 240)
                 endVertex()
             }
             rotFacing = nextRotFacing
         }
     }
+
+    protected open fun getPortalSpriteUVs(sprite: TextureAtlasSprite): Array<Pair<Double, Double>> = arrayOf(
+            Pair(sprite.minU.toDouble(), sprite.minV.toDouble()),
+            Pair(sprite.minU.toDouble(), sprite.maxV.toDouble()),
+            Pair(sprite.maxU.toDouble(), sprite.maxV.toDouble()),
+            Pair(sprite.maxU.toDouble(), sprite.minV.toDouble())
+    )
 }
 
 private fun BufferBuilder.markSpriteAsActive(sprite: TextureAtlasSprite) {
