@@ -28,7 +28,8 @@ interface ServerWorldsManager : WorldsManager {
      * @param anchor See [View.anchor]
      * @return The newly created view
      */
-    fun createView(world: WorldServer, pos: Vec3d, anchor: Pair<WorldServer, Vec3i>? = null): View
+    fun createView(world: WorldServer, pos: Vec3d, anchor: Pair<WorldServer, Vec3i>? = null): View =
+            SimpleView(this, world, pos, anchor).also { registerView(it) }
 
     /**
      * Registers a new view with custom implementation.

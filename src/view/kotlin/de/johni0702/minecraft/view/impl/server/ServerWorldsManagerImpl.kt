@@ -48,26 +48,6 @@ internal class ServerWorldsManagerImpl(
     override val views
         get() = worldManagers.mapValues { it.value.views }
 
-    override fun createView(world: WorldServer, pos: Vec3d, anchor: Pair<WorldServer, Vec3i>?): View = object : View {
-        override var isValid: Boolean = true
-        override fun dispose() {
-            isValid = false
-        }
-        override val manager: ServerWorldsManager = this@ServerWorldsManagerImpl
-        override val world: WorldServer = world
-        override val center: Vec3d = pos
-        // TODO somehow update when render distance changes
-        override val cubeSelector: CubeSelector = player.server!!.playerList.let { playerList ->
-            CuboidCubeSelector(
-                    pos.toBlockPos().toCubePos(),
-                    playerList.viewDistance,
-                    if (world.isCubicWorld) playerList.verticalViewDistance else playerList.viewDistance
-            )
-        }
-        override val anchor: Pair<WorldServer, Vec3i>? = anchor
-        override val portalDistance: Int = 1
-    }.also { registerView(it) }
-
     override fun registerView(view: View) {
         getOrCreateWorldManager(view.world).views.add(view)
         updateActiveViews()

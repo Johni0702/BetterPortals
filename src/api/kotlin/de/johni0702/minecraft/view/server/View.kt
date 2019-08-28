@@ -1,6 +1,6 @@
 package de.johni0702.minecraft.view.server
 
-import de.johni0702.minecraft.betterportals.common.minus
+import de.johni0702.minecraft.betterportals.common.*
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
@@ -75,6 +75,33 @@ interface View {
      * Should be greater than zero to limit recursive view loading. Ignored if [anchor] is `null`.
      */
     val portalDistance: Int
+}
+
+/**
+ * A simple, stationary view with a [CuboidCubeSelector] target with default view distance.
+ *
+ * As returned by [ServerWorldsManager.createView].
+ */
+open class SimpleView(
+        final override val manager: ServerWorldsManager,
+        final override val world: WorldServer,
+        final override val center: Vec3d,
+        final override val anchor: Pair<WorldServer, Vec3i>?,
+        override val portalDistance: Int = 1
+) : View {
+    override var isValid: Boolean = true
+    override fun dispose() {
+        isValid = false
+    }
+
+    // TODO somehow update when render distance changes
+    override val cubeSelector: CubeSelector = manager.player.server!!.playerList.let { playerList ->
+        CuboidCubeSelector(
+                center.toBlockPos().toCubePos(),
+                playerList.viewDistance,
+                if (world.isCubicWorld) playerList.verticalViewDistance else playerList.viewDistance
+        )
+    }
 }
 
 /**
