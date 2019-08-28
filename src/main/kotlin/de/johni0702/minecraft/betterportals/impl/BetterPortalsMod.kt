@@ -8,6 +8,7 @@ import de.johni0702.minecraft.betterportals.impl.common.initPortal
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.initMekanism
 import de.johni0702.minecraft.betterportals.impl.tf.common.initTwilightForest
 import de.johni0702.minecraft.betterportals.impl.transition.common.initTransition
+import de.johni0702.minecraft.betterportals.impl.travelhuts.common.initTravelHuts
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.initVanilla
 import de.johni0702.minecraft.view.common.ViewAPI
 import de.johni0702.minecraft.view.impl.ViewAPIImpl
@@ -119,6 +120,15 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 registerBlocks = { registerBlockCallbacks.add(it) },
                 enableAbyssalcraftPortals = BPConfig.abyssalcraftPortals.enabled,
                 configAbyssalcraftPortals = BPConfig.abyssalcraftPortals.toConfiguration()
+        )
+
+        initTravelHuts(
+                mod = this,
+                init = { commonInitCallbacks.add(it) },
+                clientPreInit = { clientPreInitCallbacks.add(it) },
+                registerBlocks = { registerBlockCallbacks.add(it) },
+                enableTravelHutsPortals = BPConfig.travelHutsPortals.enabled,
+                configTravelHutsPortals = BPConfig.travelHutsPortals.toConfiguration()
         )
     }
 

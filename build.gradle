@@ -25,6 +25,8 @@ ext {
     aetherDep = "$aetherDepBase:v1.4.4"
     abyssalcraftDepBase = 'abyssalcraft:AbyssalCraft:1.12.2'
     abyssalcraftDep = "$abyssalcraftDepBase:1.9.11"
+    travelhutsDepBase = 'travel-huts:travelhut:3.0.2'
+    travelhutsDep = "$travelhutsDepBase"
     cubicChunksDepBase = 'opencubicchunks:CubicChunks-1.12.2-0.0.970.0:SNAPSHOT'
     cubicChunksDep = "$cubicChunksDepBase:all"
 }
@@ -71,6 +73,10 @@ sourceSets {
         compileClasspath += sourceSets.api.compileClasspath
         compileClasspath += sourceSets.api.output
     }
+    travelhuts {
+        compileClasspath += sourceSets.api.compileClasspath
+        compileClasspath += sourceSets.api.output
+    }
     main {
         compileClasspath += sourceSets.view.output
         compileClasspath += sourceSets.transition.output
@@ -80,6 +86,7 @@ sourceSets {
         compileClasspath += sourceSets.mekanism.output
         compileClasspath += sourceSets.aether.output
         compileClasspath += sourceSets.abyssalcraft.output
+        compileClasspath += sourceSets.travelhuts.output
     }
     integrationTest {
         compileClasspath += sourceSets.main.compileClasspath
@@ -167,6 +174,10 @@ dependencies {
     runtime "deobf.$abyssalcraftDepBase"
     abyssalcraftCompile "deobf.$abyssalcraftDepBase"
 
+    deobfCompile travelhutsDep
+    runtime "deobf.$travelhutsDepBase"
+    travelhutsCompile "deobf.$travelhutsDepBase"
+
     integrationTestCompile 'org.junit.jupiter:junit-jupiter-engine:5.5.1'
     integrationTestCompile 'org.junit.platform:junit-platform-launcher:1.5.0'
     integrationTestCompile 'io.kotlintest:kotlintest-runner-junit5:3.4.0'
@@ -207,6 +218,7 @@ jar {
     from sourceSets.mekanism.output
     from sourceSets.aether.output
     from sourceSets.abyssalcraft.output
+    from sourceSets.travelhuts.output
     exclude 'de/johni0702/minecraft/betterportals/MixinLoader.class'
     exclude 'net/optifine' // skeletons
     exclude 'mixins.betterportals.test.refmap.json' // MixinGradle is being stupid

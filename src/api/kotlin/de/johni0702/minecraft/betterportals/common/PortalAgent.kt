@@ -511,11 +511,14 @@ open class PortalAgent<P: Portal>(
 
     open fun addTrackingPlayer(player: EntityPlayerMP) {
         views.getOrPut(player) {
-            val remoteWorld = remoteWorld as WorldServer? ?: return@getOrPut null
-            val anchor = Pair(world as WorldServer, portal.localPosition.toCubePos())
-            // TODO use view with reduced load distance to put a sensible limit on recursion
-            player.worldsManager.createView(remoteWorld, portal.remotePosition.to3dMid(), anchor)
+            registerView(player)
         }
+    }
+
+    protected open fun registerView(player: EntityPlayerMP): View? {
+        val remoteWorld = remoteWorld as WorldServer? ?: return null
+        val anchor = Pair(world as WorldServer, portal.localPosition.toCubePos())
+        return player.worldsManager.createView(remoteWorld, portal.remotePosition.to3dMid(), anchor)
     }
 
     open fun removeTrackingPlayer(player: EntityPlayerMP) {

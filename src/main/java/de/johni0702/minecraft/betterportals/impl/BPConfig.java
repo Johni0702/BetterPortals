@@ -47,6 +47,14 @@ public class BPConfig {
     @Config.Comment("Configuration for AbyssalCraft portals (Abyssal Wastelands, Dreadlands and Omothol).")
     public static PortalConfig abyssalcraftPortals = new PortalConfig();
 
+    @Config.Name("TravelHuts Portals")
+    @Config.Comment("Configuration for TravelHuts portals.")
+    public static PortalConfig travelHutsPortals = new PortalConfig();
+    static {
+        // Default of 0.5 is a bit too translucent imo
+        travelHutsPortals.opacity = 0.7;
+    }
+
     @Config.Name("Prevent Fall Damage")
     @Config.Comment("Whether to prevent the next fall damage after a player has passed through a lying portal.")
     public static boolean preventFallDamage = true;
