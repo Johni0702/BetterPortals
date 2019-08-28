@@ -40,7 +40,6 @@ public abstract class MixinEntityTrackerEntry {
     @Inject(method = "isVisibleTo", at = @At("HEAD"), cancellable = true)
     private void isVisibleToAnyView(EntityPlayerMP player, CallbackInfoReturnable<Boolean> ci) {
         ServerWorldsManagerImpl worldsManager = getWorldsManagerImpl(player);
-        worldsManager.updateActiveViews();
         ServerWorldManager worldManager = worldsManager.getWorldManagers().get(player.getServerWorld());
 
         boolean isCubic = ExtensionsKt.isCubicWorld(player.world);

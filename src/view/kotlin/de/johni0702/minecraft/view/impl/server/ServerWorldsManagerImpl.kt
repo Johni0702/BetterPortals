@@ -48,9 +48,11 @@ internal class ServerWorldsManagerImpl(
     override val views
         get() = worldManagers.mapValues { it.value.views }
 
+    var needsUpdate = false
+
     override fun registerView(view: View) {
         getOrCreateWorldManager(view.world).views.add(view)
-        updateActiveViews()
+        needsUpdate = true
     }
 
     fun updateActiveViews() {
@@ -126,6 +128,8 @@ internal class ServerWorldsManagerImpl(
             manager.activeSelectors = activeSelectors
         }
 
+        needsUpdate = false
+
         server.profiler.endSection()
     }
 
@@ -134,6 +138,7 @@ internal class ServerWorldsManagerImpl(
 
     override fun changeDimension(newWorld: WorldServer, updatePosition: EntityPlayerMP.() -> Unit) {
         getOrCreateWorldManager(newWorld).makeMainWorld(updatePosition)
+        needsUpdate = true
     }
 
     override var player: EntityPlayerMP = connection.player
@@ -212,6 +217,10 @@ internal class ServerWorldsManagerImpl(
     }
 
     private fun tick() {
+        if (needsUpdate) {
+            updateActiveViews()
+        }
+
         worldManagers.values.forEach { manager ->
             manager.views.removeIf { !it.isValid }
             if (manager.activeViews.removeIf { !it.isValid }) {
