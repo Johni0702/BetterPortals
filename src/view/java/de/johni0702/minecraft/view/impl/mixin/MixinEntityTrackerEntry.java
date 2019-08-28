@@ -16,6 +16,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Map;
+
 import static de.johni0702.minecraft.view.impl.ViewAPIImplKt.getWorldsManagerImpl;
 
 @Mixin(EntityTrackerEntry.class)
@@ -43,9 +45,10 @@ public abstract class MixinEntityTrackerEntry {
         ServerWorldManager worldManager = worldsManager.getWorldManagers().get(player.getServerWorld());
 
         boolean isCubic = ExtensionsKt.isCubicWorld(player.world);
-        int range = Math.min(this.range, this.maxRange);
-        for (View view : worldManager.getActiveViews()) {
-            Vec3d pos = view.getCenter();
+        int baseRange = Math.min(this.range, this.maxRange);
+        for (Map.Entry<View, Integer> entry : worldManager.getActiveViews().entrySet()) {
+            Vec3d pos = entry.getKey().getCenter();
+            int range = Math.max(0, baseRange - entry.getValue() * 16);
             double dx = pos.x - this.encodedPosX / 4096.0D;
             double dy = pos.y - this.encodedPosY / 4096.0D;
             double dz = pos.z - this.encodedPosZ / 4096.0D;

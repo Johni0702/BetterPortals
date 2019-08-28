@@ -29,7 +29,7 @@ internal class ServerWorldManager(
         var player: EntityPlayerMP
 ) {
     val views = mutableListOf<View>()
-    var activeViews = mutableListOf<View>()
+    var activeViews = mutableMapOf<View, Int>()
     var activeSelectors = mutableSetOf<CubeSelector>()
         set(value) {
             if (field == value) return

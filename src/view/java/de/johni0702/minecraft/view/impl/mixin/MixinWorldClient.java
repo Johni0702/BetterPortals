@@ -12,16 +12,24 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldProvider;
 import net.minecraft.world.storage.ISaveHandler;
 import net.minecraft.world.storage.WorldInfo;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Set;
+
 @Mixin(WorldClient.class)
+@SideOnly(Side.CLIENT)
 public abstract class MixinWorldClient extends World  {
     @Shadow @Final private Minecraft mc;
+
+    @Shadow @Final private Set<Entity> entitySpawnQueue;
 
     protected MixinWorldClient(ISaveHandler saveHandlerIn, WorldInfo info, WorldProvider providerIn, Profiler profilerIn, boolean client) {
         super(saveHandlerIn, info, providerIn, profilerIn, client);
@@ -50,5 +58,16 @@ public abstract class MixinWorldClient extends World  {
                 return;
             }
         }
+    }
+
+    //
+    // Fixing a vanilla bug which leaves entities in the [entitySpawnQueue] even if a destroy packet is sent for them.
+    // These entities can clog up the spawn queue and once the first 10 are stuck in there, any other legitimate
+    // entities get stuck forever as well even if their chunk is loaded.
+    //
+
+    @Inject(method = "removeEntity", at = @At("HEAD"))
+    private void removeEntityFromSpawnQueue(Entity entity, CallbackInfo ci) {
+        this.entitySpawnQueue.remove(entity);
     }
 }

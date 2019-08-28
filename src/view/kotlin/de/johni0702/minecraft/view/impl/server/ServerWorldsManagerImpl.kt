@@ -59,7 +59,7 @@ internal class ServerWorldsManagerImpl(
         server.profiler.startSection("updateActiveViews")
 
         val anchoredViews = mutableMapOf<WorldServer, MutableList<View>>()
-        val trackedViews = worldManagers.mapValues { Pair(mutableListOf<View>(), mutableSetOf<CubeSelector>()) }
+        val trackedViews = worldManagers.mapValues { Pair(mutableMapOf<View, Int>(), mutableSetOf<CubeSelector>()) }
         val anchorDistances = mutableMapOf<View, Int>()
         val queuedViews = PriorityQueue<View>(Comparator.comparing<View, Int> { anchorDistances[it]!! })
 
@@ -92,7 +92,7 @@ internal class ServerWorldsManagerImpl(
 
             // Add view to finished set
             trackedViews.getValue(world).let { (activeViews, activeSelectors) ->
-                activeViews.add(view)
+                activeViews[view] = anchorDistance
                 activeSelectors.add(selector)
             }
 
@@ -223,7 +223,7 @@ internal class ServerWorldsManagerImpl(
 
         worldManagers.values.forEach { manager ->
             manager.views.removeIf { !it.isValid }
-            if (manager.activeViews.removeIf { !it.isValid }) {
+            if (manager.activeViews.keys.removeIf { !it.isValid }) {
                 manager.needsUpdate = true
             }
             if (manager.needsUpdate) {
