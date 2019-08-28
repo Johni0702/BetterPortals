@@ -33,7 +33,7 @@ open class DoubleNetherPortalSetup : SingleNetherPortalSetup() {
         serverOverworld.portalManager.loadedPortals.count() shouldBeExactly 2
 
         // Wait until remote portal has been created
-        until(10.seconds, { serverOverworld.portalManager.loadedPortals.all { it.getRemoteAgent() != null } }) {
+        until(10.seconds, { serverOverworld.portalManager.loadedPortals.all { it.remoteAgent != null } }) {
             tickServer()
         }
 
@@ -47,7 +47,7 @@ open class DoubleNetherPortalSetup : SingleNetherPortalSetup() {
         mc.world.getBlockState(overworldPos).block shouldBe Blocks.PORTAL
         mc.world.portalManager.loadedPortals.count() shouldBeExactly 2
         val local = mc.world.portalManager.loadedPortals.find { it != first}!!
-        val remote = local.getRemoteAgent()
+        val remote = local.remoteAgent
         remote.shouldNotBeNull()
         local.portal.localPosition.shouldBe(overworldPos.add(-1, 0, -1))
         remote.portal.localPosition.shouldBe(BlockPos(19, 90, 19))

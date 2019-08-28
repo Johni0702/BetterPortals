@@ -50,7 +50,7 @@ class TeleporterPortalAgent(
         CONFIG_MEKANISM_PORTALS
 ) {
     override fun modifyAABBs(entity: Entity, queryAABB: AxisAlignedBB, aabbList: MutableList<AxisAlignedBB>, queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>) {
-        if (getRemoteAgent() == null) {
+        if (remoteAgent == null) {
             // Remote portal hasn't yet been loaded, act as if the portal wasn't there (as opposed to solid)
             return
         }
@@ -58,12 +58,12 @@ class TeleporterPortalAgent(
     }
 
     override fun teleport(entity: Entity, from: EnumFacing) {
-        val remote = getRemoteAgent() ?: return
+        val remoteWorld = remoteWorld ?: return
         if (!tileEntity.active) {
             return
         }
         if (!world.isRemote && entity !is EntityPlayer) {
-            val energyCost = tileEntity.calculateEnergyCost(Coord4D.get(tileEntity), Coord4D(portal.remotePosition, remote.world))
+            val energyCost = tileEntity.calculateEnergyCost(Coord4D.get(tileEntity), Coord4D(portal.remotePosition, remoteWorld))
             if (tileEntity.energy < energyCost) {
                 return
             }
@@ -81,7 +81,7 @@ class TeleporterPortalAgent(
             return false
         }
 
-        val remote = getRemoteAgent() as? TeleporterPortalAgent ?: return false
+        val remote = remoteAgent as? TeleporterPortalAgent ?: return false
         val energyCost = tileEntity.calculateEnergyCost(Coord4D.get(tileEntity), Coord4D(portal.remotePosition, remote.world))
         if (tileEntity.energy < energyCost) {
             LOGGER.warn("Player used teleporter $this which has insufficient energy, resetting player..")
@@ -180,7 +180,7 @@ class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<Fini
 
     private fun destroyAgent() {
         val agent = this.agent ?: return
-        val remoteAgent = agent.getRemoteAgent() as? TeleporterPortalAgent
+        val remoteAgent = agent.loadRemoteAgent() as? TeleporterPortalAgent
 
         trackingPlayers.forEach { agent.removeTrackingPlayer(it) }
         this.agent = null

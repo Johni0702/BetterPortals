@@ -52,7 +52,7 @@ internal object PortalRenderManager {
                 val portal = agent.portal
 
                 // Ignore portals which haven't yet been loaded
-                agent.getRemoteAgent() ?: return@flatMap listOf<Pair<Pair<PortalAgent<*>, Vec3d>, Double>>()
+                agent.remoteAgent ?: return@flatMap listOf<Pair<Pair<PortalAgent<*>, Vec3d>, Double>>()
 
                 // FIXME handle one-way portals
 
@@ -133,7 +133,7 @@ internal object PortalRenderManager {
             // check if there's already a pass for this portal
             if (children.any { it.portalDetail?.parent == portal }) return@forEach
             // its view must have been loaded (otherwise there's nothing to render)
-            it.getRemoteAgent() ?: return@forEach
+            it.remoteAgent ?: return@forEach
             // it must not be our parent (the portal from which this world is being viewed)
             if (parentPortal?.isTarget(portal) == true) return@forEach
 

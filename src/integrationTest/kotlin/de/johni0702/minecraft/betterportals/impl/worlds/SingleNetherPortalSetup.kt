@@ -76,7 +76,7 @@ open class SingleNetherPortalSetup : EmptyWorldSetup() {
         serverOverworld.portalManager.loadedPortals.count() shouldBeExactly 1
 
         // Wait until remote portal has been created
-        until(10.seconds, { serverOverworld.portalManager.loadedPortals.first().getRemoteAgent() != null }) {
+        until(10.seconds, { serverOverworld.portalManager.loadedPortals.first().remoteAgent != null }) {
             tickServer()
         }
 
@@ -88,7 +88,7 @@ open class SingleNetherPortalSetup : EmptyWorldSetup() {
         mc.world.getBlockState(targetPos).block shouldBe Blocks.PORTAL
         mc.world.portalManager.loadedPortals.count() shouldBeExactly 1
         val local = mc.world.portalManager.loadedPortals.first()
-        val remote = local.getRemoteAgent()
+        val remote = local.remoteAgent
         remote.shouldNotBeNull()
         local.portal.localPosition.shouldBe(BlockPos(-1, 20, -1))
         remote.portal.localPosition.shouldBe(BlockPos(19, 80, 19))

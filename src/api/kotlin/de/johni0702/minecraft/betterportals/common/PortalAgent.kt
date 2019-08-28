@@ -148,12 +148,19 @@ open class PortalAgent<P: Portal>(
             portal.remoteDimension?.let { world.minecraftServer!!.getWorld(it) }
         }
 
-    open fun getRemoteAgent(): PortalAgent<P>? {
-        val remoteWorld = remoteWorld ?: return null
-        remoteWorld.getBlockState(portal.remotePosition) // make sure the portal is loaded
-        val remotePortal = remoteWorld.portalManager.loadedPortals.find { isLinked(it) }
+    val remoteAgent: PortalAgent<P>?
         @Suppress("UNCHECKED_CAST")
-        return remotePortal as PortalAgent<P>?
+        get() = remoteWorld?.portalManager?.loadedPortals?.find { isLinked(it) } as PortalAgent<P>?
+
+    /**
+     * Loads and returns the remote agent.
+     * Note that this may cause chunks to load (which in turn loads entitys and potentiall more portals) which can be
+     * unsafe in certain contexts, e.g. while iterating over [net.minecraft.entity.EntityTracker.entries] (as may be
+     * the case when [Entity.addTrackingPlayer] is called) or [PortalManager.loadedPortals].
+     */
+    fun loadRemoteAgent(): PortalAgent<P>? {
+        remoteWorld?.getBlockState(portal.remotePosition) // make sure the portal is loaded
+        return remoteAgent
     }
 
     private var lastTickPos = mutableMapOf<Entity, Vec3d>()
@@ -184,7 +191,7 @@ open class PortalAgent<P: Portal>(
             aabbList: MutableList<AxisAlignedBB>,
             queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>
     ) {
-        val remotePortal = getRemoteAgent()
+        val remotePortal = remoteAgent
         if (remotePortal == null) {
             // Remote portal hasn't yet been loaded, treat all portal blocks as solid to prevent passing
             portal.localDetailedBounds.forEach {
@@ -230,7 +237,7 @@ open class PortalAgent<P: Portal>(
     open fun isInMaterial(entity: Entity, queryAABB: AxisAlignedBB, material: Material): Boolean? {
         val world = entity.world
 
-        val remotePortal = getRemoteAgent() ?: return null
+        val remotePortal = remoteAgent ?: return null
 
         val portalPos = portal.localPosition.to3dMid()
         val entitySide = getEntitySide(entity)
@@ -272,7 +279,7 @@ open class PortalAgent<P: Portal>(
      * May teleport some entities and as such **must not** be called while ticking the world.
      */
     open fun checkTeleportees() {
-        getRemoteAgent() ?: return // not linked
+        remoteAgent ?: return // not linked or remote not loaded
         val facingVec = portal.localFacing.directionVec.to3d().abs() * 2
         val largerBB = portal.localBoundingBox.grow(facingVec)
         val finerBBs = portal.localDetailedBounds.map { it.grow(facingVec) }
@@ -361,7 +368,7 @@ open class PortalAgent<P: Portal>(
      * Supports non-player vehicles with passengers which may be players or other entities.
      */
     protected open fun teleportNonPlayerEntity(entity: Entity, from: EnumFacing) {
-        val remotePortal = getRemoteAgent()!!
+        val remotePortal = remoteAgent!!
         val localWorld = world as WorldServer
         val remoteWorld = remotePortal.world as WorldServer
 
@@ -468,7 +475,7 @@ open class PortalAgent<P: Portal>(
     open fun serverPortalUsed(player: EntityPlayerMP): Boolean {
         val worldsManager = player.worldsManager
 
-        val remotePortal = getRemoteAgent()
+        val remotePortal = remoteAgent
         if (remotePortal == null) {
             manager.logger.warn("Received use portal request from $player for $this but our remote portal has vanished!?")
             return false
@@ -504,11 +511,10 @@ open class PortalAgent<P: Portal>(
 
     open fun addTrackingPlayer(player: EntityPlayerMP) {
         views.getOrPut(player) {
-            val remotePortal = getRemoteAgent() ?: return@getOrPut null
-            val remoteWorld = remotePortal.world as WorldServer
+            val remoteWorld = remoteWorld as WorldServer? ?: return@getOrPut null
             val anchor = Pair(world as WorldServer, portal.localPosition.toCubePos())
             // TODO use view with reduced load distance to put a sensible limit on recursion
-            player.worldsManager.createView(remoteWorld, remotePortal.portal.localPosition.to3dMid(), anchor)
+            player.worldsManager.createView(remoteWorld, portal.remotePosition.to3dMid(), anchor)
         }
     }
 
@@ -518,12 +524,6 @@ open class PortalAgent<P: Portal>(
 
     open fun updateViews() {
         if (views.isEmpty()) {
-            return
-        }
-
-        if (portal.remoteDimension != null && getRemoteAgent() == null) {
-            // Cannot find our remote but we should have one
-            // We might be temporarily out of sync with it atm (i.e. partially linked), so don't yet throw away all views
             return
         }
 
@@ -607,7 +607,7 @@ open class PortalAgent<P: Portal>(
             return false
         }
 
-        val remotePortal = getRemoteAgent()
+        val remotePortal = remoteAgent
         if (remotePortal == null) {
             manager.logger.warn("Failed to use portal $this because remote portal in $remoteWorld couldn't be found")
             return false

@@ -87,7 +87,7 @@ open class NearTeleporterSetup(
         updateClient()
         tickClient()
         mc.world.portalManager.loadedPortals.toList() shouldHaveSize 2
-        mc.world.portalManager.loadedPortals.toList().forAll { it.getRemoteAgent().shouldNotBeNull() }
+        mc.world.portalManager.loadedPortals.toList().forAll { it.remoteAgent.shouldNotBeNull() }
         mc.worldsManager!!.worlds shouldHaveSize 1 // same world
     }
 }
