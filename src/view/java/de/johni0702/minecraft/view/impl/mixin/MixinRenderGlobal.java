@@ -2,7 +2,6 @@ package de.johni0702.minecraft.view.impl.mixin;
 
 import de.johni0702.minecraft.view.client.render.ChunkVisibilityDetail;
 import de.johni0702.minecraft.view.client.render.RenderPass;
-import de.johni0702.minecraft.view.impl.client.render.ViewCameraEntity;
 import de.johni0702.minecraft.view.impl.client.render.ViewChunkRenderDispatcher;
 import de.johni0702.minecraft.view.impl.client.render.ViewRenderManager;
 import net.minecraft.client.Minecraft;
@@ -13,6 +12,9 @@ import net.minecraft.client.renderer.culling.ICamera;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.spongepowered.asm.lib.Opcodes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -23,7 +25,10 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import static de.johni0702.minecraft.betterportals.common.ExtensionsKt.approxEquals;
+
 @Mixin(RenderGlobal.class)
+@SideOnly(Side.CLIENT)
 public abstract class MixinRenderGlobal {
     @Shadow @Final private Minecraft mc;
 
@@ -119,5 +124,58 @@ public abstract class MixinRenderGlobal {
     )
     private int getFakeRenderDistance(RenderGlobal renderGlobal) {
         return mc.gameSettings.renderDistanceChunks;
+    }
+
+    //
+    // MC re-sorts transparent quads when the view entity has moved at least 1m.
+    // This is problematic with views because it happens twice every frame the moment the same world is rendered
+    // twice for a single frame for whatever reason (e.g. portals). It'll generate far more chunk upload tasks
+    // than can be consumed in the same time and effectively flooding the upload queue and delaying indefinitely any
+    // legitimate uploads.
+    // To work around the issue, we re-sort whenever the player entity has moved at least 1m. That'll produce incorrect
+    // results in other worlds but is far better than breaking chunk uploads.
+    // Transparency with multiple portals needs an elaborate solution and solving this problem will be part of that
+    // anyway.
+    // Additionally, we must only sort when rendering the main (not necessarily the root) view because it'll re-sort
+    // only the 15 closest rendered chunks (which have a transparent blocks layer). If we don't, then we'll inevitably
+    // sort in one of the child views and sort its chunks, not the one closest to the player.
+    //
+
+    @Shadow private double prevRenderSortX;
+    @Shadow private double prevRenderSortY;
+    @Shadow private double prevRenderSortZ;
+
+    private boolean isMainView() {
+        RenderPass pass = ViewRenderManager.Companion.getINSTANCE().getCurrent();
+        if (pass != null) {
+            Vec3d playerEyePos = mc.player.getPositionEyes(mc.getRenderPartialTicks());
+            Vec3d cameraEyePos = pass.getCamera().getEyePosition();
+            return approxEquals(cameraEyePos, playerEyePos, 1e-4);
+        }
+        return false;
+    }
+
+    @Redirect(
+            method = "renderBlockLayer(Lnet/minecraft/util/BlockRenderLayer;DILnet/minecraft/entity/Entity;)I",
+            at = @At(value = "FIELD", opcode = Opcodes.GETFIELD, target = "Lnet/minecraft/entity/Entity;posX:D")
+    )
+    private double getPlayerXForTransparencySort(Entity entity) {
+        return isMainView() ? mc.player.posX : prevRenderSortX;
+    }
+
+    @Redirect(
+            method = "renderBlockLayer(Lnet/minecraft/util/BlockRenderLayer;DILnet/minecraft/entity/Entity;)I",
+            at = @At(value = "FIELD", opcode = Opcodes.GETFIELD, target = "Lnet/minecraft/entity/Entity;posY:D")
+    )
+    private double getPlayerYForTransparencySort(Entity entity) {
+        return isMainView() ? mc.player.posY : prevRenderSortY;
+    }
+
+    @Redirect(
+            method = "renderBlockLayer(Lnet/minecraft/util/BlockRenderLayer;DILnet/minecraft/entity/Entity;)I",
+            at = @At(value = "FIELD", opcode = Opcodes.GETFIELD, target = "Lnet/minecraft/entity/Entity;posZ:D")
+    )
+    private double getPlayerZForTransparencySort(Entity entity) {
+        return isMainView() ? mc.player.posZ : prevRenderSortZ;
     }
 }
