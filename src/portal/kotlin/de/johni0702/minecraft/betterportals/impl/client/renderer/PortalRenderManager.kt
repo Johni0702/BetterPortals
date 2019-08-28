@@ -194,8 +194,9 @@ internal object PortalRenderManager {
         val partialTicks = event.partialTicks
         val renderPass = event.renderPass
         val camera = renderPass.camera
-        val parentPortal = renderPass.portalDetail?.parent
-        if (parentPortal != null) {
+        val parentAgent = renderPass.portalDetail?.parentAgent
+        if (parentAgent != null) {
+            val parentPortal = parentAgent.portal
             // Setup clipping plane for parent portal
             // The render is supposed to look like this from the parent (we are currently rendering Remote World):
             // Camera -> Local World -> Portal -> Remote World
@@ -206,7 +207,9 @@ internal object PortalRenderManager {
             val portalPos = parentPortal.remotePosition.to3dMid()
             val cameraSide = parentPortal.remoteAxis.toFacing(camera.viewPosition - portalPos)
             // Position clipping plane on the camera side of the portal such that the portal frame is fully rendered
-            val planePos = parentPortal.remotePosition.to3dMid() + cameraSide.directionVec.to3d().scale(0.5)
+            // (by default anyway, the portal agent can also decide on a different offset if it needs to)
+            val offset = parentAgent.getClippingPlaneOffset(cameraSide)
+            val planePos = parentPortal.remotePosition.to3dMid() + cameraSide.directionVec.to3d().scale(offset)
             // glClipPlane uses the current ModelView matrix to transform the given coordinates to view space
             // so we need to have the camera setup before calling it
             mc.entityRenderer.setupCameraTransform(partialTicks, 0)

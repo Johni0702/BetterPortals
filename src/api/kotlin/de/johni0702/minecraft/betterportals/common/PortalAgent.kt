@@ -635,4 +635,19 @@ open class PortalAgent<P: Portal>(
     open fun canBeSeen(camera: ICamera): Boolean =
             camera.isBoundingBoxInFrustum(portal.localBoundingBox)
                     && portal.localDetailedBounds.any { camera.isBoundingBoxInFrustum(it) }
+
+    /**
+     * Given the side of the portal from which it is being rendered, returns the offset of the clipping plane in that
+     * direction.
+     * The clipping plane is used to hide geometry in the remote world which would occlude the portal even though it
+     * should be invisible. E.g. blocks and entities between the remote camera and the remote portal.
+     *
+     * This should be as large as feasible to reduce the impact of https://github.com/Johni0702/BetterPortals/issues/75.
+     * Usually this is 0.5, i.e. right at the end of the portal frame such that the whole remote portal frame
+     * is rendered and then drawn on the local side.
+     *
+     * If the portal block itself has a back plane which resides in the same block (e.g. TravelHuts portals), then the
+     * value needs to be reduced as otherwise the remote back plane would be visible, occluding everything else.
+     */
+    open fun getClippingPlaneOffset(cameraSide: EnumFacing) = 0.5
 }
