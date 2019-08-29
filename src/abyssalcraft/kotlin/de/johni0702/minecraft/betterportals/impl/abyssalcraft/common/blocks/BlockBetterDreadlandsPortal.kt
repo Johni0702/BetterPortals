@@ -1,6 +1,5 @@
 package de.johni0702.minecraft.betterportals.impl.abyssalcraft.common.blocks
 
-import com.legacy.aether.AetherConfig
 import com.shinoow.abyssalcraft.api.block.ACBlocks
 import com.shinoow.abyssalcraft.common.blocks.BlockACStone
 import com.shinoow.abyssalcraft.common.blocks.BlockAbyssPortal
@@ -42,7 +41,6 @@ class BlockBetterDreadlandsPortal(override val mod: Any) : BlockAbyssPortal(), P
 
     override fun getRemoteWorldFor(localWorld: WorldServer, pos: BlockPos): WorldServer? {
         val server = localWorld.server
-        if (AetherConfig.gameplay_changes.disable_portal) return null
         val abyssDim = ACLib.abyssal_wasteland_id
         val dreadDim = ACLib.dreadlands_id
         val remoteDim = if (localWorld.provider.dimensionType.id == dreadDim) abyssDim else dreadDim
