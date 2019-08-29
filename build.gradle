@@ -4,16 +4,15 @@ buildscript {
         jcenter()
         maven { url = "http://files.minecraftforge.net/maven" }
         maven { url = "https://repo.spongepowered.org/maven" }
+        maven { url = "https://jitpack.io" }
     }
     dependencies {
-        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
-        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
+        classpath 'com.github.ReplayMod:ForgeGradle:d5c13801' // FG 2.3 with Gradle 5 patches
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 apply plugin: 'kotlin'
 apply plugin: 'net.minecraftforge.gradle.forge'
-apply plugin: 'org.spongepowered.mixin'
 
 ext {
     mixinDep = 'org.spongepowered:mixin:0.7.11-SNAPSHOT'
@@ -103,12 +102,32 @@ minecraft {
     mappings = "snapshot_20171003"
 }
 
-mixin {
-    add sourceSets.view, "mixins.betterportals.view.refmap.json"
-    add sourceSets.transition, "mixins.betterportals.transition.refmap.json"
-    add sourceSets.portal, "mixins.betterportals.refmap.json"
-    add sourceSets.integrationTest, "mixins.betterportals.test.refmap.json"
-    extraSrgFile "searge", "extra.srg"
+ext {
+    mixinRefMapView = new File(project.buildDir, "tmp/mixins/mixins.betterportals.view.refmap.json")
+    mixinRefMapTransition = new File(project.buildDir, "tmp/mixins/mixins.betterportals.transition.refmap.json")
+    mixinRefMapPortal = new File(project.buildDir, "tmp/mixins/mixins.betterportals.refmap.json")
+    mixinRefMapIntegrationTest = new File(project.buildDir, "tmp/mixins/mixins.betterportals.test.refmap.json")
+    mixinExtraSrgFile = new File(project.rootDir, "extra.srg")
+}
+
+[
+        compileViewJava: project.mixinRefMapView,
+        compileTransitionJava: project.mixinRefMapTransition,
+        compilePortalJava: project.mixinRefMapPortal,
+        compileIntegrationTestJava: project.mixinRefMapIntegrationTest,
+].forEach { taskName, refMap ->
+    def mixinSrg = new File(project.buildDir, "tmp/mixins/mixins.${taskName}.srg")
+    if (taskName != "compileIntegrationTestJava") {
+        reobfJar.addSecondarySrgFile mixinSrg
+    }
+    tasks.getByName(taskName).configure {
+        dependsOn "copySrg"
+        options.compilerArgs += [
+                "-AoutSrgFile=${mixinSrg.canonicalPath}",
+                "-AoutRefMapFile=${refMap.canonicalPath}",
+                "-AreobfSrgFiles=${project.file("build/mcp-srg.srg").canonicalPath};${project.mixinExtraSrgFile.canonicalPath}"
+        ]
+    }
 }
 
 repositories {
@@ -144,6 +163,9 @@ dependencies {
     runtime mixinDep, withoutOldMixinDeps
     viewCompile mixinDep, withoutOldMixinDeps
     portalCompile mixinDep, withoutOldMixinDeps
+    viewAnnotationProcessor mixinDep
+    portalAnnotationProcessor mixinDep
+    transitionAnnotationProcessor mixinDep
 
     // We want FG to deobf our mod-deps for us.
     // However FG sucks and doesn't support non-standard source sets, so we need to use this workaround...
@@ -221,7 +243,9 @@ jar {
     from sourceSets.travelhuts.output
     exclude 'de/johni0702/minecraft/betterportals/MixinLoader.class'
     exclude 'net/optifine' // skeletons
-    exclude 'mixins.betterportals.test.refmap.json' // MixinGradle is being stupid
+    from project.mixinRefMapView
+    from project.mixinRefMapTransition
+    from project.mixinRefMapPortal
     manifest {
         attributes 'TweakClass': 'org.spongepowered.asm.launch.MixinTweaker',
                 'TweakOrder': '0',
