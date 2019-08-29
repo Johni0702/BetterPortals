@@ -19,8 +19,6 @@ lateinit var mc: Minecraft
 
 fun preInitTests(mcIn: Minecraft) {
     mc = mcIn
-
-    BPConfig.mekanismPortals.enabled = true // TODO remove once default is true
 }
 
 fun initTests() {
