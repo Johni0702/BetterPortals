@@ -5,23 +5,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.ByteArrayOutputStream
 
 plugins {
-    kotlin("jvm") version "1.3.10"
+    kotlin("jvm") version "1.3.40"
     id("net.minecraftforge.gradle.forge")
 }
-
-val mixinDep = "org.spongepowered:mixin:0.7.11-SNAPSHOT"
-val twilightforestDepBase = "the-twilight-forest:twilightforest-1.12.2:3.9.984"
-val twilightforestDep = "$twilightforestDepBase:universal"
-val mekanismDepBase = "mekanism:Mekanism:1.12.2"
-val mekanismDep = "$mekanismDepBase:9.8.1.383" // yes, the classifier is the version (really, CF?!)...
-val aetherDepBase = "the-aether:aether_legacy:1.12.2"
-val aetherDep = "$aetherDepBase:v1.4.4"
-val abyssalcraftDepBase = "abyssalcraft:AbyssalCraft:1.12.2"
-val abyssalcraftDep = "$abyssalcraftDepBase:1.9.11"
-val travelhutsDepBase = "travel-huts:travelhut:3.0.2"
-val travelhutsDep = "$travelhutsDepBase"
-val cubicChunksDepBase = "opencubicchunks:CubicChunks-1.12.2-0.0.970.0:SNAPSHOT"
-val cubicChunksDep = "$cubicChunksDepBase:all"
 
 version = determineVersion()
 group = "de.johni0702.minecraft"
@@ -31,58 +17,38 @@ tasks.withType<JavaCompile> {
     targetCompatibility = "1.8"
 }
 
+val implementations = mapOf(
+        "view" to listOf(),
+        "transition" to listOf(),
+        "portal" to listOf(),
+        "vanilla" to listOf(),
+        "twilightforest" to listOf("the-twilight-forest:twilightforest-1.12.2:3.9.984:universal"),
+        "mekanism" to listOf(
+                "mekanism:Mekanism:1.12.2:9.8.1.383",
+                "redstone-flux:RedstoneFlux-1.12:2.1.0.6:universal",
+                "industrial-craft:Industrialcraft-2-2.8.111:ex112:api"
+        ),
+        "aether" to listOf("the-aether:aether_legacy:1.12.2:v1.4.4"),
+        "abyssalcraft" to listOf("abyssalcraft:AbyssalCraft:1.12.2:1.9.11"),
+        "travelhuts" to listOf("travel-huts:travelhut:3.0.2")
+)
+
 val sourceSets = the<SourceSetContainer>()
 val api by sourceSets.getting // created by ForgeGradle
-val view by sourceSets.creating {
-    compileClasspath += api.compileClasspath
-    compileClasspath += api.output
+for (name in implementations.keys) {
+    sourceSets.register(name) {
+        compileClasspath += api.compileClasspath
+        compileClasspath += api.output
+    }
 }
-val transition by sourceSets.creating {
-    compileClasspath += api.compileClasspath
-    compileClasspath += api.output
+val main by sourceSets.existing {
+    for (name in implementations.keys) {
+        compileClasspath += sourceSets[name].output
+    }
 }
-val portal by sourceSets.creating {
-    compileClasspath += api.compileClasspath
-    compileClasspath += api.output
-}
-val vanilla by sourceSets.creating {
-    compileClasspath += api.compileClasspath
-    compileClasspath += api.output
-}
-val twilightforest by sourceSets.creating {
-    compileClasspath += api.compileClasspath
-    compileClasspath += api.output
-}
-val mekanism by sourceSets.creating {
-    compileClasspath += api.compileClasspath
-    compileClasspath += api.output
-}
-val aether by sourceSets.creating {
-    compileClasspath += api.compileClasspath
-    compileClasspath += api.output
-}
-val abyssalcraft by sourceSets.creating {
-    compileClasspath += api.compileClasspath
-    compileClasspath += api.output
-}
-val travelhuts by sourceSets.creating {
-    compileClasspath += api.compileClasspath
-    compileClasspath += api.output
-}
-val main by sourceSets.getting {
-    compileClasspath += view.output
-    compileClasspath += transition.output
-    compileClasspath += portal.output
-    compileClasspath += vanilla.output
-    compileClasspath += twilightforest.output
-    compileClasspath += mekanism.output
-    compileClasspath += aether.output
-    compileClasspath += abyssalcraft.output
-    compileClasspath += travelhuts.output
-}
-val integrationTest by sourceSets.creating {
-    compileClasspath += main.compileClasspath
-    compileClasspath += main.output
+val integrationTest by sourceSets.registering {
+    compileClasspath += main.get().compileClasspath
+    compileClasspath += main.get().output
 }
 
 configure<ForgeExtension> {
@@ -129,9 +95,24 @@ configurations {
     register("mixin") // for shading
 }
 
-dependencies {
-    "compile"("net.shadowfacts:Forgelin:1.8.2")
+// We want FG to deobf our mod-deps for us.
+// However FG sucks and doesn't support non-standard source sets, so we need to use this workaround...
+// Might need to run `./gradlew deobfCompileDummyTask` before importing into IDEA (doesn't happen automatically).
+fun DependencyHandler.deobf(dep: String): Dependency {
+    val withoutClassifier = if (dep.count { it == ':' } > 2) {
+        dep.take(dep.lastIndexOf(':'))
+    } else {
+        dep
+    }
+    add("deobfCompile", dep)
+    add("runtime", "deobf.$withoutClassifier")
+    return create("deobf.$withoutClassifier")
+}
 
+dependencies {
+    "compile"("net.shadowfacts:Forgelin:1.8.3")
+
+    val mixinDep = "org.spongepowered:mixin:0.7.11-SNAPSHOT"
     val withoutOldMixinDeps: ModuleDependency.() -> Unit = {
         exclude(group = "com.google.guava") // 17.0
         exclude(group = "com.google.code.gson") // 2.2.4
@@ -144,38 +125,13 @@ dependencies {
     "transitionAnnotationProcessor"(mixinDep)
     "mixin"(mixinDep) { isTransitive = false }
 
-    // We want FG to deobf our mod-deps for us.
-    // However FG sucks and doesn't support non-standard source sets, so we need to use this workaround...
-    // Might need to run `./gradlew deobfCompileDummyTask` before importing into IDEA (doesn't happen automatically).
+    "viewCompile"(deobf("opencubicchunks:CubicChunks-1.12.2-0.0.970.0:SNAPSHOT:all"))
 
-    "deobfCompile"(cubicChunksDep)
-    "runtime"("deobf.$cubicChunksDepBase")
-    "viewCompile"("deobf.$cubicChunksDepBase")
-
-    "deobfCompile"(twilightforestDep)
-    "runtime"("deobf.$twilightforestDepBase")
-    "twilightforestCompile"("deobf.$twilightforestDepBase")
-
-    "deobfCompile"(mekanismDep)
-    "runtime"("deobf.$mekanismDepBase")
-    "mekanismCompile"("deobf.$mekanismDepBase")
-    // Mekanism deps "(cause CF and/or FG break transitive dependencies)
-    "deobfCompile"("redstone-flux:RedstoneFlux-1.12:2.1.0.6:universal")
-    "mekanismCompile"("deobf.redstone-flux:RedstoneFlux-1.12:2.1.0.6")
-    "deobfCompile"("industrial-craft:Industrialcraft-2-2.8.111:ex112:api")
-    "mekanismCompile"("deobf.industrial-craft:Industrialcraft-2-2.8.111:ex112")
-
-    "deobfCompile"(aetherDep)
-    "runtime"("deobf.$aetherDepBase")
-    "aetherCompile"("deobf.$aetherDepBase")
-
-    "deobfCompile"(abyssalcraftDep)
-    "runtime"("deobf.$abyssalcraftDepBase")
-    "abyssalcraftCompile"("deobf.$abyssalcraftDepBase")
-
-    "deobfCompile"(travelhutsDep)
-    "runtime"("deobf.$travelhutsDepBase")
-    "travelhutsCompile"("deobf.$travelhutsDepBase")
+    for ((name, dependencies) in implementations) {
+        for (dependency in dependencies) {
+            "${name}Compile"(deobf(dependency))
+        }
+    }
 
     "integrationTestCompile"("org.junit.jupiter:junit-jupiter-engine:5.5.1")
     "integrationTestCompile"("org.junit.platform:junit-platform-launcher:1.5.0")
@@ -189,7 +145,7 @@ tasks.named<ProcessResources>("processResources") {
     inputs.property("mcversion", project.the<ForgeExtension>().version)
 
     // replace stuff in mcmod.info, nothing else
-    from(main.resources.srcDirs) {
+    from(main.get().resources.srcDirs) {
         include("mcmod.info")
                 
         // replace version and mcversion
@@ -197,7 +153,7 @@ tasks.named<ProcessResources>("processResources") {
     }
         
     // copy everything else except the mcmod.info
-    from(main.resources.srcDirs) {
+    from(main.get().resources.srcDirs) {
         exclude("mcmod.info")
     }
 }
@@ -209,15 +165,7 @@ tasks.named<Jar>("jar") {
         exclude("META-INF/*.RSA")
     }
     from(api.output)
-    from(view.output)
-    from(transition.output)
-    from(portal.output)
-    from(vanilla.output)
-    from(twilightforest.output)
-    from(mekanism.output)
-    from(aether.output)
-    from(abyssalcraft.output)
-    from(travelhuts.output)
+    from(implementations.keys.map { sourceSets[it].output })
     exclude("de/johni0702/minecraft/betterportals/MixinLoader.class")
     exclude("net/optifine") // skeletons
     from(mixinRefMaps.filterNot { it.key == "integrationTest" }.values)
@@ -272,9 +220,9 @@ val runIntegrationTest by tasks.registering(JavaExec::class) {
     classpath(configurations["forgeGradleMcDeps"])
     classpath(configurations["forgeGradleGradleStart"])
     // Base mod
-    classpath(tasks.getByName<Jar>("jar").archivePath)
+    classpath(tasks.getByName<Jar>("jar").archiveFile)
     // Test classes and deps
-    classpath(integrationTest.output)
+    classpath(integrationTest.get().output)
     classpath(configurations["integrationTestCompile"])
 
     systemProperty("fml.noGrab", "true")
