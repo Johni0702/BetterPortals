@@ -141,9 +141,6 @@ internal class ClientState(
         mc.effectRenderer = particleManager
         mc.renderGlobal = renderGlobal
         mc.entityRenderer = entityRenderer
-        mc.renderManager.world = _world
-        mc.renderManager.renderViewEntity = thePlayer
-        mc.renderManager.pointedEntity = pointedEntity
         mc.player = thePlayer
         mc.world = _world
         val connection = mc.connection
