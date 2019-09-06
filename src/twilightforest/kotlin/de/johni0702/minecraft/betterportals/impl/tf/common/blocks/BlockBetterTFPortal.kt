@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.tf.common.blocks
 
 import de.johni0702.minecraft.betterportals.common.*
@@ -150,3 +151,4 @@ class BlockBetterTFPortal(override val mod: Any) : BlockTFPortal(), PortalBlock<
         }
     }
 }
+//#endif

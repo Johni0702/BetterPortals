@@ -6,7 +6,9 @@ import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.client.ViewEntity
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
-import net.minecraft.client.renderer.*
+import net.minecraft.client.renderer.GLAllocation
+import net.minecraft.client.renderer.GlStateManager
+import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.culling.ClippingHelperImpl
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
@@ -18,6 +20,7 @@ import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import org.lwjgl.opengl.GL11
+import org.lwjgl.util.vector.Matrix4f
 import org.lwjgl.util.vector.Quaternion
 import kotlin.math.ceil
 import kotlin.math.sqrt
@@ -44,10 +47,19 @@ internal class ViewRenderManager : RenderPassManager {
     }
     private val disposedOcclusionQueries = mutableListOf<OcclusionQuery>()
 
-    fun allocFramebuffer() = framebufferPool.popOrNull() ?: Framebuffer(frameWidth, frameHeight, true).apply {
+    fun allocFramebuffer() = framebufferPool.popOrNull() ?: Framebuffer(
+            frameWidth, frameHeight, true
+            //#if MC>=11400
+            //$$ , true
+            //#endif
+    ).apply {
+        //#if MC>=11400
+        //$$ // TODO port. but is this even necessary? aren't we using these framebuffers just for copying?
+        //#else
         if (!isStencilEnabled && Minecraft.getMinecraft().framebuffer.isStencilEnabled) {
             enableStencil()
         }
+        //#endif
     }
 
     fun releaseFramebuffer(framebuffer: Framebuffer) {
@@ -67,9 +79,15 @@ internal class ViewRenderManager : RenderPassManager {
         val viewManager = ClientViewAPIImpl.viewManagerImpl
         val view = viewManager.mainView
 
+        //#if MC>=11400
+        //$$ if (mc.mainWindow.framebufferWidth != frameWidth || mc.mainWindow.framebufferHeight != frameHeight) {
+        //$$     frameWidth = mc.mainWindow.framebufferWidth
+        //$$     frameHeight = mc.mainWindow.framebufferHeight
+        //#else
         if (mc.displayWidth != frameWidth || mc.displayHeight != frameHeight) {
             frameWidth = mc.displayWidth
             frameHeight = mc.displayHeight
+        //#endif
             framebufferPool.forEach { it.deleteFramebuffer() }
             framebufferPool.clear()
         }
@@ -89,11 +107,19 @@ internal class ViewRenderManager : RenderPassManager {
         GlStateManager.pushMatrix()
         val camera = viewManager.withView(view) {
             eventHandler.capture = true
-            mc.entityRenderer.setupCameraTransform(partialTicks, 0)
+            mc.entityRenderer.setupCameraTransform(partialTicks
+                    //#if MC<11400
+                    , 0
+                    //#endif
+            )
             eventHandler.capture = false
 
             val buf = GLAllocation.createDirectFloatBuffer(16)
+            //#if MC>=11400
+            //$$ GL11.glGetFloatv(GL11.GL_MODELVIEW_MATRIX, buf)
+            //#else
             GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, buf)
+            //#endif
             buf.flip().limit(16)
             val mat = Matrix4f().apply { load(buf) }
             val inv = mat.inverse
@@ -209,8 +235,13 @@ internal class ViewRenderManager : RenderPassManager {
         @SubscribeEvent(priority = EventPriority.LOWEST)
         fun onCameraSetup(event: EntityViewRenderEvent.CameraSetup) {
             if (capture) {
+                //#if MC>=11400
+                //$$ GL11.glGetFloatv(GL11.GL_PROJECTION_MATRIX, projectionMatrix)
+                //$$ GL11.glGetFloatv(GL11.GL_MODELVIEW_MATRIX, modelViewMatrix)
+                //#else
                 GL11.glGetFloat(GL11.GL_PROJECTION_MATRIX, projectionMatrix)
                 GL11.glGetFloat(GL11.GL_MODELVIEW_MATRIX, modelViewMatrix)
+                //#endif
                 projectionMatrix.flip().limit(16) // limit(16) required as glGetFloat has no clue
                 modelViewMatrix.flip().limit(16)
                 yaw = event.yaw
@@ -218,10 +249,17 @@ internal class ViewRenderManager : RenderPassManager {
                 roll = event.roll
             } else {
                 val plan = ViewRenderPlan.CURRENT ?: return
+                //#if MC>=11400
+                //$$ GL11.glMatrixMode(GL11.GL_PROJECTION)
+                //$$ GL11.glLoadMatrixf(projectionMatrix)
+                //$$ GL11.glMatrixMode(GL11.GL_MODELVIEW)
+                //$$ GL11.glLoadMatrixf(modelViewMatrix)
+                //#else
                 GL11.glMatrixMode(GL11.GL_PROJECTION)
                 GL11.glLoadMatrix(projectionMatrix)
                 GL11.glMatrixMode(GL11.GL_MODELVIEW)
                 GL11.glLoadMatrix(modelViewMatrix)
+                //#endif
                 projectionMatrix.rewind()
                 modelViewMatrix.rewind()
 
@@ -245,7 +283,11 @@ internal class ViewRenderManager : RenderPassManager {
             }
         }
 
+        //#if MC>=11400
+        //$$ private var fov: Double = 0.0
+        //#else
         private var fov: Float = 0.toFloat()
+        //#endif
         @SubscribeEvent(priority = EventPriority.LOWEST)
         fun onFOVSetup(event: EntityViewRenderEvent.FOVModifier) {
             if (capture) {
@@ -368,11 +410,16 @@ internal class ViewRenderPlan(
                 cameraEntity.pos = feetPosition
                 cameraEntity.prevPos = feetPosition
                 cameraEntity.lastTickPos = feetPosition
-                cameraEntity.eyeHeight = (eyePosition.y - feetPosition.y).toFloat()
                 cameraEntity.rotationYaw = eyeRotation.y.toFloat()
                 cameraEntity.prevRotationYaw = eyeRotation.y.toFloat()
                 cameraEntity.rotationPitch = eyeRotation.x.toFloat()
                 cameraEntity.prevRotationPitch = eyeRotation.x.toFloat()
+                //#if MC>=11400
+                //$$ cameraEntity.eyeHeightOverwrite = (eyePosition.y - feetPosition.y).toFloat()
+                //$$ cameraEntity.recalculateSize()
+                //#else
+                cameraEntity.eyeHeight = (eyePosition.y - feetPosition.y).toFloat()
+                //#endif
             }
             mc.renderViewEntity = cameraEntity
         }
@@ -389,7 +436,11 @@ internal class ViewRenderPlan(
         GlStateManager.disableFog()
         GlStateManager.disableLighting()
         mc.entityRenderer.disableLightmap()
+        //#if MC>=11400
+        //$$ mc.gameRenderer.fogRenderer.updateFogColor(mc.gameRenderer.activeRenderInfo, partialTicks)
+        //#else
         mc.entityRenderer.updateFogColor(partialTicks)
+        //#endif
         GL11.glClearDepth(1.0)
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT or GL11.GL_DEPTH_BUFFER_BIT)
 

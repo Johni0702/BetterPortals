@@ -4,8 +4,8 @@ import com.mojang.authlib.GameProfile;
 import de.johni0702.minecraft.betterportals.impl.common.PortalManagerImpl;
 import net.minecraft.client.entity.AbstractClientPlayer;
 import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(EntityPlayerSP.class)
 public abstract class MixinEntityPlayerSP extends AbstractClientPlayer {
-    public MixinEntityPlayerSP(World worldIn, GameProfile playerProfile) {
+    public MixinEntityPlayerSP(WorldClient worldIn, GameProfile playerProfile) {
         super(worldIn, playerProfile);
     }
 

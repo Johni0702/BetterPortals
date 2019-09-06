@@ -2,6 +2,7 @@ package de.johni0702.minecraft.view.impl.client.render
 
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.ListenableFutureTask
+import de.johni0702.minecraft.betterportals.common.currentlyOnMainThread
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.BufferBuilder
@@ -19,14 +20,25 @@ import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
+
+//#if MC>=11400
+//$$ typealias FutureReturnType = Void
+//#else
+typealias FutureReturnType = Any
+//#endif
+
 /**
  * Almost complete re-implementation of the vanilla [ChunkRenderDispatcher] which can be used by multiple [RenderGlobal]s
  * in a non-conflicting way.
  */
-internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
+internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher(
+        //#if MC>=11400
+        //$$ Minecraft.getInstance().isJava64bit
+        //#endif
+) {
     private val states = ConcurrentHashMap<RenderGlobal, State>()
     private val activeState get() = Minecraft.getMinecraft().let { mc ->
-        if (!mc.isCallingFromMinecraftThread) {
+        if (!mc.currentlyOnMainThread) {
             // If we're not calling from the MC main thread, then it's probably one of the render workers
             threadAssignment.get()
         } else {
@@ -133,8 +145,8 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
     override fun updateTransparencyLater(chunkRenderer: RenderChunk): Boolean =
             activeState.updateTransparencyLater(chunkRenderer)
 
-    override fun uploadChunk(layer: BlockRenderLayer, buffer: BufferBuilder, renderChunk: RenderChunk, compiledChunk: CompiledChunk, distSq: Double): ListenableFuture<Any> {
-        return if (Minecraft.getMinecraft().isCallingFromMinecraftThread) {
+    override fun uploadChunk(layer: BlockRenderLayer, buffer: BufferBuilder, renderChunk: RenderChunk, compiledChunk: CompiledChunk, distSq: Double): ListenableFuture<FutureReturnType> {
+        return if (Minecraft.getMinecraft().currentlyOnMainThread) {
             super.uploadChunk(layer, buffer, renderChunk, compiledChunk, distSq)
         } else {
             activeState.uploadChunk(layer, buffer, renderChunk, compiledChunk, distSq)
@@ -237,9 +249,12 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
             }
         }
 
-        fun uploadChunk(layer: BlockRenderLayer, buffer: BufferBuilder, renderChunk: RenderChunk, compiledChunk: CompiledChunk, distSq: Double): ListenableFuture<Any> {
-            val future: ListenableFutureTask<Any> = ListenableFutureTask.create {
+        fun uploadChunk(layer: BlockRenderLayer, buffer: BufferBuilder, renderChunk: RenderChunk, compiledChunk: CompiledChunk, distSq: Double): ListenableFuture<FutureReturnType> {
+            val future: ListenableFutureTask<FutureReturnType> = ListenableFutureTask.create {
                 this@ViewChunkRenderDispatcher.uploadChunk(layer, buffer, renderChunk, compiledChunk, distSq)
+                //#if MC>=11400
+                //$$ return@create null
+                //#endif
             }
 
             queuedUploads.add(PendingUpload(future, distSq))

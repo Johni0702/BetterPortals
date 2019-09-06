@@ -33,7 +33,7 @@ open class FramedPortalRenderer(
                     // When we have remote content for the portal, then render as much as possible as to minimize
                     // entity rendering artifacts inside the portal in the remote world (since they're only rendered
                     // where we draw the portal surface).
-                    EnumFacing.VALUES.forEach facing@{ facing ->
+                    EnumFacing.values().forEach facing@{ facing ->
                         if (blocks.contains(pos.offset(facing))) return@facing
                         if (facing == viewFacing) return@facing
 
@@ -100,7 +100,7 @@ open class FramedPortalRenderer(
         }
 
         val mc = Minecraft.getMinecraft()
-        GlStateManager.color(1f, 1f, 1f)
+        GlStateManager.color(1f, 1f, 1f, 1f)
         mc.renderEngine.bindTexture(TextureMap.LOCATION_BLOCKS_TEXTURE)
         RenderHelper.disableStandardItemLighting()
         GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA)

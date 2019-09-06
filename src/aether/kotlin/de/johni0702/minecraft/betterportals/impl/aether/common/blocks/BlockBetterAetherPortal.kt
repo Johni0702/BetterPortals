@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.aether.common.blocks
 
 import com.legacy.aether.Aether
@@ -73,3 +74,4 @@ class BlockBetterAetherPortal(override val mod: Any) : BlockAetherPortal(), Port
 
     override fun trySpawnPortal(localWorld: World, pos: BlockPos): Boolean = tryToLinkPortals(localWorld, pos)
 }
+//#endif

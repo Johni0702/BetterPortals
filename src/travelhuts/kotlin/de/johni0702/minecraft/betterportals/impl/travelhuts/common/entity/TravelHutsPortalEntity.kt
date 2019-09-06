@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.travelhuts.common.entity
 
 import de.johni0702.minecraft.betterportals.common.*
@@ -37,3 +38,4 @@ class TravelHutsPortalEntity(
     @Suppress("unused")
     constructor(world: World) : this(world, FinitePortal.DUMMY)
 }
+//#endif

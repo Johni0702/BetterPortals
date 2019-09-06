@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.tf.common.entity
 
 import de.johni0702.minecraft.betterportals.common.FinitePortal
@@ -34,3 +35,4 @@ class TFPortalEntity(isTailEnd: Boolean, world: World, portal: FinitePortal) : O
         }
     }
 }
+//#endif

@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.view.impl.mixin;
 
 import io.github.opencubicchunks.cubicchunks.core.server.CubeWatcher;
@@ -12,3 +13,4 @@ public interface AccessorCubeWatcher_CC {
     @Invoker
     void invokeRemovePlayer(EntityPlayerMP player);
 }
+//#endif

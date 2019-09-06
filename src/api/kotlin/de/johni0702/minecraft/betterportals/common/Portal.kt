@@ -19,10 +19,10 @@ import javax.vecmath.Matrix4d
 abstract class Portal(
         val plane: EnumFacing.Plane,
         val detailedBounds: Iterable<AxisAlignedBB>,
-        val localDimension: Int,
+        val localDimension: DimensionId,
         localPosition: BlockPos,
         val localRotation: Rotation,
-        val remoteDimension: Int?,
+        val remoteDimension: DimensionId?,
         remotePosition: BlockPos,
         val remoteRotation: Rotation
 ) {
@@ -76,14 +76,14 @@ abstract class Portal(
         setTag("Local", NBTTagCompound().apply {
             setXYZ(localPosition)
             setInteger("Rotation", localRotation.ordinal)
-            setInteger("Dim", localDimension)
+            setInteger("Dim", localDimension.toIntId())
         })
         val remoteDimension = this@Portal.remoteDimension
         if (remoteDimension != null) {
             setTag("Remote", NBTTagCompound().apply {
                 setXYZ(remotePosition)
                 setInteger("Rotation", remoteRotation.ordinal)
-                setInteger("Dim", remoteDimension)
+                setInteger("Dim", remoteDimension.toIntId())
             })
         }
     }
@@ -100,10 +100,10 @@ abstract class Portal(
             detailedBounds,
             localPosition = local.getXYZ(),
             localRotation = Rotation.values()[local.getInteger("Rotation")],
-            localDimension = local.getInteger("Dim"),
+            localDimension = local.getInteger("Dim").toDimensionId()!!,
             remotePosition = remote?.getXYZ() ?: BlockPos.ORIGIN,
             remoteRotation = remote?.getInteger("Rotation")?.let { Rotation.values()[it] } ?: Rotation.NONE,
-            remoteDimension = remote?.getInteger("Dim")
+            remoteDimension = remote?.getInteger("Dim")?.toDimensionId()
     )
 
     override fun equals(other: Any?): Boolean {
@@ -126,10 +126,10 @@ abstract class Portal(
 
     override fun hashCode(): Int {
         var result = plane.hashCode()
-        result = 31 * result + localDimension
+        result = 31 * result + localDimension.hashCode()
         result = 31 * result + localPosition.hashCode()
         result = 31 * result + localRotation.hashCode()
-        result = 31 * result + (remoteDimension ?: 0)
+        result = 31 * result + (remoteDimension ?: 0).hashCode()
         result = 31 * result + remotePosition.hashCode()
         result = 31 * result + remoteRotation.hashCode()
         result = 31 * result + detailedBounds.hashCode()
@@ -145,10 +145,10 @@ class FinitePortal : Portal {
     constructor(
             plane: EnumFacing.Plane,
             blocks: Set<BlockPos>,
-            localDimension: Int,
+            localDimension: DimensionId,
             localPosition: BlockPos,
             localRotation: Rotation,
-            remoteDimension: Int?,
+            remoteDimension: DimensionId?,
             remotePosition: BlockPos,
             remoteRotation: Rotation
     ) : super(
@@ -164,7 +164,7 @@ class FinitePortal : Portal {
         this.blocks = blocks.toImmutable()
     }
 
-    constructor(plane: EnumFacing.Plane, blocks: Set<BlockPos>, localDimension: Int, localPosition: BlockPos, localRotation: Rotation)
+    constructor(plane: EnumFacing.Plane, blocks: Set<BlockPos>, localDimension: DimensionId, localPosition: BlockPos, localRotation: Rotation)
             : this(plane, blocks, localDimension, localPosition, localRotation, null, BlockPos.ORIGIN, Rotation.NONE)
 
     constructor(nbt: NBTTagCompound) : this(
@@ -179,7 +179,7 @@ class FinitePortal : Portal {
 
     override fun writePortalToNBT(): NBTTagCompound = super.writePortalToNBT().apply {
         setTag("Blocks", NBTTagList().apply {
-            blocks.forEach { appendTag(NBTTagCompound().setXYZ(it)) }
+            blocks.forEach { append(NBTTagCompound().setXYZ(it)) }
         })
     }
 
@@ -188,6 +188,6 @@ class FinitePortal : Portal {
     fun withRemote(other: FinitePortal): FinitePortal = FinitePortal(plane, blocks, localDimension, localPosition, localRotation, other.localDimension, other.localPosition, other.localRotation)
 
     companion object {
-        val DUMMY = FinitePortal(EnumFacing.Plane.VERTICAL, setOf(BlockPos.ORIGIN), 0, BlockPos.ORIGIN, Rotation.NONE)
+        val DUMMY = FinitePortal(EnumFacing.Plane.VERTICAL, setOf(BlockPos.ORIGIN), 0.toDimensionId()!!, BlockPos.ORIGIN, Rotation.NONE)
     }
 }

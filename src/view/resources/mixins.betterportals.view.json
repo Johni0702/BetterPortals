@@ -17,6 +17,9 @@
   ],
   "server": [],
   "client": [
+    //#if MC>=11400
+    //$$ "MixinThreadTaskExecutor",
+    //#endif
     "MixinActiveRenderInfo",
     "MixinChunkRenderWorker",
     "MixinEntityRenderer",

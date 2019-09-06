@@ -1,15 +1,32 @@
 pluginManagement {
     repositories {
+        mavenLocal()
         gradlePluginPortal()
         jcenter()
-        maven("http://files.minecraftforge.net/maven")
+        mavenCentral()
+        google()
         maven("https://jitpack.io")
     }
     resolutionStrategy {
         eachPlugin {
-            if (requested.id.id == "net.minecraftforge.gradle.forge") {
-                useModule("com.github.ReplayMod:ForgeGradle:d5c13801") // FG 2.3 with Gradle 5 patches
+            when (requested.id.id) {
+                "com.replaymod.preprocess" -> {
+                    useModule("com.github.replaymod:preprocessor:${requested.version}")
+                }
             }
         }
+    }
+}
+
+rootProject.buildFileName = "root.gradle.kts"
+
+listOf(
+        "1.12.2",
+        "1.14.4"
+).forEach { version ->
+    include(":$version")
+    project(":$version").apply {
+        projectDir = file("versions/$version")
+        buildFileName = "../../build.gradle.kts"
     }
 }

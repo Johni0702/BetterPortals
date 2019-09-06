@@ -3,6 +3,7 @@ package de.johni0702.minecraft.betterportals.common.entity
 import de.johni0702.minecraft.betterportals.common.*
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayerMP
+import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.network.datasync.DataParameter
 import net.minecraft.network.datasync.DataSerializers
@@ -13,6 +14,12 @@ import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
+
+//#if MC>=11400
+//$$ import net.minecraft.entity.EntityType
+//$$ import net.minecraft.network.IPacket
+//$$ import net.minecraftforge.fml.network.NetworkHooks
+//#endif
 
 interface Linkable {
     val portal: FinitePortal
@@ -37,12 +44,29 @@ open class PortalEntityPortalAgent(
 }
 
 abstract class AbstractPortalEntity(
+        //#if MC>=11400
+        //$$ type: EntityType<out AbstractPortalEntity>,
+        //#endif
         world: World,
         portal: FinitePortal,
         final override val agent: PortalEntityPortalAgent
-) : Entity(world), PortalEntity, Linkable {
-    constructor(world: World, portal: FinitePortal, portalConfig: PortalConfiguration)
-            : this(world, portal, PortalEntityPortalAgent(world.portalManager, portalConfig))
+) : Entity(
+        //#if MC>=11400
+        //$$ type,
+        //#endif
+        world
+), PortalEntity, Linkable {
+    constructor(
+            //#if MC>=11400
+            //$$ type: EntityType<out AbstractPortalEntity>,
+            //#endif
+            world: World, portal: FinitePortal, portalConfig: PortalConfiguration
+    ) : this(
+            //#if MC>=11400
+            //$$ type,
+            //#endif
+            world, portal, PortalEntityPortalAgent(world.portalManager, portalConfig)
+    )
 
     companion object {
         private val PORTAL: DataParameter<NBTTagCompound> = EntityDataManager.createKey(AbstractPortalEntity::class.java, DataSerializers.COMPOUND_TAG)
@@ -73,8 +97,10 @@ abstract class AbstractPortalEntity(
         // I blame MC
         ignoreFrustumCheck = true
 
+        //#if MC<11400
         width = 0f
         height = 0f
+        //#endif
 
         with(portal.localPosition.to3d()) { setPosition(x + 0.5, y + 0.5, z + 0.5) }
         this.setRotation(portal.localRotation.degrees.toFloat(), 0f)
@@ -111,6 +137,10 @@ abstract class AbstractPortalEntity(
     override fun writeEntityToNBT(compound: NBTTagCompound) {
         compound.setTag("BetterPortal", portal.writePortalToNBT())
     }
+
+    //#if MC>=11400
+    //$$ override fun createSpawnPacket(): IPacket<*> = NetworkHooks.getEntitySpawningPacket(this)
+    //#endif
 
     fun getRemotePortal(): AbstractPortalEntity? {
         val remoteWorld = if (world.isRemote) {
@@ -150,7 +180,7 @@ abstract class AbstractPortalEntity(
     }
 
     override fun setDead() {
-        if (isDead) return
+        if (!isEntityAlive) return
         super.setDead()
         if (world is WorldServer) {
             getRemotePortal()?.setDead()
@@ -159,7 +189,7 @@ abstract class AbstractPortalEntity(
     }
 
     protected open fun removePortal() {
-        portal.localBlocks.forEach { world.setBlockToAir(it) }
+        portal.localBlocks.forEach { world.setBlockState(it, Blocks.AIR.defaultState) }
     }
 
     //

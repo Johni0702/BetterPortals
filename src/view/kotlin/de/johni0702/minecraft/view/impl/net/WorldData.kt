@@ -1,5 +1,12 @@
 package de.johni0702.minecraft.view.impl.net
 
+import de.johni0702.minecraft.betterportals.common.DimensionId
+import de.johni0702.minecraft.betterportals.common.toDimensionId
+import de.johni0702.minecraft.betterportals.common.toIntId
+import de.johni0702.minecraft.betterportals.impl.IMessage
+import de.johni0702.minecraft.betterportals.impl.IMessageHandler
+import de.johni0702.minecraft.betterportals.impl.MessageContext
+import de.johni0702.minecraft.betterportals.impl.NetworkDirection
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.common.clientSyncIgnoringView
 import io.netty.buffer.ByteBuf
@@ -7,25 +14,23 @@ import io.netty.buffer.Unpooled
 import io.netty.util.AbstractReferenceCounted
 import io.netty.util.ReferenceCounted
 import net.minecraft.network.PacketBuffer
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 
 internal class WorldData(
-        var dimensionId: Int = 0,
+        var dimensionId: DimensionId = 0.toDimensionId()!!,
         var data: ByteBuf = Unpooled.EMPTY_BUFFER
 ) : IMessage, AbstractReferenceCounted() {
+    override val direction = NetworkDirection.TO_CLIENT
 
     override fun fromBytes(buf: ByteBuf) {
         with(PacketBuffer(buf)) {
-            dimensionId = readVarInt()
+            dimensionId = readVarInt().toDimensionId()!!
             data = readBytes(buf.readableBytes())
         }
     }
 
     override fun toBytes(buf: ByteBuf) {
         with(PacketBuffer(buf)) {
-            writeVarInt(dimensionId)
+            writeVarInt(dimensionId.toIntId())
             writeBytes(data)
         }
     }
@@ -39,8 +44,9 @@ internal class WorldData(
         data.release()
     }
 
-    internal class Handler : IMessageHandler<WorldData, IMessage> {
-        override fun onMessage(message: WorldData, ctx: MessageContext): IMessage? {
+    internal class Handler : IMessageHandler<WorldData> {
+        override fun new(): WorldData = WorldData()
+        override fun handle(message: WorldData, ctx: MessageContext) {
             message.retain()
             clientSyncIgnoringView {
                 try {
@@ -49,7 +55,6 @@ internal class WorldData(
                     message.release()
                 }
             }
-            return null
         }
     }
 }

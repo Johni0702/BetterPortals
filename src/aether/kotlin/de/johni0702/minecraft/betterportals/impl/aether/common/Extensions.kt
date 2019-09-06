@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.aether.common
 
 import com.legacy.aether.blocks.BlocksAether
@@ -74,3 +75,4 @@ fun initAether(
         })
     }
 }
+//#endif

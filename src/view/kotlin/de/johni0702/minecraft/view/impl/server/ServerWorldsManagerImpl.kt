@@ -2,7 +2,7 @@ package de.johni0702.minecraft.view.impl.server
 
 import com.mojang.authlib.GameProfile
 import de.johni0702.minecraft.betterportals.common.*
-import de.johni0702.minecraft.view.impl.MOD_ID
+import de.johni0702.minecraft.view.impl.client.TransactionNettyHandler
 import de.johni0702.minecraft.view.impl.net.*
 import de.johni0702.minecraft.view.server.CubeSelector
 import de.johni0702.minecraft.view.server.CuboidCubeSelector
@@ -12,7 +12,13 @@ import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
 import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.entity.player.EntityPlayerMP
-import net.minecraft.network.*
+import net.minecraft.network.EnumConnectionState
+import net.minecraft.network.EnumPacketDirection
+import net.minecraft.network.NetHandlerPlayServer
+import net.minecraft.network.NettyPacketEncoder
+import net.minecraft.network.NettyVarint21FrameEncoder
+import net.minecraft.network.Packet
+import net.minecraft.network.PacketBuffer
 import net.minecraft.network.play.server.SPacketCustomPayload
 import net.minecraft.network.play.server.SPacketDestroyEntities
 import net.minecraft.server.MinecraftServer
@@ -26,11 +32,15 @@ import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher
 import java.util.*
 import kotlin.Comparator
 import kotlin.math.ceil
 import kotlin.math.sqrt
+
+//#if MC>=11400
+//#else
+import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher
+//#endif
 
 internal class ServerWorldsManagerImpl(
         val server: MinecraftServer,
@@ -179,7 +189,7 @@ internal class ServerWorldsManagerImpl(
 
     private fun createWorldManager(world: WorldServer): ServerWorldManager {
         val channel = EmbeddedChannel()
-        val gameProfile = GameProfile(UUID.randomUUID(), connection.player.name + "[view]")
+        val gameProfile = GameProfile(UUID.randomUUID(), connection.player.gameProfile.name + "[view]")
         val camera = ViewEntity(world, gameProfile, connection, channel)
 
         channel.pipeline()
@@ -190,6 +200,9 @@ internal class ServerWorldsManagerImpl(
                 .fireChannelActive()
         camera.connection.networkManager.setConnectionState(EnumConnectionState.PLAY)
 
+        //#if MC>=11400
+        //$$ // FIXME forge 1.14 networking
+        //#else
         val networkDispatcher = NetworkDispatcher.allocAndSet(camera.connection.networkManager, server.playerList)
         channel.pipeline().addBefore("packet_handler", "fml:packet_handler", networkDispatcher)
 
@@ -197,14 +210,17 @@ internal class ServerWorldsManagerImpl(
         val connectedState = stateField.type.asSubclass(Enum::class.java).enumConstants.last()
         stateField.isAccessible = true
         stateField.set(networkDispatcher, connectedState)
+        //#endif
 
         val worldManager = ServerWorldManager(this, world, camera)
         worldManagers[world] = worldManager
 
         CreateWorld(camera.dimension, world.difficulty,
                 world.worldInfo.gameType, world.worldType).sendTo(connection.player)
-        world.spawnEntity(camera)
+        world.forceAddEntity(camera)
+        //#if MC<11400
         server.playerList.preparePlayer(camera, null)
+        //#endif
         server.playerList.updateTimeAndWeatherForPlayer(camera, world)
         camera.connection.setPlayerLocation(camera.posX, camera.posY, camera.posZ, camera.rotationYaw, camera.rotationPitch)
 
@@ -225,7 +241,9 @@ internal class ServerWorldsManagerImpl(
         val player = manager.player
         val world = manager.world
         world.removeEntity(player)
+        //#if MC<11400
         world.playerChunkMap.removePlayer(player)
+        //#endif
 
         check(worldManagers.remove(manager.world, manager)) { "unknown manager $manager" }
     }
@@ -236,7 +254,9 @@ internal class ServerWorldsManagerImpl(
         worldManagers.toList().forEach { (world, manager) ->
             val player = manager.player as? ViewEntity ?: return@forEach
             world.removeEntity(player)
+            //#if MC<11400
             world.playerChunkMap.removePlayer(player)
+            //#endif
             worldManagers.remove(world)
         }
     }
@@ -252,8 +272,12 @@ internal class ServerWorldsManagerImpl(
                 manager.needsUpdate = true
             }
             if (manager.needsUpdate) {
+                //#if MC>=11400
+                //$$ manager.world.chunkProvider.updatePlayerPosition(manager.player)
+                //#else
                 manager.world.playerChunkMap.updateMovingPlayer(manager.player)
                 manager.world.entityTracker.updateVisibility(manager.player)
+                //#endif
             }
         }
         worldManagers.values.filter { it.views.isEmpty() && it.player is ViewEntity }.forEach {
@@ -289,14 +313,14 @@ internal class ServerWorldsManagerImpl(
 
     override fun beginTransaction() {
         flushPackets()
-        connection.sendPacket(SPacketCustomPayload("$MOD_ID|TS", PacketBuffer(Unpooled.EMPTY_BUFFER)))
+        connection.sendPacket(SPacketCustomPayload(TransactionNettyHandler.CHANNEL_START, PacketBuffer(Unpooled.EMPTY_BUFFER)))
         Transaction(Transaction.Phase.START).sendTo(player)
     }
 
     override fun endTransaction() {
         flushPackets()
         Transaction(Transaction.Phase.END).sendTo(player)
-        connection.sendPacket(SPacketCustomPayload("$MOD_ID|TE", PacketBuffer(Unpooled.EMPTY_BUFFER)))
+        connection.sendPacket(SPacketCustomPayload(TransactionNettyHandler.CHANNEL_END, PacketBuffer(Unpooled.EMPTY_BUFFER)))
     }
 
     private inner class EventHandler {

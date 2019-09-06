@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.view.impl.mixin;
 
 import de.johni0702.minecraft.view.impl.server.PlayerCubeMapHandler;
@@ -54,3 +55,4 @@ public abstract class MixinCubeWatcher_CC implements ICubeWatcher {
         }
     }
 }
+//#endif

@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.mekanism.common.tile
 
 import de.johni0702.minecraft.betterportals.common.FinitePortal
@@ -285,3 +286,4 @@ class TileEntityBetterTeleporter : TileEntityTeleporter(), PortalTileEntity<Fini
         }
     }
 }
+//#endif

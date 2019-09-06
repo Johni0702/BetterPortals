@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.mekanism.common
 
 import de.johni0702.minecraft.betterportals.common.PortalConfiguration
@@ -60,3 +61,4 @@ fun initMekanism(
 val coord4DComparator =
         Comparator.comparingInt<Coord4D> { it.dimensionId }.thenBy { it.x }.thenBy { it.y }.thenBy { it.z }
 operator fun Coord4D.compareTo(other: Coord4D): Int = coord4DComparator.compare(this, other)
+//#endif

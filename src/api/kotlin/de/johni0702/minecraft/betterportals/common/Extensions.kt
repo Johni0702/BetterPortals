@@ -6,13 +6,10 @@ import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld
 import io.github.opencubicchunks.cubicchunks.core.server.CubeProviderServer
 import io.github.opencubicchunks.cubicchunks.core.server.ICubicPlayerList
 import net.minecraft.block.state.IBlockState
-import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
-import net.minecraft.entity.EntityTracker
 import net.minecraft.entity.item.EntityMinecart
 import net.minecraft.entity.player.EntityPlayer
-import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.network.PacketBuffer
@@ -23,24 +20,39 @@ import net.minecraft.util.Rotation
 import net.minecraft.util.math.*
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
-import net.minecraft.world.chunk.BlockStateContainer
 import net.minecraft.world.chunk.BlockStatePaletteHashMap
 import net.minecraft.world.chunk.BlockStatePaletteLinear
 import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.fml.common.Loader
 import net.minecraftforge.fml.common.eventhandler.Event
 import net.minecraftforge.fml.common.eventhandler.EventBus
 import org.lwjgl.util.vector.Quaternion
 import java.lang.IllegalArgumentException
+import java.util.*
 import java.util.concurrent.CompletableFuture
+import java.util.stream.Stream
 import javax.vecmath.*
+import kotlin.Comparator
+import kotlin.collections.HashMap
 import kotlin.math.*
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
-import net.minecraft.client.renderer.Matrix4f as McMatrix4f
 import org.lwjgl.util.vector.Matrix3f as LwjglMatrix3f
+import org.lwjgl.util.vector.Matrix4f as LwjglMatrix4f
+
+//#if MC>=11400
+//$$ import de.johni0702.minecraft.betterportals.impl.theImpl
+//$$ import net.minecraft.world.chunk.Chunk
+//$$ import net.minecraft.world.chunk.ChunkStatus
+//$$
+//$$ typealias BlockStateContainer = net.minecraft.world.chunk.BlockStateContainer<BlockState>
+//#else
+import net.minecraft.world.chunk.BlockStateContainer
+import net.minecraft.client.entity.EntityOtherPlayerMP
+import net.minecraft.client.renderer.Matrix4f as McMatrix4f
+//#endif
 
 // Generic
+val <T> Optional<T>.orNull: T? get() = orElse(null)
 fun <T> MutableList<T>.removeAtOrNull(index: Int) = if (isEmpty()) null else removeAt(index)
 fun <T> MutableList<T>.popOrNull() = removeAtOrNull(0)
 fun <T> MutableList<T>.takeLast() = removeAt(lastIndex)
@@ -65,8 +77,10 @@ object Mat4d {
     @JvmStatic
     fun inverse(of: Matrix4d) = id().apply { invert(of) }
 }
+operator fun <T> Stream<T>.plus(other: Stream<T>): Stream<T> = Stream.concat(this, other)
 
 // MC
+val EMPTY_AABB = AxisAlignedBB(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 val Float.radians get() = toDouble().radians.toFloat()
 val Float.degrees get() = toDouble().degrees.toFloat()
 val Double.radians get() = Math.toRadians(this)
@@ -157,7 +171,10 @@ fun Quaternion.toPitchYawRoll(): Vec3d {
 
     return Vec3d(pitch, (yaw + 360) % 360 - 180, roll)
 }
+//#if MC<11400
 val McMatrix4f.inverse get() = McMatrix4f.invert(this, null)
+//#endif
+val LwjglMatrix4f.inverse get() = LwjglMatrix4f.invert(this, null)
 fun Matrix4d.toJX4f() = Matrix4f(this)
 fun Matrix4f.toLwjgl3f() = LwjglMatrix3f().also {
     it.m00 = m00
@@ -188,7 +205,7 @@ fun Vec3d.rotate(rot: Rotation): Vec3d = when(rot) {
     Rotation.COUNTERCLOCKWISE_90 -> Vec3d(z, y, -x)
 }
 fun EnumFacing.toRotation(): Rotation = if (horizontalIndex == -1) Rotation.NONE else Rotation.values()[horizontalIndex]
-val Rotation.facing: EnumFacing get() = EnumFacing.HORIZONTALS[ordinal]
+val Rotation.facing: EnumFacing get() = EnumFacing.getHorizontal(ordinal)
 val Rotation.degrees get() = ordinal * 90
 val Rotation.reverse get() = when(this) {
     Rotation.CLOCKWISE_90 -> Rotation.COUNTERCLOCKWISE_90
@@ -247,9 +264,9 @@ fun AxisAlignedBB.calculatePlaneIntercept(start: Vec3d, end: Vec3d): Vec3d? {
     return if (intersectsWithExcept(axis, result)) result else null
 }
 fun AxisAlignedBB.intersectsWithExcept(axis: EnumFacing.Axis, vec: Vec3d): Boolean = when(axis) {
-    EnumFacing.Axis.X -> intersectsWithYZ(vec)
-    EnumFacing.Axis.Y -> intersectsWithXZ(vec)
-    EnumFacing.Axis.Z -> intersectsWithXY(vec)
+    EnumFacing.Axis.X -> vec.y in minY..maxY && vec.z in minZ..maxZ
+    EnumFacing.Axis.Y -> vec.x in minX..maxX && vec.z in minZ..maxZ
+    EnumFacing.Axis.Z -> vec.x in minX..maxX && vec.y in minY..maxY
 }
 // Note: the obvious choice of constructor is @SideOnly(Client)
 fun Vec3d.toAxisAlignedBB(other: Vec3d) = AxisAlignedBB(x, y, z, other.x, other.y, other.z)
@@ -270,13 +287,14 @@ fun NBTTagCompound.getXYZ(): BlockPos = BlockPos(getInteger("x"), getInteger("y"
 inline fun <reified T : Enum<T>> PacketBuffer.readEnum(): T = readEnumValue(T::class.java)
 inline fun <reified T : Enum<T>> PacketBuffer.writeEnum(value: T): PacketBuffer = writeEnumValue(value)
 
-@Suppress("UNCHECKED_CAST") // Why forge? why?
-fun EntityTracker.getTracking(entity: Entity): Set<EntityPlayerMP> = getTrackingPlayers(entity) as Set<EntityPlayerMP>
-
 val Entity.eyeOffset get() = Vec3d(0.0, eyeHeight.toDouble(), 0.0)
 val Entity.syncPos get() = when {
     this is EntityMinecart && turnProgress > 0 -> minecartPos
+    //#if MC>=11400
+    //$$ this is LivingEntity && newPosRotationIncrements > 0 -> interpTarget
+    //#else
     this is EntityOtherPlayerMP && otherPlayerMPPosRotationIncrements > 0 -> otherPlayerMPPos
+    //#endif
     else -> pos
 }
 var Entity.pos
@@ -288,9 +306,15 @@ var Entity.lastTickPos
 var Entity.prevPos
     get() = Vec3d(prevPosX, prevPosY, prevPosZ)
     set(value) = with(value) { prevPosX = x; prevPosY = y; prevPosZ = z }
+//#if MC>=11400
+//$$ var LivingEntity.interpTarget
+//$$     get() = Vec3d(interpTargetX, interpTargetY, interpTargetZ)
+//$$     set(value) = with(value) { interpTargetX = x; interpTargetY = y; interpTargetZ = z }
+//#else
 var EntityOtherPlayerMP.otherPlayerMPPos
     get() = Vec3d(otherPlayerMPX, otherPlayerMPY, otherPlayerMPZ)
     set(value) = with(value) { otherPlayerMPX = x; otherPlayerMPY = y; otherPlayerMPZ = z }
+//#endif
 var EntityMinecart.minecartPos
     get() = Vec3d(minecartX, minecartY, minecartZ)
     set(value) = with(value) { minecartX = x; minecartY = y; minecartZ = z }
@@ -299,12 +323,10 @@ fun ChunkPos.add(x: Int, z: Int) = ChunkPos(this.x + x, this.z + z)
 
 val WorldServer.server get() = minecraftServer!!
 
-fun World.forceSpawnEntity(entity: Entity) {
-    val wasForceSpawn = entity.forceSpawn
-    entity.forceSpawn = true
-    spawnEntity(entity)
-    entity.forceSpawn = wasForceSpawn
-}
+//#if MC<11400
+@Deprecated("Not on 1.14", ReplaceWith("this.forceAddEntity(entity)"))
+fun World.forceSpawnEntity(entity: Entity) = forceAddEntity(entity)
+//#endif
 
 class Gettable<in K, out V>(
         private val getter: (K) -> V
@@ -352,13 +374,22 @@ private fun WorldServer.loadCube(cubePos: Vec3i, done: () -> Unit) {
     if (isCubicWorld) {
         // Separate method for class loading purposes
         fun doLoadCube() {
+            // TODO requires CC update
+            //#if MC<11400
             (chunkProvider as CubeProviderServer).asyncGetCube(cubePos.x, cubePos.y, cubePos.z, ICubeProviderServer.Requirement.GENERATE) {
                 done()
             }
+            //#endif
         }
         doLoadCube()
     } else {
+        //#if MC>=11400
+        //$$ // TODO is async loading gone?
+        //$$ chunkProvider.getChunk(cubePos.x, cubePos.z, true)
+        //$$ done()
+        //#else
         chunkProvider.loadChunk(cubePos.x, cubePos.z, done)
+        //#endif
     }
 }
 
@@ -375,7 +406,11 @@ private fun World.makeCubewiseBlockCache(): BlockCache =
             Gettable { pos ->
                 val cubePos = CubePos.fromBlockCoords(pos)
                 val storage = cache.getOrPut(cubePos) {
+                    //#if MC>=11400
+                    //$$ null // TODO
+                    //#else
                     (this as ICubicWorld).cubeCache.getCube(cubePos).storage?.data?.copy()
+                    //#endif
                 }
                 storage?.get(pos.x and 15, pos.y and 15, pos.z and 15)
                         ?: Blocks.AIR.defaultState
@@ -387,11 +422,16 @@ private fun World.makeChunkwiseBlockCacheInternal(forceLoad: Boolean = true): Bl
             Gettable { pos ->
                 val chunkPos = ChunkPos(pos)
                 val storageLists = cache.getOrPut(chunkPos) {
+                    //#if MC>=11400
+                    //$$ val chunk = getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, forceLoad)
+                    //$$ (chunk as? Chunk)?.sections?.map { it?.data?.copy() } ?: emptyList()
+                    //#else
                     if (forceLoad || isChunkGeneratedAt(chunkPos.x, chunkPos.z)) {
                         getChunkFromChunkCoords(chunkPos.x, chunkPos.z).blockStorageArray.map { it?.data?.copy() }
                     } else {
                         emptyList()
                     }
+                    //#endif
                 }
                 storageLists.getOrNull(pos.y shr 4)?.get(pos.x and 15, pos.y and 15, pos.z and 15)
                         ?: Blocks.AIR.defaultState
@@ -402,19 +442,40 @@ private fun World.makeChunkwiseBlockCacheInternal(forceLoad: Boolean = true): Bl
 fun World.makeChunkwiseBlockCache(forceLoad: Boolean = true): BlockCache = makeChunkwiseBlockCacheInternal(forceLoad)
 
 fun BlockStateContainer.copy(): BlockStateContainer {
-    val copy = BlockStateContainer()
+    val copy = BlockStateContainer(
+            //#if MC>=11400
+            //$$ field_205521_b, registry, deserializer, serializer, defaultState
+            //#endif
+    )
     copy.bits = bits
     copy.palette = when {
-        bits <= 4 -> BlockStatePaletteLinear(bits, copy).apply {
+        bits <= 4 -> BlockStatePaletteLinear(
+                //#if MC>=11400
+                //$$ registry, bits, copy, deserializer
+                //#else
+                bits, copy
+                //#endif
+        ).apply {
             val oldPalette = palette as BlockStatePaletteLinear
             System.arraycopy(oldPalette.states, 0, states, 0, states.size)
             arraySize = oldPalette.arraySize
         }
-        bits <= 8 -> BlockStatePaletteHashMap(bits, copy).apply {
+        bits <= 8 -> BlockStatePaletteHashMap(
+                //#if MC>=11400
+                //$$ registry, bits, copy, deserializer, serializer
+                //#else
+                bits, copy
+                //#endif
+        ).apply {
             val org = (palette as BlockStatePaletteHashMap).statePaletteMap
             org.forEach { statePaletteMap.put(it, org.getId(it)) }
         }
-        else -> BlockStateContainer.REGISTRY_BASED_PALETTE
+        else ->
+            //#if MC>=11400
+            //$$ field_205521_b
+            //#else
+            BlockStateContainer.REGISTRY_BASED_PALETTE
+            //#endif
     }
     copy.storage = BitArray(bits, 4096)
     System.arraycopy(storage.backingLongArray, 0, copy.storage.backingLongArray, 0, storage.backingLongArray.size)
@@ -462,11 +523,17 @@ fun Entity.derivePosRotFrom(from: Entity, matrix: Matrix4d, yawOffset: Float) {
         to.lastTickPosY = pos.y
         to.lastTickPosZ = pos.z
     }
+    //#if MC>=11400
+    //$$ with(from) { matrix * motion.toJavaX() }.let { pos ->
+    //$$     to.motion = pos.toMC()
+    //$$ }
+    //#else
     with(from) { matrix * Vector3d(motionX, motionY, motionZ) }.let { pos ->
         to.motionX = pos.x
         to.motionY = pos.y
         to.motionZ = pos.z
     }
+    //#endif
 
     to.rotationYaw = from.rotationYaw + yawOffset
     to.prevRotationYaw = from.prevRotationYaw + yawOffset
@@ -476,11 +543,13 @@ fun Entity.derivePosRotFrom(from: Entity, matrix: Matrix4d, yawOffset: Float) {
     if (to is EntityPlayer && from is EntityPlayer) {
         to.cameraYaw = from.cameraYaw
         to.prevCameraYaw = from.prevCameraYaw
+        //#if MC<11400
         to.cameraPitch = from.cameraPitch
         to.prevCameraPitch = from.prevCameraPitch
 
         // Sneaking
         to.height = from.height
+        //#endif
     }
 
     if (to is EntityLivingBase && from is EntityLivingBase) {
@@ -531,28 +600,49 @@ fun World.rayTracePortals(start: Vec3d, end: Vec3d): Pair<World, Matrix4d> {
     return aux(this, start, end, Mat4d.id())
 }
 
+//#if MC>=11400
+//$$ val RayTraceContext.start get() = func_222250_a()
+//$$ val RayTraceContext.end get() = func_222253_b()
+//$$ operator fun RayTraceContext.component1(): Vec3d = start
+//$$ operator fun RayTraceContext.component2(): Vec3d = end
+//$$ fun RayTraceContext.with(start: Vec3d = this.start, end: Vec3d = this.end) = with(theImpl) { withImpl(start, end) }
+//#endif
+
 fun World.rayTraceBlocksWithPortals(
+        //#if MC>=11400
+        //$$ context: RayTraceContext
+        //#else
         start: Vec3d,
         end: Vec3d,
         stopOnLiquid: Boolean = false,
         ignoreBlockWithoutBoundingBox: Boolean = false,
         returnLastUncollidableBlock: Boolean = false
+        //#endif
 ): RayTraceResult? {
+    //$$ val (start, end) = context
     val result = findPortal(start, end)
     val agent = result.third
+            //#if MC>=11400
+            //$$ ?: return rayTraceBlocks(context)
+            //#else
             ?: return rayTraceBlocks(start, end, stopOnLiquid, ignoreBlockWithoutBoundingBox, returnLastUncollidableBlock)
+            //#endif
     val hitVec = result.second
 
     val localResult = rayTraceBlocks(
+            //#if MC>=11400
+            //$$ context.with(end = hitVec)
+            //#else
             start,
             hitVec,
             stopOnLiquid,
             ignoreBlockWithoutBoundingBox,
             returnLastUncollidableBlock
+            //#endif
     )
     val remoteWorld = agent.remoteWorldIfLoaded ?: return localResult
     localResult?.let {
-        if (it.typeOfHit != RayTraceResult.Type.MISS) {
+        if (it.hitType != RayTraceResult.Type.MISS) {
             return it
         }
     }
@@ -565,26 +655,43 @@ fun World.rayTraceBlocksWithPortals(
         end.fromLocal().toRemote()
     }
     val remoteResult = remoteWorld.rayTraceBlocksWithPortals(
+            //#if MC>=11400
+            //$$ context.with(start = remotePortalExit, end = remoteEnd)
+            //#else
             remotePortalExit,
             remoteEnd,
             stopOnLiquid,
             ignoreBlockWithoutBoundingBox,
             returnLastUncollidableBlock
+            //#endif
     ) ?: return null
-    val localHitVec = with(portal) { remoteResult.hitVec.fromRemote().toLocal() }
-    return if (remoteResult.typeOfHit == RayTraceResult.Type.ENTITY) {
+    val localHitVec = with(portal) { remoteResult.hitPos.fromRemote().toLocal() }
+    //#if MC>=11400
+    //$$ return when (remoteResult) {
+    //$$     is EntityRayTraceResult -> EntityRayTraceResult(remoteResult.entity, localHitVec)
+    //$$     is BlockRayTraceResult -> BlockRayTraceResult(
+    //$$             localHitVec,
+    //$$             (portal.localRotation - portal.remoteRotation).rotate(remoteResult.face),
+    //$$             with(portal) { remoteResult.pos.fromRemote().toLocal() },
+    //$$             remoteResult.isInside
+    //$$     )
+    //$$     else -> null
+    //$$ }
+    //#else
+    return if (remoteResult.hitType == RayTraceResult.Type.ENTITY) {
         RayTraceResult(remoteResult.entityHit, localHitVec)
     } else {
         RayTraceResult(
-                remoteResult.typeOfHit,
+                remoteResult.hitType,
                 localHitVec,
                 (portal.localRotation - portal.remoteRotation).rotate(remoteResult.sideHit),
                 with(portal) { remoteResult.blockPos.fromRemote().toLocal() }
         )
     }
+    //#endif
 }
 
-val haveCubicChunks by lazy { Loader.isModLoaded("cubicchunks") }
+val haveCubicChunks by lazy { isModLoaded("cubicchunks") }
 
 val World.isCubicWorld get() = haveCubicChunks && isCubicWorldUnsafe
 // Only safe to call when CC is loaded!

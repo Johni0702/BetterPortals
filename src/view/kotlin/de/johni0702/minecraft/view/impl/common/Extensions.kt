@@ -45,12 +45,16 @@ internal fun EntityPlayer.swapPosRotWith(e2: EntityPlayer) {
     e1.rotationYaw = e2.rotationYaw.also { e2.rotationYaw = e1.rotationYaw }
     e1.rotationPitch = e2.rotationPitch.also { e2.rotationPitch = e1.rotationPitch }
     e1.cameraYaw = e2.cameraYaw.also { e2.cameraYaw = e1.cameraYaw }
+    //#if MC<11400
     e1.cameraPitch = e2.cameraPitch.also { e2.cameraPitch = e1.cameraPitch }
+    //#endif
 
     e1.prevRotationYaw = e2.prevRotationYaw.also { e2.prevRotationYaw = e1.prevRotationYaw }
     e1.prevRotationPitch = e2.prevRotationPitch.also { e2.prevRotationPitch = e1.prevRotationPitch }
     e1.prevCameraYaw = e2.prevCameraYaw.also { e2.prevCameraYaw = e1.prevCameraYaw }
+    //#if MC<11400
     e1.prevCameraPitch = e2.prevCameraPitch.also { e2.prevCameraPitch = e1.prevCameraPitch }
+    //#endif
 
     e1.rotationYawHead = e2.rotationYawHead.also { e2.rotationYawHead = e1.rotationYawHead }
     e1.prevRotationYawHead = e2.prevRotationYawHead.also { e2.prevRotationYawHead = e1.prevRotationYawHead }
@@ -60,9 +64,13 @@ internal fun EntityPlayer.swapPosRotWith(e2: EntityPlayer) {
     e1.setPosition(e1.posX, e1.posY, e1.posZ)
     e2.setPosition(e2.posX, e2.posY, e2.posZ)
 
+    //#if MC>=11400
+    //$$ e1.motion = e2.motion.also { e2.motion = e1.motion }
+    //#else
     e1.motionX = e2.motionX.also { e2.motionX = e1.motionX }
     e1.motionY = e2.motionY.also { e2.motionY = e1.motionY }
     e1.motionZ = e2.motionZ.also { e2.motionZ = e1.motionZ }
+    //#endif
 
     e1.chasingPosX = e2.chasingPosX.also { e2.chasingPosX = e1.chasingPosX }
     e1.chasingPosY = e2.chasingPosY.also { e2.chasingPosY = e1.chasingPosY }
@@ -73,15 +81,24 @@ internal fun EntityPlayer.swapPosRotWith(e2: EntityPlayer) {
     e1.prevChasingPosZ = e2.prevChasingPosZ.also { e2.prevChasingPosZ = e1.prevChasingPosZ }
 }
 
-internal val <T> LazyLoadBase<T>.maybeValue get() = if (isLoaded) value else null
+internal val <T> LazyLoadBase<T>.maybeValue get() =
+    //#if MC>=11400
+    //$$ if (supplier == null) value else null
+    //#else
+    if (isLoaded) value else null
+    //#endif
 
 internal fun clientSyncIgnoringView(task: () -> Unit) {
     val mc = Minecraft.getMinecraft()
+    //#if MC>=11400
+    //$$ mc.enqueue(ViewDemuxingTaskQueue.ViewWrappedFutureTask({ null }, Runnable { task }))
+    //#else
     synchronized(mc.scheduledTasks) {
         mc.scheduledTasks.offer(ViewDemuxingTaskQueue.ViewWrappedFutureTask({
             null
         }, ListenableFutureTask.create(Executors.callable(task)).logFailure()))
     }
+    //#endif
 }
 internal fun <L : ListenableFuture<T>, T> L.logFailure(): L {
     Futures.addCallback(this, object : FutureCallback<T> {

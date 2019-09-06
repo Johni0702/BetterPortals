@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.abyssalcraft.common.blocks
 
 import com.shinoow.abyssalcraft.api.block.ACBlocks
@@ -60,3 +61,4 @@ class BlockBetterOmotholPortal(override val mod: Any) : BlockAbyssPortal(), Port
         validatePortalOrDestroy(worldIn, pos)
     }
 }
+//#endif

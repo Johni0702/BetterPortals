@@ -3,15 +3,17 @@ package de.johni0702.minecraft.betterportals.common.entity
 import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.PortalAccessor
 import de.johni0702.minecraft.betterportals.common.PortalAgent
-import net.minecraft.block.state.IBlockState
+import de.johni0702.minecraft.betterportals.impl.theImpl
 import net.minecraft.entity.Entity
-import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.ResourceLocation
-import net.minecraft.util.SoundCategory
-import net.minecraft.util.SoundEvent
-import net.minecraft.util.math.BlockPos
-import net.minecraft.world.IWorldEventListener
 import net.minecraft.world.World
+
+//#if MC>=11400
+//$$ import java.lang.UnsupportedOperationException
+//$$ import kotlin.streams.asSequence
+//$$ import net.minecraft.client.world.ClientWorld
+//$$ import net.minecraft.world.server.ServerWorld
+//#endif
 
 interface PortalEntity {
     val agent: PortalAgent<FinitePortal>
@@ -41,36 +43,31 @@ class PortalEntityAccessor<E>(
               E: Entity
 {
     val entities: List<E>
+        //#if MC>=11400
+        //$$ get() = when (world) {
+        //$$     is ServerWorld -> world.entities.asSequence().filterIsInstanceTo(mutableListOf(), type)
+        //$$     is ClientWorld -> world.allEntities.filterIsInstanceTo(mutableListOf(), type)
+        //$$     else -> throw UnsupportedOperationException()
+        //$$ }
+        //#else
         get() = world.getEntities(type) { it?.isDead == false }
+        //#endif
     override val loadedPortals: Iterable<PortalAgent<FinitePortal>>
         get() = entities.map { it.agent }
 
     private val changeCallbacks = mutableListOf<() -> Unit>()
     init {
-        world.addEventListener(object : IWorldEventListener {
-            override fun onEntityAdded(entity: Entity) {
+        with(theImpl) {
+            world.addEntitiesListener(onEntityAdded = { entity ->
                 if (type.isInstance(entity)) {
                     changeCallbacks.forEach { it() }
                 }
-            }
-
-            override fun onEntityRemoved(entity: Entity) {
+            }, onEntityRemoved = { entity ->
                 if (type.isInstance(entity)) {
                     changeCallbacks.forEach { it() }
                 }
-            }
-
-            override fun playSoundToAllNearExcept(player: EntityPlayer?, soundIn: SoundEvent?, category: SoundCategory?, x: Double, y: Double, z: Double, volume: Float, pitch: Float) = Unit
-            override fun broadcastSound(soundID: Int, pos: BlockPos?, data: Int) = Unit
-            override fun playEvent(player: EntityPlayer?, type: Int, blockPosIn: BlockPos?, data: Int) = Unit
-            override fun markBlockRangeForRenderUpdate(x1: Int, y1: Int, z1: Int, x2: Int, y2: Int, z2: Int) = Unit
-            override fun notifyLightSet(pos: BlockPos?) = Unit
-            override fun spawnParticle(particleID: Int, ignoreRange: Boolean, xCoord: Double, yCoord: Double, zCoord: Double, xSpeed: Double, ySpeed: Double, zSpeed: Double, vararg parameters: Int) = Unit
-            override fun spawnParticle(id: Int, ignoreRange: Boolean, p_190570_3_: Boolean, x: Double, y: Double, z: Double, xSpeed: Double, ySpeed: Double, zSpeed: Double, vararg parameters: Int) = Unit
-            override fun notifyBlockUpdate(worldIn: World?, pos: BlockPos?, oldState: IBlockState?, newState: IBlockState?, flags: Int) = Unit
-            override fun playRecord(soundIn: SoundEvent?, pos: BlockPos?) = Unit
-            override fun sendBlockBreakProgress(breakerId: Int, pos: BlockPos?, progress: Int) = Unit
-        })
+            })
+        }
     }
 
     override fun findById(id: ResourceLocation): PortalAgent<FinitePortal>? {

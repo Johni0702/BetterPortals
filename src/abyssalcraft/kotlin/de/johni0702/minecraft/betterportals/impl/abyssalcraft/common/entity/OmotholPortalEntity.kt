@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.abyssalcraft.common.entity
 
 import de.johni0702.minecraft.betterportals.common.FinitePortal
@@ -16,3 +17,4 @@ class OmotholPortalEntity(
     @Suppress("unused")
     constructor(world: World) : this(world, FinitePortal.DUMMY)
 }
+//#endif

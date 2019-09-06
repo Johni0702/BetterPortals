@@ -2,6 +2,10 @@ package de.johni0702.minecraft.view.impl.net
 
 import de.johni0702.minecraft.betterportals.common.readEnum
 import de.johni0702.minecraft.betterportals.common.writeEnum
+import de.johni0702.minecraft.betterportals.impl.IMessage
+import de.johni0702.minecraft.betterportals.impl.IMessageHandler
+import de.johni0702.minecraft.betterportals.impl.MessageContext
+import de.johni0702.minecraft.betterportals.impl.NetworkDirection
 import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.client.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.view.impl.common.clientSyncIgnoringView
@@ -9,17 +13,20 @@ import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft
 import net.minecraft.network.PacketBuffer
 import net.minecraft.util.Util
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 import java.util.concurrent.FutureTask
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 
+//#if MC>=11400
+//$$ import de.johni0702.minecraft.betterportals.impl.IThreadTaskExecutor
+//#endif
+
 class Transaction(
         var phase: Phase = Phase.START
 ) : IMessage {
+    override val direction = NetworkDirection.TO_CLIENT
+
     override fun fromBytes(buf: ByteBuf) {
         with(PacketBuffer(buf)) {
             phase = readEnum()
@@ -32,9 +39,11 @@ class Transaction(
         }
     }
 
-    internal class Handler : IMessageHandler<Transaction, IMessage> {
-        override fun onMessage(message: Transaction, ctx: MessageContext): IMessage? {
-            if (disableTransactions) return null
+    internal class Handler : IMessageHandler<Transaction> {
+        override fun new(): Transaction = Transaction()
+
+        override fun handle(message: Transaction, ctx: MessageContext) {
+            if (disableTransactions) return
             when(message.phase) {
                 Phase.START -> {
                     // We need to block the network thread until MC's queue has been replaced.
@@ -44,6 +53,14 @@ class Transaction(
                         if (inTransaction++ == 0) {
                             val mc = Minecraft.getMinecraft()
 
+                            //#if MC>=11400
+                            //$$ // Install the blocking queue which will cause MC to continuously
+                            //$$ // poll until we un-set it when the transaction ends.
+                            //$$ IThreadTaskExecutor.from(mc).blockingQueue = LinkedBlockingQueue<Runnable>()
+                            //$$
+                            //$$ // MC's queue has been replaced, the networking thread may continue
+                            //$$ syncedSemaphore.release()
+                            //#else
                             // Replaces MC's queue with a new queue which we aren't currently synchronized on
                             val orgQueue = mc.scheduledTasks
                             val backingQueue = LinkedBlockingQueue<FutureTask<*>>()
@@ -65,6 +82,7 @@ class Transaction(
                                 orgQueue.addAll(mc.scheduledTasks)
                                 mc.scheduledTasks = orgQueue
                             }
+                            //#endif
                         } else {
                             syncedSemaphore.release()
                         }
@@ -76,10 +94,15 @@ class Transaction(
                     clientSyncIgnoringView {
                         if (inTransaction <= 0) throw IllegalStateException("Transaction end without start!")
                         inTransaction--
+                        //#if MC>=11400
+                        //$$ if (inTransaction == 0) {
+                        //$$     IThreadTaskExecutor.from(Minecraft.getInstance()).blockingQueue = null
+                        //$$ }
+                        //#endif
                     }
                 }
             }
-            return null
+            return
         }
     }
 

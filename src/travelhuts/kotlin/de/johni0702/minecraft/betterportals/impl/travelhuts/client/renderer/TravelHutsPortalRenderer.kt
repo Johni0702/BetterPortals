@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.travelhuts.client.renderer
 
 import de.johni0702.minecraft.betterportals.client.render.FramedPortalRenderer
@@ -103,3 +104,4 @@ class TravelHutsPortalRenderer(
             Pair(sprite.maxU.toDouble(), sprite.minV.toDouble())
     )
 }
+//#endif

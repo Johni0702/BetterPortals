@@ -17,7 +17,6 @@ import net.minecraft.network.NetHandlerPlayServer
 import org.apache.logging.log4j.LogManager
 
 internal val LOGGER = LogManager.getLogger("betterportals/view")
-internal const val MOD_ID = "BP/view"
 
 object ViewAPIImpl : ViewAPI {
     override val client: ClientViewAPI
@@ -27,7 +26,7 @@ object ViewAPIImpl : ViewAPI {
 }
 
 internal object ClientViewAPIImpl : ClientViewAPI {
-    internal val viewManagerImpl by lazy { ClientWorldsManagerImpl() }
+    val viewManagerImpl by lazy { ClientWorldsManagerImpl() }
 
     override fun getWorldsManager(minecraft: Minecraft): ClientWorldsManager? = if (minecraft.player == null) null else viewManagerImpl
     override fun getRenderPassManager(minecraft: Minecraft): RenderPassManager = ViewRenderManager.INSTANCE
@@ -35,10 +34,14 @@ internal object ClientViewAPIImpl : ClientViewAPI {
     fun init() {
         viewManagerImpl.init()
 
+        //#if MC>=11400
+        //$$ // Handled by MixinThreadTaskExecutor
+        //#else
         val mc = Minecraft.getMinecraft()
         synchronized(mc.scheduledTasks) {
             mc.scheduledTasks = ViewDemuxingTaskQueue(mc, mc.scheduledTasks)
         }
+        //#endif
 
         registerOptifineCompat()
     }

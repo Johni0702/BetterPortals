@@ -21,7 +21,7 @@ public class MixinNetHandlerPlayerServer implements IWorldsManagerHolder {
     @Override
     public ServerWorldsManagerImpl getWorldsManager() {
         if (viewManager == null) {
-            viewManager = new ServerWorldsManagerImpl(serverController, (NetHandlerPlayServer)(Object) this);
+            viewManager = new ServerWorldsManagerImpl(this.serverController, (NetHandlerPlayServer)(Object) this);
         }
         return viewManager;
     }

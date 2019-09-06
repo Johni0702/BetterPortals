@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.abyssalcraft.common
 
 import com.shinoow.abyssalcraft.api.block.ACBlocks
@@ -112,3 +113,4 @@ fun initAbyssalcraft(
         })
     }
 }
+//#endif

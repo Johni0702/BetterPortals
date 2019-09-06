@@ -3,20 +3,24 @@ package de.johni0702.minecraft.betterportals.impl.net
 import de.johni0702.minecraft.betterportals.common.portalManager
 import de.johni0702.minecraft.betterportals.common.readEnum
 import de.johni0702.minecraft.betterportals.common.writeEnum
+import de.johni0702.minecraft.betterportals.impl.IMessage
+import de.johni0702.minecraft.betterportals.impl.IMessageHandler
+import de.johni0702.minecraft.betterportals.impl.MessageContext
+import de.johni0702.minecraft.betterportals.impl.NetworkDirection
 import de.johni0702.minecraft.betterportals.impl.common.LOGGER
-import de.johni0702.minecraft.betterportals.impl.common.sync
+import de.johni0702.minecraft.betterportals.impl.sync
 import io.netty.buffer.ByteBuf
+import net.minecraft.client.Minecraft
 import net.minecraft.network.PacketBuffer
 import net.minecraft.util.ResourceLocation
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 
 internal class EntityUsePortal(
         var phase: Phase = Phase.BEFORE,
         var entityId: Int = 0,
         var portalId: ResourceLocation? = null
 ) : IMessage {
+    override val direction = NetworkDirection.TO_CLIENT
+
     override fun fromBytes(buf: ByteBuf) {
         with(PacketBuffer(buf)) {
             phase = readEnum()
@@ -33,10 +37,12 @@ internal class EntityUsePortal(
         }
     }
 
-    internal class Handler : IMessageHandler<EntityUsePortal, IMessage> {
-        override fun onMessage(message: EntityUsePortal, ctx: MessageContext): IMessage? {
+    internal class Handler : IMessageHandler<EntityUsePortal> {
+        override fun new(): EntityUsePortal = EntityUsePortal()
+
+        override fun handle(message: EntityUsePortal, ctx: MessageContext) {
             ctx.sync {
-                val world = ctx.clientHandler.clientWorldController
+                val world = Minecraft.getMinecraft().world
                 val portal = world.portalManager.findById(message.portalId!!)
                 if (portal == null) {
                     LOGGER.warn("Received EntityUsePortal for unknown portal with id ${message.portalId}")
@@ -55,7 +61,6 @@ internal class EntityUsePortal(
                     Phase.AFTER -> portal.afterUsePortal(message.entityId)
                 }
             }
-            return null
         }
     }
 

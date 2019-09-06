@@ -1,3 +1,5 @@
+// Both appear to be fixed in 1.14 (actually, not 100% sure about the second one)
+//#if MC<11400
 package de.johni0702.minecraft.view.impl.mixin;
 
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl;
@@ -38,7 +40,7 @@ public abstract class MixinWorldClient extends World  {
     @Inject(method = "getEntityByID", at = @At("HEAD"), cancellable = true)
     private void getPlayerEntityByID(int entityId, CallbackInfoReturnable<Entity> ci) {
         // Note: Cannot get worldsManager via mc.worldsManager as that'll return null during player swap when mc.player is null
-        ClientWorldsManagerImpl viewManager = ClientViewAPIImpl.INSTANCE.getViewManagerImpl$betterportals_view();
+        ClientWorldsManagerImpl viewManager = ClientViewAPIImpl.INSTANCE.getViewManagerImpl();
         for (ClientState view : viewManager.getViews()) {
             World world = view.getWorld();
             if (world == this) {
@@ -71,3 +73,4 @@ public abstract class MixinWorldClient extends World  {
         this.entitySpawnQueue.remove(entity);
     }
 }
+//#endif

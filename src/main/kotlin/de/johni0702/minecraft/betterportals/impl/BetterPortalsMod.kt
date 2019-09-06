@@ -2,41 +2,51 @@ package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.BetterPortalsAPI
 import de.johni0702.minecraft.betterportals.common.PortalConfiguration
-import de.johni0702.minecraft.betterportals.impl.abyssalcraft.common.initAbyssalcraft
-import de.johni0702.minecraft.betterportals.impl.aether.common.initAether
 import de.johni0702.minecraft.betterportals.impl.common.initPortal
-import de.johni0702.minecraft.betterportals.impl.mekanism.common.initMekanism
-import de.johni0702.minecraft.betterportals.impl.tf.common.initTwilightForest
 import de.johni0702.minecraft.betterportals.impl.transition.common.initTransition
-import de.johni0702.minecraft.betterportals.impl.travelhuts.common.initTravelHuts
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.initVanilla
 import de.johni0702.minecraft.view.common.ViewAPI
 import de.johni0702.minecraft.view.impl.ViewAPIImpl
 import de.johni0702.minecraft.view.impl.common.initView
 import net.minecraft.block.Block
-import net.minecraft.client.Minecraft
-import net.minecraft.client.resources.FolderResourcePack
-import net.minecraft.client.resources.IResourcePack
-import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.common.config.Config
-import net.minecraftforge.common.config.ConfigManager
 import net.minecraftforge.event.RegistryEvent
 import net.minecraftforge.fml.common.Mod
-import net.minecraftforge.fml.common.SidedProxy
-import net.minecraftforge.fml.common.event.FMLInitializationEvent
-import net.minecraftforge.fml.common.event.FMLPostInitializationEvent
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.registries.IForgeRegistry
 import org.apache.logging.log4j.Logger
+
+//#if MC>=11400
+//$$ import net.minecraft.entity.EntityType
+//$$ import net.minecraft.tileentity.TileEntityType
+//$$ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
+//$$ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
+//#else
+import de.johni0702.minecraft.betterportals.impl.abyssalcraft.common.initAbyssalcraft
+import de.johni0702.minecraft.betterportals.impl.aether.common.initAether
+import de.johni0702.minecraft.betterportals.impl.mekanism.common.initMekanism
+import de.johni0702.minecraft.betterportals.impl.tf.common.initTwilightForest
+import de.johni0702.minecraft.betterportals.impl.travelhuts.common.initTravelHuts
+import net.minecraft.client.Minecraft
+import net.minecraft.client.resources.FolderResourcePack
+import net.minecraft.client.resources.IResourcePack
+import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.fml.common.SidedProxy
+import net.minecraftforge.fml.common.event.FMLInitializationEvent
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
 import java.io.File
+//#endif
 
 const val MOD_ID = "betterportals"
 
 lateinit var LOGGER: Logger
 
+//#if MC>=11400
+//$$ @Mod(MOD_ID)
+//#else
 @Mod(modid = MOD_ID, useMetadata = true)
+//#endif
 internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by BetterPortalsAPIImpl {
 
     internal val clientPreInitCallbacks = mutableListOf<() -> Unit>()
@@ -45,9 +55,18 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
     internal val commonPostInitCallbacks = mutableListOf<() -> Unit>()
     internal val clientPostInitCallbacks = mutableListOf<() -> Unit>()
     private val registerBlockCallbacks = mutableListOf<IForgeRegistry<Block>.() -> Unit>()
+    private val registerTileEntitiesCallbacks = mutableListOf<TileEntityTypeRegistry.() -> Unit>()
+    private val registerEntitiesCallbacks = mutableListOf<EntityTypeRegistry.() -> Unit>()
 
     init {
-        ConfigManager.sync(MOD_ID, Config.Type.INSTANCE);
+        INSTANCE = this
+    //#if MC>=11400
+    //$$ }
+    //$$
+    //$$ @SubscribeEvent(priority = EventPriority.HIGH)
+    //$$ fun init(event: FMLCommonSetupEvent) {
+    //$$     BPConfig.load()
+    //#endif
 
         fun PortalConfig.toConfiguration() = PortalConfiguration(
                 { opacity },
@@ -79,15 +98,17 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
 
         initVanilla(
                 mod = this,
-                init = { commonInitCallbacks.add(it) },
                 clientPreInit = { clientPreInitCallbacks.add(it) },
                 registerBlocks = { registerBlockCallbacks.add(it) },
+                registerTileEntities = { registerTileEntitiesCallbacks.add(it) },
+                registerEntities = { registerEntitiesCallbacks.add(it) },
                 enableNetherPortals = BPConfig.netherPortals.enabled,
                 enableEndPortals = BPConfig.endPortals.enabled,
                 configNetherPortals = BPConfig.netherPortals.toConfiguration(),
                 configEndPortals = BPConfig.endPortals.toConfiguration()
         )
 
+        //#if MC<11400
         initTwilightForest(
                 mod = this,
                 init = { commonInitCallbacks.add(it) },
@@ -131,15 +152,7 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
                 enableTravelHutsPortals = BPConfig.travelHutsPortals.enabled,
                 configTravelHutsPortals = BPConfig.travelHutsPortals.toConfiguration()
         )
-    }
-
-    @Mod.EventHandler
-    fun preInit(event: FMLPreInitializationEvent) {
-        INSTANCE = this
-        LOGGER = event.modLog
-        PROXY.preInit(this)
-
-        MinecraftForge.EVENT_BUS.register(this)
+        //#endif
     }
 
     @SubscribeEvent(priority = EventPriority.LOW)
@@ -147,6 +160,42 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
         with(event.registry) {
             registerBlockCallbacks.forEach { it() }
         }
+    }
+
+    //#if MC>=11400
+    //$$ @SubscribeEvent(priority = EventPriority.LOW)
+    //$$ fun registerTileEntities(event: RegistryEvent.Register<TileEntityType<*>>) {
+    //$$     with(event.registry) {
+    //$$         registerTileEntitiesCallbacks.forEach { it() }
+    //$$     }
+    //$$ }
+    //$$
+    //$$ @SubscribeEvent(priority = EventPriority.LOW)
+    //$$ fun registerEntities(event: RegistryEvent.Register<EntityType<*>>) {
+    //$$     with(event.registry) {
+    //$$         registerEntitiesCallbacks.forEach { it() }
+    //$$     }
+    //$$ }
+    //#endif
+
+    //#if MC>=11400
+    //$$ @SubscribeEvent
+    //$$ fun commonInit(event: FMLCommonSetupEvent) {
+    //$$     commonInitCallbacks.forEach { it() }
+    //$$ }
+    //$$
+    //$$ @SubscribeEvent
+    //$$ fun clientInit(event: FMLClientSetupEvent) {
+    //$$     clientPreInitCallbacks.forEach { it() }
+    //$$     clientInitCallbacks.forEach { it() }
+    //$$ }
+    //#else
+    @Mod.EventHandler
+    fun preInit(event: FMLPreInitializationEvent) {
+        LOGGER = event.modLog
+        PROXY.preInit(this)
+
+        MinecraftForge.EVENT_BUS.register(this)
     }
 
     @Mod.EventHandler
@@ -169,6 +218,10 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
         override fun preInit(mod: BetterPortalsMod) {}
 
         override fun init(mod: BetterPortalsMod) {
+            //#if MC<11400
+            BetterPortalsMod.INSTANCE.registerTileEntitiesCallbacks.forEach { with(TileEntityTypeRegistry) { it() } }
+            BetterPortalsMod.INSTANCE.registerEntitiesCallbacks.forEach { with(EntityTypeRegistry) { it() } }
+            //#endif
             BetterPortalsMod.INSTANCE.commonInitCallbacks.forEach { it() }
         }
 
@@ -220,10 +273,13 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
             BetterPortalsMod.INSTANCE.clientPostInitCallbacks.forEach { it() }
         }
     }
+    //#endif
 
     companion object {
+        //#if MC<11400
         @SidedProxy
         lateinit var PROXY: Proxy
+        //#endif
         lateinit var INSTANCE: BetterPortalsMod
     }
 }

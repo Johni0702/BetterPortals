@@ -8,7 +8,6 @@ import io.netty.util.concurrent.GenericFutureListener
 import net.minecraft.network.EnumPacketDirection
 import net.minecraft.network.NetworkManager
 import net.minecraft.network.Packet
-import net.minecraft.network.play.client.CPacketKeepAlive
 import net.minecraft.network.play.server.SPacketChat
 
 /**
@@ -20,7 +19,7 @@ internal class ViewNetworkManager : NetworkManager(EnumPacketDirection.CLIENTBOU
     override fun sendPacket(packetIn: Packet<*>) {
         val viewManager = ClientViewAPIImpl.viewManagerImpl
         // FIXME does sending keep alive responses actually make sense here?
-        if (packetIn is CPacketKeepAlive || viewManager.activeView.isMainView) {
+        if (viewManager.activeView.isMainView) {
             // Send packet via main connection
             if (viewManager.serverMainView.netManager == this) {
                 println("rec")
@@ -38,8 +37,14 @@ internal class ViewNetworkManager : NetworkManager(EnumPacketDirection.CLIENTBOU
         }
     }
 
-    override fun sendPacket(packetIn: Packet<*>, listener: GenericFutureListener<out Future<in Void>>, vararg listeners: GenericFutureListener<out Future<in Void>>) {
-    }
+    override fun sendPacket(packetIn: Packet<*>,
+                            listener: GenericFutureListener<out Future<in Void>>
+                            //#if MC>=11400
+                            //$$ ?
+                            //#else
+                            , vararg listeners: GenericFutureListener<out Future<in Void>>
+                            //#endif
+    ) = Unit
 
     override fun channelRead0(ctx: ChannelHandlerContext, packet: Packet<*>) {
         when (packet) {

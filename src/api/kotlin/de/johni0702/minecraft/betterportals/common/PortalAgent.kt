@@ -6,12 +6,10 @@ import de.johni0702.minecraft.view.server.*
 import net.minecraft.block.material.Material
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.AbstractClientPlayer
-import net.minecraft.client.entity.EntityOtherPlayerMP
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.culling.ICamera
 import net.minecraft.entity.Entity
-import net.minecraft.entity.EntityList
 import net.minecraft.entity.item.EntityMinecart
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP
@@ -29,6 +27,16 @@ import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
 import org.apache.logging.log4j.Logger
 import java.lang.IllegalArgumentException
+
+//#if MC>=11400
+//$$ import net.minecraft.entity.LivingEntity
+//$$ import net.minecraft.util.math.shapes.VoxelShape
+//$$ import net.minecraft.util.math.shapes.VoxelShapes
+//$$ import java.util.stream.Stream
+//$$ import kotlin.streams.asStream
+//#else
+import net.minecraft.client.entity.EntityOtherPlayerMP
+//#endif
 
 interface PortalAccessor {
     /**
@@ -154,7 +162,13 @@ open class PortalAgent<P: Portal>(
         get() = if (world.isRemote) {
             remoteClientWorld
         } else {
-            portal.remoteDimension?.let { DimensionManager.getWorld(it) }
+            portal.remoteDimension?.let {
+                //#if MC>=11400
+                //$$ DimensionManager.getWorld(world.server, it, false, false)
+                //#else
+                DimensionManager.getWorld(it)
+                //#endif
+            }
         }
 
     /**
@@ -210,19 +224,29 @@ open class PortalAgent<P: Portal>(
     open fun modifyAABBs(
             entity: Entity,
             queryAABB: AxisAlignedBB,
+            //#if MC>=11400
+            //$$ vanillaStream: Stream<VoxelShape>,
+            //$$ queryRemote: (World, AxisAlignedBB) -> Stream<VoxelShape>
+            //#else
             aabbList: MutableList<AxisAlignedBB>,
             queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>
+            //#endif
+    //#if MC>=11400
+    //$$ ): Stream<VoxelShape> {
+    //#else
     ) {
+    //#endif
         val remotePortal = remoteAgent
-        if (remotePortal == null) {
-            // Remote portal hasn't yet been loaded, treat all portal blocks as solid to prevent passing
-            portal.localDetailedBounds.forEach {
-                if (it.intersects(queryAABB)) {
-                    aabbList.add(it)
-                }
-            }
-            return
-        }
+                // Remote portal hasn't yet been loaded, treat all portal blocks as solid to prevent passing
+                ?: return portal.localDetailedBounds
+                        .asSequence()
+                        .filter { it.intersects(queryAABB) }
+                        //#if MC>=11400
+                        //$$ .map { VoxelShapes.create(it) }
+                        //$$ .asStream() + vanillaStream
+                        //#else
+                        .forEach { aabbList.add(it) }
+                        //#endif
 
         // otherwise, we need to remove all collision boxes on the other, local side of the portal
         // to prevent the entity from colliding with them
@@ -231,10 +255,20 @@ open class PortalAgent<P: Portal>(
         val hiddenAABB = portal.localBoundingBox
                 .offset(hiddenSide.directionVec.to3d())
                 .expand(hiddenSide.directionVec.to3d() * Double.POSITIVE_INFINITY)
+        //#if MC>=11400
+        //$$ val filteredStream = vanillaStream.filter { !it.boundingBox.intersects(hiddenAABB) }
+        //#else
         aabbList.removeIf { it.intersects(hiddenAABB) }
+        //#endif
 
         // and instead add collision boxes from the remote world
-        if (!hiddenAABB.intersects(queryAABB)) return // unless we're not even interested in those
+        if (!hiddenAABB.intersects(queryAABB)) { // unless we're not even interested in those
+            //#if MC>=11400
+            //$$ return filteredStream
+            //#else
+            return
+            //#endif
+        }
         val remoteAABB = with(portal) {
             // Reduce the AABB which we're looking for in the first place to the hidden section
             val aabb = hiddenAABB.intersect(queryAABB)
@@ -244,9 +278,18 @@ open class PortalAgent<P: Portal>(
         val remoteCollisions = queryRemote(remotePortal.world, remoteAABB)
 
         // finally transform any collision boxes back to local space and add them to the result
+        //#if MC>=11400
+        //$$ // FIXME something something performance something
+        //$$ return remoteCollisions.map { shape ->
+        //$$     shape.toBoundingBoxList().map { aabb ->
+        //$$         VoxelShapes.create(with(portal) { aabb.min.fromRemote().toLocal().toAxisAlignedBB(aabb.max.fromRemote().toLocal()) })
+        //$$     }.reduce(VoxelShapes::or)
+        //$$ }
+        //#else
         remoteCollisions.mapTo(aabbList) { aabb ->
             with(portal) { aabb.min.fromRemote().toLocal().toAxisAlignedBB(aabb.max.fromRemote().toLocal()) }
         }
+        //#endif
     }
 
     /**
@@ -396,16 +439,16 @@ open class PortalAgent<P: Portal>(
 
         if (!ForgeHooks.onTravelToDimension(entity, remotePortal.portal.localDimension)) return
 
-        val remoteEntity = EntityList.newEntity(entity.javaClass, remoteWorld) ?: return
+        val remoteEntity = entity.newEntity(remoteWorld) ?: return
         val remoteEntities = mutableMapOf(entity to remoteEntity)
         val passengers = entity.recursivePassengers
         passengers.associateWithTo(remoteEntities) {
-            it as? EntityPlayerMP ?: EntityList.newEntity(it.javaClass, remoteWorld) ?: return
+            it as? EntityPlayerMP ?: it.newEntity(remoteWorld) ?: return
         }
 
         // Inform other clients that the entity is going to be teleported
         // Don't bother informing those that don't track the bottom most entity, they can't react to it anyway
-        val trackingPlayers = localWorld.entityTracker.getTracking(entity).map { it.worldsManager }
+        val trackingPlayers = localWorld.getTracking(entity).map { it.worldsManager }
         trackingPlayers.forEach { it.beginTransaction() }
 
         fun transfer(entity: Entity): Entity? {
@@ -416,7 +459,7 @@ open class PortalAgent<P: Portal>(
             // Syncing is important because the client will re-position the new entity based on the position of the old
             // one, so all interpolation is preserved.
             // The entity will subsequently be removed from the local world, so no double-ticking is happening.
-            localWorld.entityTracker.entries.find { it.trackedEntity == entity }?.updatePlayerList(remoteWorld.playerEntities)
+            localWorld.updateTrackingState(entity)
 
             manager.serverBeforeUsePortal(this, entity, trackingPlayers)
 
@@ -430,7 +473,7 @@ open class PortalAgent<P: Portal>(
                     // Forcefully dismount player without changing its position
                     // We cannot just use dismountRidingEntity() as that'll send a position packet to the client.
                     // There's no need to remove them from their vehicle because it'll be killed in the transfer anyway.
-                    entity.ridingEntity = null
+                    entity.forcePartialUnmount()
 
                     worldsManager.changeDimension(remoteWorld) {
                         derivePosRotFrom(this, portal)
@@ -441,7 +484,7 @@ open class PortalAgent<P: Portal>(
             } else {
                 val newEntity = remoteEntities[entity] ?: return null
 
-                localWorld.removeEntityDangerously(entity)
+                localWorld.forceRemoveEntity(entity)
                 localWorld.resetUpdateEntityTick()
 
                 entity.dimension = remotePortal.portal.localDimension
@@ -451,7 +494,7 @@ open class PortalAgent<P: Portal>(
 
                 newEntity.derivePosRotFrom(entity, portal)
 
-                remoteWorld.forceSpawnEntity(newEntity)
+                remoteWorld.forceAddEntity(newEntity)
 
                 // We need to tick the entity tracker entry of the new entity right now:
                 // Above spawn call has sent out the entity's current position to players but the tracker won't store
@@ -459,7 +502,7 @@ open class PortalAgent<P: Portal>(
                 // the new entity before ticking the tracker which will then store an updated position leading to incorrect
                 // delta updates being sent to players and ultimately a desynced entity on the client.
                 // AFAICT this is a vanilla bug. Though I'd imagine it's far more difficult to observe there.
-                remoteWorld.entityTracker.entries.find { it.trackedEntity == newEntity }?.updatePlayerList(remoteWorld.playerEntities)
+                remoteWorld.updateTrackingState(newEntity)
 
                 // TODO Vanilla does an update here, not sure if that's necessary?
                 //remoteWorld.updateEntityWithOptionalForce(newEntity, false)
@@ -471,8 +514,7 @@ open class PortalAgent<P: Portal>(
                 newPassengers.forEach { it.startRiding(newEntity, true) }
                 // Manually send passenger information to players
                 // Otherwise they'll only be sent the next time the entity tracker is ticked (after the transaction)
-                remoteWorld.entityTracker.entries.find { it.trackedEntity == newEntity }
-                        ?.sendToTrackingAndSelf(SPacketSetPassengers(newEntity))
+                remoteWorld.sendToTrackingAndSelf(newEntity, SPacketSetPassengers(newEntity))
             }
 
             // Inform other clients that the teleportation has happened
@@ -504,7 +546,7 @@ open class PortalAgent<P: Portal>(
         }
 
         // Inform other clients that the entity is going to be teleported
-        val trackingPlayers = player.serverWorld.entityTracker.getTracking(player).map { it.worldsManager }
+        val trackingPlayers = player.serverWorld.getTracking(player).map { it.worldsManager }
         trackingPlayers.forEach { it.beginTransaction() }
         manager.serverBeforeUsePortal(this, player, trackingPlayers)
 
@@ -566,7 +608,7 @@ open class PortalAgent<P: Portal>(
         @SideOnly(Side.CLIENT)
         get() = Minecraft.getMinecraft().worldsManager?.worlds?.find { it.provider.dimension == portal.remoteDimension }
 
-    @SideOnly(Side.CLIENT)
+    // FIXME remap fails @SideOnly(Side.CLIENT)
     private var portalUser: Entity? = null
 
     @SideOnly(Side.CLIENT)
@@ -602,12 +644,18 @@ open class PortalAgent<P: Portal>(
         val yaw = newEntity.rotationYaw
         val pitch = newEntity.rotationPitch
         newEntity.derivePosRotFrom(entity, portal)
+        //#if MC>=11400
+        //$$ if (newEntity is LivingEntity) {
+        //$$     newEntity.newPosRotationIncrements = 3 // prevent sudden jumps
+        //$$ }
+        //#else
         if (newEntity is EntityOtherPlayerMP) {
             newEntity.otherPlayerMPPos = pos // preserve otherPlayerMP pos to prevent desync
             newEntity.otherPlayerMPYaw = yaw.toDouble()
             newEntity.otherPlayerMPPitch = pitch.toDouble()
             newEntity.otherPlayerMPPosRotationIncrements = 3 // and sudden jumps
         }
+        //#endif
         if (newEntity is EntityMinecart) {
             newEntity.minecartPos = pos // preserve minecart pos to prevent desync
             newEntity.minecartYaw = yaw.toDouble()

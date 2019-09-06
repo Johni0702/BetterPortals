@@ -1,3 +1,5 @@
+// TODO might want to place the loader hack in here if Mixin 0.8 isn't released soon
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl
 
 import net.minecraft.launchwrapper.Launch
@@ -54,3 +56,4 @@ open class MixinLoader(val root: File) : IFMLLoadingPlugin {
 
     override fun getAccessTransformerClass(): String? = null
 }
+//#endif

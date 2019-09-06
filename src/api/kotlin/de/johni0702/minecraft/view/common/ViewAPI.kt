@@ -8,10 +8,16 @@ import de.johni0702.minecraft.view.server.ServerViewAPI
 import de.johni0702.minecraft.view.server.ServerWorldsManager
 import net.minecraft.client.Minecraft
 import net.minecraft.network.NetHandlerPlayServer
+import net.minecraftforge.fml.relauncher.Side
+//#if MC>=11300
+//$$ import net.minecraftforge.fml.ModList
+//$$ import net.minecraftforge.fml.client.gui.LoadingErrorScreen
+//$$ import net.minecraftforge.fml.loading.FMLEnvironment
+//#else
 import net.minecraftforge.fml.client.FMLClientHandler
 import net.minecraftforge.fml.common.FMLCommonHandler
 import net.minecraftforge.fml.common.Loader
-import net.minecraftforge.fml.relauncher.Side
+//#endif
 
 /**
  * Entry point into the view API. See [ClientViewAPI] and [ServerViewAPI]
@@ -20,8 +26,13 @@ interface ViewAPI {
     companion object {
         @JvmStatic
         val instance by lazy {
+            //#if MC>=11400
+            //$$ val mod = ModList.get().getModObjectById<ViewAPI>("betterportals").orElse(null)
+            //$$ if (mod == null && FMLEnvironment.dist == Dist.CLIENT && Minecraft.getInstance().currentScreen is LoadingErrorScreen) {
+            //#else
             val mod = Loader.instance().indexedModList["betterportals"]!!.mod
             if (mod == null && FMLCommonHandler.instance().side == Side.CLIENT && FMLClientHandler.instance().hasError()) {
+            //#endif
                 // Forge has probably aborted mod loading and may wish to show a user-friendly error GUI,
                 // so we need to return a dummy ViewAPI implementation as otherwise we would have to crash.
                 FailureFallbackViewAPI

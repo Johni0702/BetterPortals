@@ -1,10 +1,12 @@
 package de.johni0702.minecraft.view.impl.client
 
+import de.johni0702.minecraft.betterportals.common.DimensionId
 import de.johni0702.minecraft.betterportals.common.popOrNull
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.removeAtOrNull
 import de.johni0702.minecraft.view.client.ClientWorldsManager
 import de.johni0702.minecraft.view.impl.LOGGER
+import de.johni0702.minecraft.view.impl.net.CreateWorld
 import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
@@ -20,7 +22,13 @@ import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+
+//#if MC>=11400
+//$$ import net.minecraft.util.ResourceLocation
+//$$ import net.minecraftforge.event.entity.player.PlayerEvent
+//#else
 import net.minecraftforge.fml.common.network.FMLNetworkEvent
+//#endif
 
 internal class ClientWorldsManagerImpl : ClientWorldsManager {
     override val worlds: List<WorldClient>
@@ -112,10 +120,10 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         MinecraftForge.EVENT_BUS.register(EventHandler())
     }
 
-    fun createState(world: WorldClient): ClientState {
-        val dim = world.provider.dimension
+    fun createState(message: CreateWorld): ClientState {
+        val dim = message.dimensionID
         check(views.find { it.world.provider.dimension == dim } == null) { "World with dimension $dim already exists" }
-        return ClientState.reuseOrCreate(this, world, unusedViews.popOrNull()).also { views.add(it) }
+        return ClientState.reuseOrCreate(this, message, unusedViews.popOrNull()).also { views.add(it) }
     }
 
     fun destroyState(view: ClientState) {
@@ -132,7 +140,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         unusedViews.add(view)
     }
 
-    fun handleWorldData(dimensionId: Int, data: ByteBuf) {
+    fun handleWorldData(dimensionId: DimensionId, data: ByteBuf) {
         try {
             val view = views.find { it.dimension == dimensionId }
             if (view == null) {
@@ -241,7 +249,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
      * Rewinds all changes of main view which haven't been confirmed by the server.
      * Must only be called from main view during update (i.e. caused by a teleport packet sent from the server).
      */
-    internal fun rewindMainView() {
+    fun rewindMainView() {
         val fallbackPos = unconfirmedChanges.firstOrNull()?.fallbackPos ?: return
 
         LOGGER.warn("Got teleport in old main view, rewinding main view changes to before that change..")
@@ -266,6 +274,13 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         // world change to cancel any previous music (because changing worlds usually stops all sounds).
         // There isn't any good way to detect these mods and always stopping music would be wasteful, so instead
         // we're having a dimension type blacklist
+        //#if MC>=11400
+        //$$ val badDims = listOf<ResourceLocation>(
+        //$$ )
+        //$$ if (mc.world.dimension.type.registryName in badDims) {
+        //$$     mc.soundHandler.stop()
+        //$$ }
+        //#else
         val badDims = listOf(
                 "aether", // Aether 2
                 "necromancertower", // Aether 2
@@ -274,9 +289,10 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         if (mc.world.provider.dimensionType.name in badDims) {
             mc.soundHandler.stopSounds()
         }
+        //#endif
     }
 
-    fun makeMainViewAck(dimensionId: Int) {
+    fun makeMainViewAck(dimensionId: DimensionId) {
         LOGGER.info("Ack for swap of {}", dimensionId)
 
         val expectedId = unconfirmedChanges.getOrNull(0)?.new?.dimension
@@ -339,12 +355,20 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
             mc.world.lastLightningBolt = mc.world.lastLightningBolt - 1
         }
 
+        //#if MC>=11400
+        //$$ mc.world.tickEntities()
+        //#else
         mc.world.updateEntities()
+        //#endif
 
         mc.world.setAllowedSpawnTypes(mc.world.difficulty != EnumDifficulty.PEACEFUL, true)
 
         try {
+            //#if MC>=11400
+            //$$ mc.world.tick { true }
+            //#else
             mc.world.tick()
+            //#endif
         } catch (t: Throwable) {
             val crash = CrashReport.makeCrashReport(t, "Exception in world tick")
             mc.world.addWorldInfoToCrashReport(crash)
@@ -365,9 +389,13 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
 
     private fun preRender() {
         // Make sure the stencil buffer is enabled
+        //#if MC>=11400
+        //$$ // TODO we don't actually use the stencil buffer atm. if we do, this needs porting
+        //#else
         if (!mc.framebuffer.isStencilEnabled) {
             mc.framebuffer.enableStencil()
         }
+        //#endif
     }
 
     private inner class EventHandler {
@@ -387,7 +415,13 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         }
 
         @SubscribeEvent(priority = EventPriority.LOW)
-        fun onDisconnect(event: FMLNetworkEvent.ClientDisconnectionFromServerEvent) {
+        fun onDisconnect(
+                //#if MC>=11400
+                //$$ event: PlayerEvent.PlayerLoggedOutEvent
+                //#else
+                event: FMLNetworkEvent.ClientDisconnectionFromServerEvent
+                //#endif
+        ) {
             reset()
         }
 

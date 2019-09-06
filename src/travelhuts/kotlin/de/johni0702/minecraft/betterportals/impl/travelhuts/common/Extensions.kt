@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.travelhuts.common
 
 import de.johni0702.minecraft.betterportals.client.render.RenderPortalEntity
@@ -69,3 +70,4 @@ fun initTravelHuts(
         })
     }
 }
+//#endif

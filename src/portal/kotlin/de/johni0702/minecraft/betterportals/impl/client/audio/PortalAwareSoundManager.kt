@@ -68,7 +68,7 @@ object PortalAwareSoundManager {
 
         // Clamp sound direction to portal surface (for sanity's sake, ignore the detailed bounding box)
         val portalBox = portal.remoteBoundingBox
-        return if (portalBox.calculateIntercept(listener, apparentPos) != null) {
+        return if (portalBox.intersects(listener, apparentPos)) {
             // Direct line of sight (disregarding frame), good enough
             apparentPos
         } else {

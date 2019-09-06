@@ -17,8 +17,13 @@ import net.minecraftforge.event.world.GetCollisionBoxesEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import net.minecraftforge.fml.relauncher.Side
 import org.apache.logging.log4j.Logger
+
+//#if MC>=11400
+//$$ import net.minecraft.util.math.shapes.VoxelShape
+//$$ import java.util.stream.Stream
+//#else
+//#endif
 
 internal interface HasPortalManager {
     val portalManager: PortalManager
@@ -91,7 +96,7 @@ internal class PortalManagerImpl(override val world: World) : PortalManager {
         @SubscribeEvent
         fun onWorldTick(event: TickEvent.WorldTickEvent) {
             if (event.phase != TickEvent.Phase.END) return
-            if (event.side != Side.SERVER) return
+            if (event.side != LogicalSide.SERVER) return
             tickWorld(event.world)
         }
 
@@ -111,6 +116,9 @@ internal class PortalManagerImpl(override val world: World) : PortalManager {
             world.portalManager.loadedPortals.toList().forEach { it.checkTeleportees() }
         }
 
+        //#if MC>=11400
+        //$$ // FIXME while the event still exists, it cannot possibly be hooked up properly because it's still using AABBs
+        //#else
         @SubscribeEvent(priority = EventPriority.LOW)
         fun onGetCollisionBoxes(event: GetCollisionBoxesEvent) {
             val entity = event.entity ?: collisionBoxesEntity ?: return
@@ -124,8 +132,12 @@ internal class PortalManagerImpl(override val world: World) : PortalManager {
                 }
             }
         }
+        //#endif
 
         fun onIsOpenBlockSpace(entity: Entity, pos: BlockPos): Boolean {
+            //#if MC>=11400
+            //$$ return true // FIXME more or less the same but also not really
+            //#else
             val query = { world: World, aabb: AxisAlignedBB ->
                 val blockPos = aabb.min.toBlockPos()
                 val blockState = world.getBlockState(blockPos)
@@ -138,22 +150,42 @@ internal class PortalManagerImpl(override val world: World) : PortalManager {
             val aabbList = query(entity.world, AxisAlignedBB(pos))
             modifyAABBs(entity, entity.entityBoundingBox, AxisAlignedBB(pos), aabbList, query)
             return aabbList.isEmpty()
+            //#endif
         }
 
         private fun modifyAABBs(
                 entity: Entity,
                 entityAABB: AxisAlignedBB,
                 queryAABB: AxisAlignedBB,
+                //#if MC>=11400
+                //$$ vanillaStream: Stream<VoxelShape>,
+                //$$ queryRemote: (World, AxisAlignedBB) -> Stream<VoxelShape>
+                //#else
                 aabbList: MutableList<AxisAlignedBB>,
                 queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>
+                //#endif
+        //#if MC>=11400
+        //$$ ): Stream<VoxelShape> {
+        //$$     return entity.world.portalManager.loadedPortals.fold(vanillaStream) { stream, agent ->
+        //#else
         ) {
             entity.world.portalManager.loadedPortals.forEach { agent ->
+        //#endif
                 val portal = agent.portal
-                if (!portal.localBoundingBox.intersects(entityAABB)) return@forEach // not even close
-                // If this is a non-rectangular portal and the entity isn't inside it, we don't care
-                if (portal.localDetailedBounds.none { it.intersects(entityAABB) }) return@forEach
+                if (portal.localBoundingBox.intersects(entityAABB)) { // even remotely?
+                    // If this is a non-rectangular portal and the entity isn't inside it, we don't care
+                    if (portal.localDetailedBounds.any { it.intersects(entityAABB) }) {
+                        //#if MC>=11400
+                        //$$ return agent.modifyAABBs(entity, queryAABB, stream, queryRemote)
+                        //#else
+                        agent.modifyAABBs(entity, queryAABB, aabbList, queryRemote)
+                        //#endif
+                    }
+                }
 
-                agent.modifyAABBs(entity, queryAABB, aabbList, queryRemote)
+                //#if MC>=11400
+                //$$ stream
+                //#endif
             }
         }
 

@@ -1,27 +1,45 @@
 package de.johni0702.minecraft.betterportals.impl.net
 
-import de.johni0702.minecraft.betterportals.impl.common.MOD_ID
+import de.johni0702.minecraft.betterportals.impl.IMessage
+import de.johni0702.minecraft.betterportals.impl.register
+import de.johni0702.minecraft.betterportals.impl.toVanilla
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.network.Packet
 import net.minecraftforge.fml.common.network.NetworkRegistry
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage
+
+//#if MC>=11400
+//$$ import net.minecraft.util.ResourceLocation
+//$$ import net.minecraftforge.api.distmarker.Dist
+//$$ import net.minecraftforge.fml.ModList
+//$$ import net.minecraftforge.fml.network.NetworkDirection
+//#else
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper
-import net.minecraftforge.fml.relauncher.Side
+//#endif
 
 internal object Net {
-    val INSTANCE: SimpleNetworkWrapper = NetworkRegistry.INSTANCE.newSimpleChannel(MOD_ID)
+    //#if MC>=11400
+    //$$ val MOD_VERSION = ModList.get().getModContainerById("betterportals").get()!!.modInfo.version.toString()
+    //$$ val INSTANCE = NetworkRegistry.newSimpleChannel(
+    //$$         ResourceLocation("betterportals", "portal"),
+    //$$         { MOD_VERSION },
+    //$$         { it == MOD_VERSION },
+    //$$         { it == MOD_VERSION }
+    //$$ )
+    //#else
+    val INSTANCE: SimpleNetworkWrapper = NetworkRegistry.INSTANCE.newSimpleChannel("BP/portal")
+    //#endif
 
     init {
         var nextId = 0
         with(INSTANCE) {
-            registerMessage(UsePortal.Handler(), UsePortal::class.java, ++nextId, Side.SERVER)
-            registerMessage(EntityUsePortal.Handler(), EntityUsePortal::class.java, ++nextId, Side.CLIENT)
+            register(UsePortal.Handler(), ++nextId)
+            register(EntityUsePortal.Handler(), ++nextId)
         }
     }
 
 }
 
-fun IMessage.toPacket(): Packet<*> = Net.INSTANCE.getPacketFrom(this)
+internal fun IMessage.toPacket(): Packet<*> = Net.INSTANCE.toVanilla(this)
 fun IMessage.sendTo(players: Iterable<EntityPlayerMP>)
         = toPacket().let { packet -> players.forEach { it.connection.sendPacket(packet) } }
 fun IMessage.sendTo(vararg players: EntityPlayerMP)

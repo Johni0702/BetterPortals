@@ -1,0 +1,133 @@
+net.minecraft.entity.player.PlayerEntity net.minecraft.entity.player.EntityPlayer
+net.minecraftforge.api.distmarker.Dist net.minecraftforge.fml.relauncher.Side
+net.minecraft.network.play.ServerPlayNetHandler net.minecraft.network.NetHandlerPlayServer
+net.minecraft.entity.player.ServerPlayerEntity net.minecraft.entity.player.EntityPlayerMP
+net.minecraft.world.server.ServerWorld net.minecraft.world.WorldServer
+net.minecraft.network.IPacket net.minecraft.network.Packet
+net.minecraft.client.entity.player.ClientPlayerEntity net.minecraft.client.entity.EntityPlayerSP
+net.minecraft.client.world.ClientWorld net.minecraft.client.multiplayer.WorldClient
+net.minecraft.util.Direction net.minecraft.util.EnumFacing
+com.mojang.blaze3d.platform.GlStateManager net.minecraft.client.renderer.GlStateManager
+com.mojang.blaze3d.platform.GlStateManager.FogMode net.minecraft.client.renderer.GlStateManager.FogMode
+com.mojang.blaze3d.platform.GlStateManager.FogState net.minecraft.client.renderer.GlStateManager.FogState
+com.mojang.blaze3d.platform.GlStateManager.ClearState net.minecraft.client.renderer.GlStateManager.ClearState
+com.mojang.blaze3d.platform.GlStateManager.Color net.minecraft.client.renderer.GlStateManager.Color
+com.mojang.datafixers.DataFixer net.minecraft.util.datafix.DataFixer
+net.minecraft.client.renderer.texture.AtlasTexture net.minecraft.client.renderer.texture.TextureMap
+net.minecraft.entity.item.minecart.MinecartEntity net.minecraft.entity.item.EntityMinecart
+net.minecraft.client.entity.player.RemoteClientPlayerEntity net.minecraft.client.entity.EntityOtherPlayerMP
+net.minecraft.nbt.CompoundNBT net.minecraft.nbt.NBTTagCompound
+net.minecraftforge.eventbus.api.Cancelable net.minecraftforge.fml.common.eventhandler.Cancelable
+net.minecraftforge.eventbus.api.Event net.minecraftforge.fml.common.eventhandler.Event
+net.minecraftforge.eventbus.api.IEventBus net.minecraftforge.fml.common.eventhandler.EventBus
+net.minecraft.client.renderer.GameRenderer net.minecraft.client.renderer.EntityRenderer
+net.minecraft.block.Blocks net.minecraft.init.Blocks
+net.minecraft.entity.LivingEntity net.minecraft.entity.EntityLivingBase
+net.minecraft.block.BlockState net.minecraft.block.state.IBlockState
+net.minecraftforge.eventbus.api.SubscribeEvent net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+net.minecraftforge.event.TickEvent net.minecraftforge.fml.common.gameevent.TickEvent
+net.minecraft.nbt.ListNBT net.minecraft.nbt.NBTTagList
+net.minecraft.client.entity.player.AbstractClientPlayerEntity net.minecraft.client.entity.AbstractClientPlayer
+net.minecraftforge.api.distmarker.OnlyIn net.minecraftforge.fml.relauncher.SideOnly
+net.minecraft.network.play.server.SSetPassengersPacket net.minecraft.network.play.server.SPacketSetPassengers
+net.minecraft.nbt.INBT net.minecraft.nbt.NBTBase
+net.minecraft.profiler.IProfiler net.minecraft.profiler.Profiler
+net.minecraft.crash.ReportedException net.minecraft.util.ReportedException
+net.minecraft.world.dimension.Dimension net.minecraft.world.WorldProvider
+net.minecraft.world.dimension.Dimension getType() getDimension()
+net.minecraft.client.shader.ShaderInstance net.minecraft.client.shader.ShaderManager
+net.minecraft.client.renderer.entity.EntityRenderer net.minecraft.client.renderer.entity.Render
+net.minecraft.client.renderer.entity.EntityRendererManager net.minecraft.client.renderer.entity.RenderManager
+net.minecraft.block.EndPortalBlock net.minecraft.block.BlockEndPortal
+net.minecraft.client.renderer.tileentity.EndPortalTileEntityRenderer net.minecraft.client.renderer.tileentity.TileEntityEndPortalRenderer
+net.minecraft.tileentity.EndPortalTileEntity net.minecraft.tileentity.TileEntityEndPortal
+net.minecraft.block.NetherPortalBlock net.minecraft.block.BlockPortal
+net.minecraft.block.BlockRenderType net.minecraft.util.EnumBlockRenderType
+net.minecraft.block.pattern.BlockPattern net.minecraft.block.state.pattern.BlockPattern
+net.minecraft.block.pattern.BlockPatternBuilder net.minecraft.block.state.pattern.FactoryBlockPattern
+net.minecraft.block.pattern.BlockMatcher net.minecraft.block.state.pattern.BlockMatcher
+net.minecraft.util.CachedBlockInfo net.minecraft.block.state.BlockWorldState
+net.minecraft.block.EndPortalFrameBlock net.minecraft.block.BlockEndPortalFrame
+net.minecraft.world.Difficulty net.minecraft.world.EnumDifficulty
+net.minecraft.client.renderer.FirstPersonRenderer net.minecraft.client.renderer.ItemRenderer
+net.minecraft.client.renderer.WorldRenderer net.minecraft.client.renderer.RenderGlobal
+net.minecraft.client.gui.overlay.BossOverlayGui net.minecraft.client.gui.GuiBossOverlay
+net.minecraft.client.network.play.ClientPlayNetHandler net.minecraft.client.network.NetHandlerPlayClient
+net.minecraft.client.network.login.ClientLoginNetHandler net.minecraft.client.network.NetHandlerLoginClient
+net.minecraft.client.network.play.ServerPlayNetHandler net.minecraft.client.network.NetHandlerPlayServer
+net.minecraft.client.network.login.ServerLoginNetHandler net.minecraft.client.network.NetHandlerLoginServer
+net.minecraft.network.login.server.SLoginSuccessPacket net.minecraft.network.login.server.SPacketLoginSuccess
+net.minecraft.network.play.server.SPlayerPositionLookPacket net.minecraft.network.play.server.SPacketPlayerPosLook
+net.minecraft.client.renderer.WorldRenderer net.minecraft.client.renderer.RenderGlobal
+net.minecraft.network.PacketDirection net.minecraft.network.EnumPacketDirection
+net.minecraft.network.ProtocolType net.minecraft.network.EnumConnectionState
+net.minecraft.network.play.server.SCustomPayloadPlayPacket net.minecraft.network.play.server.SPacketCustomPayload
+net.minecraft.client.util.ClientRecipeBook net.minecraft.client.util.RecipeBookClient
+net.minecraft.network.play.server.SChatPacket net.minecraft.network.play.server.SPacketChat
+net.minecraft.network.play.client.CPlayerPacket net.minecraft.network.play.client.CPacketPlayer
+net.minecraft.network.play.client.CPlayerPacket.PositionRotationPacket net.minecraft.network.play.client.CPacketPlayer.PositionRotation
+net.minecraftforge.eventbus.api.EventPriority net.minecraftforge.fml.common.eventhandler.EventPriority
+net.minecraft.potion.Effect net.minecraft.potion.Potion
+net.minecraft.potion.EffectInstance net.minecraft.potion.PotionEffect
+net.minecraft.client.renderer.chunk.ChunkRenderTask net.minecraft.client.renderer.chunk.ChunkCompileTaskGenerator
+net.minecraft.client.renderer.chunk.ChunkRender net.minecraft.client.renderer.chunk.RenderChunk
+net.minecraftforge.fml.network.NetworkRegistry net.minecraftforge.fml.common.network.NetworkRegistry
+net.minecraft.network.play.client.CClientSettingsPacket net.minecraft.network.play.client.CPacketClientSettings
+net.minecraft.stats.ServerStatisticsManager net.minecraft.stats.StatisticsManagerServer
+net.minecraft.stats.Stat net.minecraft.stats.StatBase
+net.minecraft.network.play.server.SDestroyEntitiesPacket net.minecraft.network.play.server.SPacketDestroyEntities
+net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent
+net.minecraft.client.GameSettings net.minecraft.client.settings.GameSettings
+net.minecraft.world.dimension.DimensionType net.minecraft.world.DimensionType
+net.minecraft.client.audio.SoundEngine net.minecraft.client.audio.SoundManager
+net.minecraft.client.util.JSONBlendingMode net.minecraft.client.util.JsonBlendingMode
+net.minecraft.client.renderer.entity.LivingRenderer net.minecraft.client.renderer.entity.RenderLivingBase
+net.minecraft.client.renderer.entity.PlayerRenderer net.minecraft.client.renderer.entity.RenderPlayer
+net.minecraft.network.play.server.SAnimateBlockBreakPacket net.minecraft.network.play.server.SPacketBlockBreakAnim
+net.minecraft.client.renderer.chunk.IChunkRendererFactory net.minecraft.client.renderer.chunk.IRenderChunkFactory
+net.minecraft.resources.FolderPack net.minecraft.client.resources.FolderResourcePack
+
+net.minecraft.client.shader.ShaderInstance field_216547_c staticShaderManager
+net.minecraft.client.shader.ShaderInstance field_216556_l programFilename
+net.minecraft.client.shader.ShaderInstance func_216537_a() addSamplerTexture()
+net.minecraft.client.shader.ShaderInstance getShaderUniform() getShaderUniformOrDefault()
+net.minecraft.client.shader.ShaderInstance func_216535_f() useShader()
+net.minecraft.client.shader.ShaderInstance func_216544_e() endShader()
+net.minecraft.client.shader.ShaderInstance close() deleteShader()
+net.minecraft.nbt.CompoundNBT put() setTag()
+net.minecraft.entity.Entity writeAdditional() writeEntityToNBT()
+com.mojang.blaze3d.platform.GlStateManager blendEquation() glBlendEquation()
+com.mojang.blaze3d.platform.GlStateManager blendFuncSeparate() tryBlendFuncSeparate()
+com.mojang.blaze3d.platform.GlStateManager color4f() color()
+com.mojang.blaze3d.platform.GlStateManager enableTexture() enableTexture2D()
+com.mojang.blaze3d.platform.GlStateManager disableTexture() disableTexture2D()
+com.mojang.blaze3d.platform.GlStateManager disableDepthTest() disableDepth()
+com.mojang.blaze3d.platform.GlStateManager disableAlphaTest() disableAlpha()
+com.mojang.blaze3d.platform.GlStateManager translatef() translate()
+com.mojang.blaze3d.platform.GlStateManager fogStart() setFogStart()
+com.mojang.blaze3d.platform.GlStateManager fogEnd() setFogEnd()
+com.mojang.blaze3d.platform.GlStateManager FOG fogState
+com.mojang.blaze3d.platform.GlStateManager CLEAR clearState
+com.mojang.blaze3d.platform.GlStateManager.FogState field_179045_d start
+com.mojang.blaze3d.platform.GlStateManager.FogState field_179046_e end
+com.mojang.blaze3d.platform.GlStateManager.FogState field_179047_b mode
+com.mojang.blaze3d.platform.GlStateManager.FogMode field_187351_d capabilityId
+com.mojang.blaze3d.platform.GlStateManager.ClearState field_179203_b color
+com.mojang.blaze3d.platform.GlStateManager.Color field_179195_a red
+com.mojang.blaze3d.platform.GlStateManager.Color field_179193_b green
+com.mojang.blaze3d.platform.GlStateManager.Color field_179194_c blue
+com.mojang.blaze3d.platform.GlStateManager.Color field_179192_d alpha
+net.minecraft.world.dimension.DimensionType THE_NETHER NETHER
+
+anet.minecraft.resources.AbstractResourcePack net.minecraft.client.resources.AbstractResourcePack
+anet.minecraft.client.resources.DownloadingPackFinder net.minecraft.client.resources.ResourcePackRepository
+anet.minecraft.client.renderer.entity.model.ModelBox net.minecraft.client.model.ModelBox
+anet.minecraft.client.renderer.entity.model.ModelRenderer net.minecraft.client.model.ModelRenderer
+anet.minecraft.network.play.server.SPacketEntity.Move net.minecraft.network.play.server.SPacketEntity.S17PacketEntityLookMove
+anet.minecraft.client.renderer.ItemRenderer net.minecraft.client.renderer.RenderItem
+
+anet.minecraft.resources.AbstractResourcePack getInputStream() getInputStreamByName()
+anet.minecraft.client.gui.GuiYesNoCallback confirmResult() confirmClicked()
+anet.minecraft.util.text.ITextComponent getString() getUnformattedText()
+anet.minecraft.network.play.server.SPacketRespawn func_212643_b() getDimensionID()
+anet.minecraft.client.Minecraft getPackFinder() getResourcePackRepository()

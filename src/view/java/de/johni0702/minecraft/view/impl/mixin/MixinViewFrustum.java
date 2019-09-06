@@ -175,7 +175,11 @@ public abstract class MixinViewFrustum {
     private RenderChunk allocChunk(BlockPos pos) {
         RenderChunk chunk = freeChunks.pollFirst();
         if (chunk == null) {
-            chunk = chunkFactory.create(world, renderGlobal, 0);
+            chunk = chunkFactory.create(world, renderGlobal
+                    //#if MC<11400
+                    , 0
+                    //#endif
+            );
         }
         chunk.setPosition(pos.getX(), pos.getY(), pos.getZ());
         chunk.setNeedsUpdate(false);
@@ -239,6 +243,17 @@ public abstract class MixinViewFrustum {
         unusedChunkArrays.clear();
     }
 
+    //#if MC>=11400
+    //$$ @Inject(method = "markForRerender", at = @At("HEAD"), cancellable = true)
+    //$$ private void markBlocksForUpdate(int xCube, int yCube, int zCube, boolean updateImmediately, CallbackInfo ci) {
+    //$$     BlockPos pos = new BlockPos(xCube << 4, yCube << 4, zCube << 4);
+    //$$     Pair<ChunkRender, MutableInt> pair = chunkMap.get(pos);
+    //$$     if (pair != null) {
+    //$$         pair.getFirst().setNeedsUpdate(updateImmediately);
+    //$$     }
+    //$$     ci.cancel();
+    //$$ }
+    //#else
     @Inject(method = "markBlocksForUpdate", at = @At("HEAD"), cancellable = true)
     private void markBlocksForUpdate(int minX, int minY, int minZ, int maxX, int maxY, int maxZ, boolean updateImmediately, CallbackInfo ci) {
         minX &= ~15;
@@ -263,4 +278,5 @@ public abstract class MixinViewFrustum {
 
         ci.cancel();
     }
+    //#endif
 }

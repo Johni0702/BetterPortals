@@ -1,8 +1,14 @@
 package de.johni0702.minecraft.betterportals.common.block
 
+//#if MC>=11400
+//#else
+import net.minecraftforge.common.ForgeChunkManager
+//#endif
+
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.common.entity.Linkable
 import net.minecraft.block.Block
+import net.minecraft.block.material.Material
 import net.minecraft.block.state.IBlockState
 import net.minecraft.crash.CrashReport
 import net.minecraft.entity.Entity
@@ -15,7 +21,6 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.ChunkPos
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
-import net.minecraftforge.common.ForgeChunkManager
 import java.util.concurrent.CompletableFuture
 import kotlin.math.*
 
@@ -109,7 +114,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
         localPortal.portal.localBlocks.forEach {
             localWorld.setBlockState(it, portalBlock, 2)
         }
-        localWorld.forceSpawnEntity(localPortal)
+        localWorld.forceAddEntity(localPortal)
 
         future.thenAcceptAsync({ result ->
             if (localPortal.isDead) return@thenAcceptAsync
@@ -120,10 +125,10 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             remotePortal.portal.localBlocks.forEach {
                 remoteWorld.setBlockState(it, portalBlock, 2)
             }
-            remoteWorld.forceSpawnEntity(remotePortal)
+            remoteWorld.forceAddEntity(remotePortal)
 
             localPortal.link(remotePortal)
-        }, { localWorld.server.addScheduledTask(it) }).exceptionally {
+        }, localWorld.server.executor::execute).exceptionally {
             localPortal.setDead()
             val report = CrashReport.makeCrashReport(it, "Finding remote portal")
             throw ReportedException(report)
@@ -187,8 +192,12 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
         val cacheFuture = remoteWorld.asyncLoadBulkBlockCache(asyncBlockCache, cacheMin, cacheMax)
 
         // Make sure the world isn't unloaded while we're searching (that would invalidate our remoteWorld reference)
+        //#if MC>=11400
+        //$$ // FIXME
+        //#else
         val ticket = ForgeChunkManager.requestTicket(mod, remoteWorld, ForgeChunkManager.Type.NORMAL)
         ForgeChunkManager.forceChunk(ticket, remoteChunkPos)
+        //#endif
 
         return cacheFuture.thenApplyAsync {
             // Find any existing frames (of right shape) within 129xmaxYx129
@@ -205,7 +214,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             BlockPos.MutableBlockPos.getAllInBoxMutable(searchMin, searchMax).forEach { pos ->
                 val blockState = asyncBlockCache[pos]
                 if (isFrameBlock(blockState)) {
-                    for (potentialStartDirection in plane.facings()) {
+                    for (potentialStartDirection in plane) {
                         val portalPos = pos.offset(potentialStartDirection)
                         if (!checkedPositions.add(portalPos)) continue
                         for (rotation in Rotation.values()) {
@@ -219,7 +228,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
                             }
                         }
                     }
-                } else if (blockState == Blocks.AIR) {
+                } else if (blockState.material == Material.AIR) {
                     for ((rotation, blocks) in rotatedPortalBlocks) {
                         val axis = rotation.axis(plane.opposite)
                         if (considerPlacingPortalAt(asyncBlockCache, blocks, pos, axis)) {
@@ -261,7 +270,10 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             }
             placePortalFrame(remoteWorld, portalRotation.axis(plane.opposite), blocks)
             return@thenApplyAsync Pair(remotePosition, portalRotation)
-        }, { remoteWorld.server.addScheduledTask(it) }).whenCompleteAsync({ _, _ ->
+        }, remoteWorld.server.executor::execute).whenCompleteAsync({ _, _ ->
+            //#if MC>=11400
+            //$$ // FIXME
+            //#else
             // Finally, unforce the chunk we force to prevent the world from being unload
             ForgeChunkManager.releaseTicket(ticket)
             // and unload all chunks which we had to load just for finding the frame
@@ -274,7 +286,8 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
                     }
                 }
             }
-        }, { remoteWorld.server.addScheduledTask(it) })
+            //#endif
+        }, remoteWorld.server.executor::execute)
     }
 
     /**
@@ -282,7 +295,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
      * Note: This function is thread-safe if [blockCache] is.
      * @param blockCache Cache of blocks in which to check for the portal.
      * @param startPos Position at which the search is initiated from; needs to be one of the portal blocks (not frame!)
-     * @param filled Whether to check if the portal is filled with [isPortalBlock] (or [Blocks.AIR])
+     * @param filled Whether to check if the portal is filled with [isPortalBlock] (or [Material.AIR])
      * @return Pair of a set of positions of all portal blocks (excluding frame and step blocks), empty if no frame was
      *         found, and the axis of the found portal frame
      */
@@ -306,7 +319,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
      * @param blockCache Cache of blocks in which to check for the portal.
      * @param startPos Position at which the search is initiated from; needs to be one of the portal blocks (not frame!)
      * @param axis Axis of the portal frame
-     * @param filled Whether to check if the portal is filled with [isPortalBlock] (or [Blocks.AIR])
+     * @param filled Whether to check if the portal is filled with [isPortalBlock] (or [Material.AIR])
      * @return Set of positions of all portal blocks (excluding frame and step blocks), empty if no frame was found
      */
     fun findPortalFrame(
@@ -328,7 +341,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
         val left = right.opposite
         val directions = listOf(right, down, left, up)
 
-        val isFilling: (IBlockState) -> Boolean = if (filled) ::isPortalBlock else ({ it.block == Blocks.AIR })
+        val isFilling: (IBlockState) -> Boolean = if (filled) ::isPortalBlock else ({ it.material == Material.AIR })
 
         fun BlockPos.maxDist(other: BlockPos): Int = max(abs(x - other.x), max(abs(y - other.y), abs(z - other.z)))
 
@@ -371,7 +384,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
 
     /**
      * Checks if the given portal may be placed at the given position.
-     * The block at the given position will always be [Blocks.AIR].
+     * The block at the given position will always be [Material.AIR].
      * Unless a perfectly fitting frame is found, the portal will be placed at a position which has been approved
      * by this method.
      * If no positions have been approved by this method, the portal will be placed exactly at the corresponding coords.
@@ -392,7 +405,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
         // Check if this is a block right above ground (or in case of horizontal portals, four above)
         // i.e. the lowest portal block is at `pos`
         if (!(if (axis == EnumFacing.Axis.Y) {
-            (1..3).all { blockCache[pos.down(it)].block == Blocks.AIR } && blockCache[pos.down(4)].material.isSolid
+            (1..3).all { blockCache[pos.down(it)].material == Material.AIR } && blockCache[pos.down(4)].material.isSolid
         } else {
             blockCache[pos.down()].material.isSolid
         })) {
@@ -400,10 +413,10 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
         }
         // Check if there's space for the portal and frame (except the bottom row for vertical portals)
         portalBlocks.map { it.add(pos) }.forEach { portalBlock ->
-            if (blockCache[portalBlock].block != Blocks.AIR) return false
+            if (blockCache[portalBlock].material != Material.AIR) return false
             axis.parallelFaces.forEach {
                 val offsetPos = portalBlock.offset(it)
-                if (offsetPos !in portalBlocks && offsetPos.y >= pos.y && blockCache[offsetPos].block != Blocks.AIR) {
+                if (offsetPos !in portalBlocks && offsetPos.y >= pos.y && blockCache[offsetPos].material != Material.AIR) {
                     return false
                 }
             }
@@ -417,7 +430,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
      * @param blockCache Cache of blocks in which to check for the portal
      * @param portalBlocks Set of positions of portal blocks (excluding frame and steps)
      * @param axis The axis of the portal
-     * @param filled Whether to check if the portal is filled with [isPortalBlock] (or [Blocks.AIR])
+     * @param filled Whether to check if the portal is filled with [isPortalBlock] (or [Material.AIR])
      * @return `true` if the portal is still valid, `false` otherwise
      */
     fun checkPortal(
@@ -426,7 +439,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             axis: EnumFacing.Axis,
             filled: Boolean
     ): Boolean {
-        val isFilling: (IBlockState) -> Boolean = if (filled) ::isPortalBlock else ({ it.block == Blocks.AIR })
+        val isFilling: (IBlockState) -> Boolean = if (filled) ::isPortalBlock else ({ it.material == Material.AIR })
         portalBlocks.forEach { pos ->
             if (!isFilling(blockCache[pos])) return false
             axis.parallelFaces.forEach {
@@ -469,7 +482,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
                 return@forEach // skip bottom-most layer for standing portals to keep blocks for the player to walk on
             }
             for (i in if (axis == EnumFacing.Axis.Y) -3..2 else -1..1) {
-                world.setBlockToAir(pos.offset(axis.toFacing(EnumFacing.AxisDirection.POSITIVE), i))
+                world.setBlockState(pos.offset(axis.toFacing(EnumFacing.AxisDirection.POSITIVE), i), Blocks.AIR.defaultState)
             }
         }
 
@@ -510,12 +523,12 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             world.getEntitiesWithinAABB(entityType, AxisAlignedBB(pos)).forEach {
                 it.setDead()
             }
-            world.setBlockToAir(pos)
+            world.setBlockState(pos, Blocks.AIR.defaultState)
         } else { // Portal shell still valid but shape or inners might have changed; needs to be check manually
             val entities = world.getEntitiesWithinAABB(entityType, portalBlocks.toAxisAlignedBB())
             if (entities.isEmpty()) { // No portals found, this is probably a vanilla portal which needs to be converted
                 // First, empty the frame
-                portalBlocks.forEach { world.setBlockToAir(it) }
+                portalBlocks.forEach { world.setBlockState(it, Blocks.AIR.defaultState) }
                 // Then try to link it to a remote portal as if the user has initiated that linkage
                 tryToLinkPortals(world, pos)
             } else { // Check if the existing portal(s) are still valid

@@ -1,7 +1,9 @@
 package de.johni0702.minecraft.betterportals.impl.transition.server
 
+import de.johni0702.minecraft.betterportals.common.DimensionId
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.to3d
+import de.johni0702.minecraft.betterportals.common.toDimensionId
 import de.johni0702.minecraft.betterportals.impl.transition.common.LOGGER
 import de.johni0702.minecraft.betterportals.impl.transition.net.TransferToDimension
 import de.johni0702.minecraft.betterportals.impl.transition.net.sendTo
@@ -9,7 +11,11 @@ import de.johni0702.minecraft.view.common.WorldsManager
 import de.johni0702.minecraft.view.server.View
 import de.johni0702.minecraft.view.server.worldsManager
 import net.minecraft.entity.player.EntityPlayerMP
+
+//#if MC>=11400
+//#else
 import net.minecraftforge.common.util.ITeleporter
+//#endif
 
 internal object DimensionTransitionHandler {
     val views = mutableMapOf<WorldsManager, MutableMap<Int, View>>()
@@ -20,15 +26,23 @@ internal object DimensionTransitionHandler {
             "gcewing.sg.util.FakeTeleporter"
     )
 
-    fun transferPlayerToDimension(player: EntityPlayerMP, dimension: Int, teleporter: ITeleporter): Boolean {
+    fun transferPlayerToDimension(
+            player: EntityPlayerMP,
+            dimension: DimensionId
+            //#if MC<11400
+            , teleporter: ITeleporter
+            //#endif
+    ): Boolean {
         if (!enabled) {
             return false
         }
 
+        //#if MC<11400
         if (teleporter.javaClass.name in knownBadTeleporterClasses) {
             LOGGER.debug("Skipping fancy dimension transition because of bad teleporter class: {}", teleporter.javaClass)
             return false
         }
+        //#endif
 
         val oldWorld = player.serverWorld
         val newWorld = player.server!!.getWorld(dimension)
@@ -57,8 +71,11 @@ internal object DimensionTransitionHandler {
 
             var posX = (posX * moveFactor).coerceIn(newWorld.worldBorder.minX() + 16.0, newWorld.worldBorder.maxX() - 16).toInt()
             var posZ = (posZ * moveFactor).coerceIn(newWorld.worldBorder.minZ() + 16.0, newWorld.worldBorder.maxZ() - 16).toInt()
-            if (newDim == 1 && teleporter.isVanilla) {
-                val spawn = (if (oldDim == 1) newWorld.spawnPoint else newWorld.spawnCoordinate)!!
+            //#if MC>=11400
+            //$$ TODO("1.14")
+            //#else
+            if (newDim == 1.toDimensionId() && teleporter.isVanilla) {
+                val spawn = (if (oldDim == 1.toDimensionId()) newWorld.spawnPoint else newWorld.spawnCoordinate)!!
                 posX = spawn.x
                 posZ = spawn.z
                 with(spawn.to3d()) {
@@ -66,13 +83,14 @@ internal object DimensionTransitionHandler {
                 }
             }
 
-            if (oldDim != 1 || !teleporter.isVanilla) {
+            if (oldDim != 1.toDimensionId() || !teleporter.isVanilla) {
                 posX = posX.coerceIn(-29999872, 29999872)
                 posZ = posZ.coerceIn(-29999872, 29999872)
 
                 setLocationAndAngles(posX.toDouble(), posY, posZ.toDouble(), rotationYaw, rotationPitch)
                 teleporter.placeEntity(newWorld, this, yaw)
             }
+            //#endif
         }
 
         worldsManager.endTransaction()

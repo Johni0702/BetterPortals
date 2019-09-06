@@ -19,6 +19,12 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 import kotlin.math.abs
 
+//#if MC>=11400
+//$$ import net.minecraft.entity.EntityType
+//$$ import net.minecraft.util.math.shapes.VoxelShape
+//$$ import java.util.stream.Stream
+//#endif
+
 open class OneWayPortalEntityPortalAgent(
         manager: PortalManager,
         portalConfig: PortalConfiguration
@@ -26,12 +32,21 @@ open class OneWayPortalEntityPortalAgent(
     lateinit var oneWayEntity: OneWayPortalEntity
         internal set
 
+    //#if MC>=11400
+    //$$ override fun modifyAABBs(entity: Entity, queryAABB: AxisAlignedBB, vanillaStream: Stream<VoxelShape>, queryRemote: (World, AxisAlignedBB) -> Stream<VoxelShape>): Stream<VoxelShape> {
+    //$$     if (oneWayEntity.isTailEnd && !oneWayEntity.isTailVisible) {
+    //$$         return vanillaStream
+    //$$     }
+    //$$     return super.modifyAABBs(entity, queryAABB, vanillaStream, queryRemote)
+    //$$ }
+    //#else
     override fun modifyAABBs(entity: Entity, queryAABB: AxisAlignedBB, aabbList: MutableList<AxisAlignedBB>, queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>) {
         if (oneWayEntity.isTailEnd && !oneWayEntity.isTailVisible) {
             return
         }
         super.modifyAABBs(entity, queryAABB, aabbList, queryRemote)
     }
+    //#endif
 
     override fun isInMaterial(entity: Entity, queryAABB: AxisAlignedBB, material: Material): Boolean? {
         if (oneWayEntity.isTailEnd && !oneWayEntity.isTailVisible) {
@@ -77,6 +92,10 @@ open class OneWayPortalEntityPortalAgent(
  * moving sufficiently far away.
  */
 abstract class OneWayPortalEntity(
+        //#if MC>=11400
+        //$$ type: EntityType<out OneWayPortalEntity>,
+        //#endif
+
         /**
          * Whether this portal instance is the tail/exit end of a pair of portals.
          * Not to be confused with the exit portal which spawns after the dragon fight; its tail end is in the overworld.
@@ -87,9 +106,23 @@ abstract class OneWayPortalEntity(
         world: World,
         portal: FinitePortal,
         agent: OneWayPortalEntityPortalAgent
-) : AbstractPortalEntity(world, portal, agent), PortalEntity.OneWay {
-    constructor(isTailEnd: Boolean, world: World, portal: FinitePortal, portalConfig: PortalConfiguration)
-            : this(isTailEnd, world, portal, OneWayPortalEntityPortalAgent(world.portalManager, portalConfig))
+) : AbstractPortalEntity(
+        //#if MC>=11400
+        //$$ type,
+        //#endif
+        world, portal, agent
+), PortalEntity.OneWay {
+    constructor(
+            //#if MC>=11400
+            //$$ type: EntityType<out OneWayPortalEntity>,
+            //#endif
+            isTailEnd: Boolean, world: World, portal: FinitePortal, portalConfig: PortalConfiguration
+    ) : this(
+            //#if MC>=11400
+            //$$ type,
+            //#endif
+            isTailEnd, world, portal, OneWayPortalEntityPortalAgent(world.portalManager, portalConfig)
+    )
 
     companion object {
         private val IS_TAIL_END: DataParameter<Boolean> = EntityDataManager.createKey(OneWayPortalEntity::class.java, DataSerializers.BOOLEAN)
@@ -167,7 +200,7 @@ abstract class OneWayPortalEntity(
             val oldState = (if (isTailVisible) Blocks.AIR else portalFrameBlock).defaultState
             val portalBlocks = portal.localBlocks
             portalBlocks.forEach { pos ->
-                EnumFacing.HORIZONTALS.forEach { facing ->
+                EnumFacing.Plane.HORIZONTAL.forEach { facing ->
                     val neighbour = pos.offset(facing)
                     if (neighbour !in portalBlocks) {
                         if (world.getBlockState(neighbour) == oldState) {
@@ -205,7 +238,7 @@ abstract class OneWayPortalEntity(
         if (!world.isRemote && isTailEnd) {
             if (isTailEndVisible) {
                 // Check if everyone has left the portal
-                val inside = world.loadedEntityList.any { entity ->
+                val inside = world.getEntitiesWithinAABB(Entity::class.java, portal.localBoundingBox).any { entity ->
                     if (entity is OneWayPortalEntity) return@any false
                     val entityAABB = entity.entityBoundingBox
                     portal.localDetailedBounds.any { it.intersects(entityAABB) }
@@ -237,11 +270,11 @@ abstract class OneWayPortalEntity(
 
     open fun isObstructed(): Boolean {
         val growVec = portal.localFacing.directionVec.to3d() * 2.0
-        if (world.getCollisionBoxes(null, portal.localBoundingBox.grow(growVec)).isEmpty()) {
+        if (!world.isObstructed(portal.localBoundingBox.grow(growVec))) {
             return false
         }
         return portal.localDetailedBounds.any {
-            world.getCollisionBoxes(null, it.grow(growVec)).isNotEmpty()
+            world.isObstructed(it.grow(growVec))
         }
     }
 
@@ -282,7 +315,7 @@ abstract class OneWayPortalEntity(
 
                     val empty = orgBounds.all {
                         val bound = it.offset(xOff.toDouble(), yOff.toDouble(), zOff.toDouble())
-                        world.getCollisionBoxes(null, bound.grow(growVec)).isEmpty()
+                        !world.isObstructed(bound.grow(growVec))
                     }
 
                     if (empty) {

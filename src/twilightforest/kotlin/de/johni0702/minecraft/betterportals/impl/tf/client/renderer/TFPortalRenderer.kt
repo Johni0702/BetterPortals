@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.tf.client.renderer
 
 import de.johni0702.minecraft.betterportals.client.render.OneWayFramedPortalRenderer
@@ -16,3 +17,4 @@ class TFPortalRenderer(
         super.renderPortalBlocks(portal, pos + Vec3d(0.0, 5.0 / 16.0, 0.0), opacity)
     }
 }
+//#endif

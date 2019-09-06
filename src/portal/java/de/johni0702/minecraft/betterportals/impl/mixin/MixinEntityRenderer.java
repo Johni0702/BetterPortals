@@ -29,6 +29,11 @@ import static de.johni0702.minecraft.betterportals.common.ExtensionsKt.times;
 import static de.johni0702.minecraft.betterportals.common.ExtensionsKt.toMC;
 import static de.johni0702.minecraft.betterportals.common.ExtensionsKt.toPoint;
 
+//#if MC>=11400
+//$$ import net.minecraft.util.math.EntityRayTraceResult;
+//$$ import net.minecraft.util.math.RayTraceContext;
+//#endif
+
 @Mixin(EntityRenderer.class)
 public abstract class MixinEntityRenderer {
     @Shadow @Final private Minecraft mc;
@@ -38,6 +43,7 @@ public abstract class MixinEntityRenderer {
         MinecraftForge.EVENT_BUS.post(new PostSetupFogEvent());
     }
 
+    // FIXME moved to ActiveRenderInfo
     @Redirect(
             method = "orientCamera",
             at = @At(
@@ -71,11 +77,18 @@ public abstract class MixinEntityRenderer {
             end = toMC(times(result.getSecond(), toPoint(end)));
         }
 
+        // Calling code only uses hitVec, so we need to transform only it
+        //#if MC>=11400
+        //$$ RayTraceResult rayResult = rayTraceBlocksWithPortals(world, new RayTraceContext(start, end, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, viewEntity));
+        //$$ if (rayResult.getType() != RayTraceResult.Type.MISS) {
+        //$$     rayResult = new EntityRayTraceResult(null, toMC(times(matrix, toPoint(rayResult.getHitVec()))));
+        //$$ }
+        //#else
         RayTraceResult rayResult = rayTraceBlocksWithPortals(world, start, end, false, false, false);
         if (rayResult != null) {
-            // Calling code only uses hitVec, so we need to transform only it
             rayResult.hitVec = toMC(times(matrix, toPoint(rayResult.hitVec)));
         }
+        //#endif
         return rayResult;
     }
 }

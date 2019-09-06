@@ -1,6 +1,5 @@
 package de.johni0702.minecraft.betterportals.impl;
 
-import net.minecraft.launchwrapper.Launch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.lib.tree.ClassNode;
@@ -11,12 +10,28 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+//#if MC>=11400
+//$$ import java.io.InputStream;
+//#else
+import net.minecraft.launchwrapper.Launch;
+//#endif
+
 public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
+    private boolean hasClass(String name) throws IOException {
+        //#if MC>=11400
+        //$$ InputStream stream = Thread.currentThread().getContextClassLoader().getResourceAsStream(name.replace('.', '/') + ".class");
+        //$$ if (stream != null) stream.close();
+        //$$ return stream != null;
+        //#else
+        return Launch.classLoader.getClassBytes("kotlin.Pair") != null;
+        //#endif
+    }
+
     private Logger logger = LogManager.getLogger("mixin/betterportals");
-    private boolean hasKotlin = Launch.classLoader.getClassBytes("kotlin.Pair") != null;
-    private boolean hasOF = Launch.classLoader.getClassBytes("optifine.OptiFineForgeTweaker") != null;
-    private boolean hasCC = Launch.classLoader.getClassBytes("io.github.opencubicchunks.cubicchunks.core.asm.coremod.CubicChunksCoreMod") != null;
-    private boolean hasSponge = Launch.classLoader.getClassBytes("org.spongepowered.common.SpongePlatform") != null;
+    private boolean hasKotlin = hasClass("kotlin.Pair");
+    private boolean hasOF = hasClass("optifine.OptiFineForgeTweaker");
+    private boolean hasCC = hasClass("io.github.opencubicchunks.cubicchunks.core.asm.coremod.CubicChunksCoreMod");
+    private boolean hasSponge = hasClass("org.spongepowered.common.SpongePlatform");
 
     {
         if (!hasKotlin) {

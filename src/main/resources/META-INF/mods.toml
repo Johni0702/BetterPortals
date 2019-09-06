@@ -1,0 +1,20 @@
+modLoader="javafml"
+loaderVersion="[26,)"
+issueTrackerURL="https://github.com/johni0702/betterportals"
+
+[[mods]]
+modId="betterportals"
+version="${version}"
+displayName="Better Portals"
+authors="johni0702"
+description="Adds see-through portals that can be used without any pesky loading screen."
+
+[[dependencies]]
+modId="forge"
+mandatory=true
+versionRange="[26,)"
+
+[[dependencies]]
+modId="forgelin"
+mandatory=true
+versionRange="[1,)"

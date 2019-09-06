@@ -1,7 +1,7 @@
 package de.johni0702.minecraft.betterportals.common
 
+import de.johni0702.minecraft.betterportals.impl.theImpl
 import net.minecraft.world.World
-import net.minecraftforge.fml.common.Loader
 
 /**
  * Entry point into the BetterPortals API.
@@ -9,7 +9,8 @@ import net.minecraftforge.fml.common.Loader
 interface BetterPortalsAPI {
     companion object {
         @JvmStatic
-        val instance by lazy { Loader.instance().indexedModList["betterportals"]!!.mod as BetterPortalsAPI }
+        val instance
+            get() = theImpl.portalApi
     }
 
     fun getPortalManager(world: World): PortalManager

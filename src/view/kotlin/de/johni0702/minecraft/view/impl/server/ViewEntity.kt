@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.view.impl.server
 
 import com.mojang.authlib.GameProfile
+import de.johni0702.minecraft.betterportals.common.DimensionId
 import de.johni0702.minecraft.betterportals.common.server
 import de.johni0702.minecraft.view.impl.IWorldsManagerHolder
 import de.johni0702.minecraft.view.impl.worldsManagerImpl
@@ -25,6 +26,16 @@ import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 import java.io.File
 
+//#if MC>=11400
+//$$ import com.mojang.datafixers.DataFixer
+//#endif
+
+//#if MC>=11400
+//$$ typealias StatAny = Stat<*>
+//#else
+typealias StatAny = StatBase
+//#endif
+
 internal class ViewEntity(
         world: WorldServer,
         profile: GameProfile,
@@ -40,28 +51,35 @@ internal class ViewEntity(
     }
 
     override fun isSpectatedByPlayer(player: EntityPlayerMP): Boolean = false
-    override fun canUseCommand(i: Int, s: String?): Boolean = false
     override fun sendStatusMessage(chatComponent: ITextComponent?, actionBar: Boolean) {}
     override fun sendMessage(component: ITextComponent?) {}
-    override fun addStat(stat: StatBase?) {}
-    override fun openGui(mod: Any?, modGuiId: Int, world: World?, x: Int, y: Int, z: Int) {}
+    override fun addStat(stat: StatAny?) {}
     override fun isEntityInvulnerable(source: DamageSource?): Boolean = true
     override fun canAttackPlayer(player: EntityPlayer?): Boolean = false
     override fun onDeath(source: DamageSource?) {}
     override fun onUpdate() {}
-    override fun changeDimension(dim: Int): Entity? = this
+    override fun changeDimension(dim: DimensionId): Entity? = this
     override fun handleClientSettings(pkt: CPacketClientSettings?) {}
+
+    //#if MC<11400
+    override fun canUseCommand(i: Int, s: String?): Boolean = false
+    override fun openGui(mod: Any?, modGuiId: Int, world: World?, x: Int, y: Int, z: Int) {}
+    //#endif
 }
 
 @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS") // all relevant methods have been overridden
 internal class ViewStatsManager : StatisticsManagerServer(null, null) {
     override fun saveStatFile() = Unit
+    //#if MC>=11400
+    //$$ override fun parseLocal(dataFixer: DataFixer, json: String) = Unit
+    //#else
     override fun readStatFile() = Unit
-    override fun unlockAchievement(playerIn: EntityPlayer, statIn: StatBase, p_150873_3_: Int) = Unit
+    //#endif
+    override fun unlockAchievement(playerIn: EntityPlayer, statIn: StatAny, p_150873_3_: Int) = Unit
     override fun markAllDirty() = Unit
     override fun sendStats(player: EntityPlayerMP) = Unit
-    override fun increaseStat(player: EntityPlayer, stat: StatBase, amount: Int) = Unit
-    override fun readStat(stat: StatBase): Int = 0
+    override fun increaseStat(player: EntityPlayer, stat: StatAny, amount: Int) = Unit
+    override fun readStat(stat: StatAny): Int = 0
 }
 
 internal class ViewAdvancements(server: MinecraftServer, player: EntityPlayerMP)

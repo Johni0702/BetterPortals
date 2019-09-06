@@ -1,7 +1,8 @@
 package de.johni0702.minecraft.betterportals.impl.vanilla.common.blocks
 
+import de.johni0702.minecraft.betterportals.common.add
 import de.johni0702.minecraft.betterportals.common.server
-import de.johni0702.minecraft.betterportals.impl.vanilla.common.EMPTY_AABB
+import de.johni0702.minecraft.betterportals.common.toDimensionId
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndEntryPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndExitPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndPortalEntity
@@ -24,11 +25,33 @@ import net.minecraft.util.EnumFacing
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
-import net.minecraft.world.IBlockAccess
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 
-class BlockBetterEndPortal : BlockEndPortal(Material.PORTAL) {
+//#if MC>=11400
+//$$ import net.minecraft.block.material.MaterialColor
+//$$ import net.minecraft.util.math.shapes.ISelectionContext
+//$$ import net.minecraft.util.math.shapes.VoxelShape
+//$$ import net.minecraft.util.math.shapes.VoxelShapes
+//$$ import net.minecraft.world.IBlockReader
+//$$ import net.minecraft.world.IWorld
+//$$ import net.minecraft.world.gen.Heightmap
+//#else
+import de.johni0702.minecraft.betterportals.common.EMPTY_AABB
+import net.minecraft.world.IBlockAccess
+//#endif
+
+class BlockBetterEndPortal : BlockEndPortal(
+        //#if MC>=11400
+        //$$ Block.Properties.create(Material.PORTAL, MaterialColor.BLACK)
+        //$$         .doesNotBlockMovement()
+        //$$         .lightValue(15)
+        //$$         .hardnessAndResistance(-1.0f, 3600000.0f)
+        //$$         .noDrops()
+        //#else
+        Material.PORTAL
+        //#endif
+) {
     companion object {
         val BETTER_END_SPAWN = BlockPos(1, 0, 1)
         val exitPattern: BlockPattern = FactoryBlockPattern.start()
@@ -43,20 +66,49 @@ class BlockBetterEndPortal : BlockEndPortal(Material.PORTAL) {
     }
 
     init {
-        unlocalizedName = "end_portal"
         setRegistryName("minecraft", "end_portal")
+        //#if MC<11400
+        unlocalizedName = "end_portal"
         setBlockUnbreakable()
         setLightLevel(1f)
         setResistance(6000000f)
+        //#endif
     }
 
-    override fun createNewTileEntity(worldIn: World, meta: Int): TileEntity = TileEntityBetterEndPortal()
     override fun getRenderType(state: IBlockState): EnumBlockRenderType = EnumBlockRenderType.INVISIBLE
+
+    //#if MC>=11400
+    //$$ override fun createNewTileEntity(worldIn: IBlockReader): TileEntity = TileEntityBetterEndPortal()
+    //$$ override fun getShape(state: BlockState, worldIn: IBlockReader, pos: BlockPos, context: ISelectionContext): VoxelShape =
+    //$$         VoxelShapes.empty()
+    //$$ override fun onEntityCollision(state: BlockState, worldIn: World, pos: BlockPos, entityIn: Entity) {
+    //$$     if (entityIn is PlayerEntity) {
+    //$$         makePortal(worldIn, pos) // Convert vanilla portals upon touching
+    //$$     }
+    //$$ }
+    //$$
+    //$$ override fun updatePostPlacement(stateIn: BlockState, facing: Direction, facingState: BlockState, worldIn: IWorld, pos: BlockPos, facingPos: BlockPos): BlockState {
+    //$$     return if (EndPortalFrameBlock.getOrCreatePortalShape().match(worldIn, pos) == null
+    //$$             && exitPattern.match(worldIn, pos) == null) {
+    //$$         worldIn.getEntitiesWithinAABB(EndPortalEntity::class.java, AxisAlignedBB(pos)).forEach {
+    //$$             it.remove()
+    //$$         }
+    //$$         Blocks.AIR.defaultState
+    //$$     } else {
+    //$$         stateIn
+    //$$     }
+    //$$ }
+    //#else
+    override fun createNewTileEntity(worldIn: World, meta: Int): TileEntity = TileEntityBetterEndPortal()
     override fun getBoundingBox(state: IBlockState, source: IBlockAccess, pos: BlockPos): AxisAlignedBB = EMPTY_AABB
     override fun onEntityCollidedWithBlock(worldIn: World, pos: BlockPos, state: IBlockState, entityIn: Entity) {
         if (entityIn is EntityPlayer) {
             onBlockAdded(worldIn, pos, state) // Convert vanilla portals upon touching
         }
+    }
+
+    override fun onBlockAdded(localWorld: World, pos: BlockPos, state: IBlockState) {
+        makePortal(localWorld, pos)
     }
 
     override fun neighborChanged(state: IBlockState, worldIn: World, pos: BlockPos, blockIn: Block, fromPos: BlockPos) {
@@ -65,11 +117,12 @@ class BlockBetterEndPortal : BlockEndPortal(Material.PORTAL) {
             worldIn.getEntitiesWithinAABB(EndPortalEntity::class.java, AxisAlignedBB(pos)).forEach {
                 it.setDead()
             }
-            worldIn.setBlockToAir(pos)
+            worldIn.setBlockState(pos, Blocks.AIR.defaultState)
         }
     }
+    //#endif
 
-    override fun onBlockAdded(localWorld: World, pos: BlockPos, state: IBlockState) {
+    private fun makePortal(localWorld: World, pos: BlockPos) {
         if (localWorld !is WorldServer) return
         val server = localWorld.server
 
@@ -80,18 +133,28 @@ class BlockBetterEndPortal : BlockEndPortal(Material.PORTAL) {
 
             if (localWorld.getEntitiesWithinAABB(EndPortalEntity::class.java, AxisAlignedBB(localPos)).isNotEmpty()) return
 
-            val remoteDim = 1
+            val remoteDim = 1.toDimensionId()!!
             val remoteWorld = server.getWorld(remoteDim)
             val remotePos = remoteWorld.getTopSolidOrLiquidBlock(BETTER_END_SPAWN).add(0, 40, 0).let {
                 if (it.y > remoteWorld.height) BlockPos(it.x, remoteWorld.height - 1, it.z) else it
             }
             val remoteRot = Rotation.NONE
 
-            val localPortal = EndEntryPortalEntity(localWorld, localDim, localPos, localRot)
-            val remotePortal = EndEntryPortalEntity(remoteWorld, remoteDim, remotePos, remoteRot)
+            val localPortal = EndEntryPortalEntity(
+                    world = localWorld,
+                    localDimension = localDim,
+                    localPosition = localPos,
+                    localRotation = localRot
+            )
+            val remotePortal = EndEntryPortalEntity(
+                    world = remoteWorld,
+                    localDimension = remoteDim,
+                    localPosition = remotePos,
+                    localRotation = remoteRot
+            )
 
-            localWorld.spawnEntity(localPortal)
-            remoteWorld.spawnEntity(remotePortal)
+            localWorld.add(localPortal)
+            remoteWorld.add(remotePortal)
 
             localPortal.link(remotePortal)
             return
@@ -103,24 +166,39 @@ class BlockBetterEndPortal : BlockEndPortal(Material.PORTAL) {
 
             if (localWorld.getEntitiesWithinAABB(EndPortalEntity::class.java, AxisAlignedBB(localPos)).isNotEmpty()) return
 
-            val remoteDim = 0
+            val remoteDim = 0.toDimensionId()!!
             val remoteWorld = server.getWorld(remoteDim)
             val remotePos = remoteWorld.getTopSolidOrLiquidBlock(remoteWorld.spawnPoint).add(0, 40, 0).let {
                 if (it.y > remoteWorld.height) BlockPos(it.x, remoteWorld.height - 1, it.z) else it
             }
             val remoteRot = Rotation.NONE
 
-            val localPortal = EndExitPortalEntity(localWorld, localDim, localPos, localRot)
-            val remotePortal = EndExitPortalEntity(remoteWorld, remoteDim, remotePos, remoteRot)
+            val localPortal = EndExitPortalEntity(
+                    world = localWorld,
+                    localDimension = localDim,
+                    localPosition = localPos,
+                    localRotation = localRot
+            )
+            val remotePortal = EndExitPortalEntity(
+                    world = remoteWorld,
+                    localDimension = remoteDim,
+                    localPosition = remotePos,
+                    localRotation = remoteRot
+            )
 
-            localWorld.spawnEntity(localPortal)
-            remoteWorld.spawnEntity(remotePortal)
+            localWorld.add(localPortal)
+            remoteWorld.add(remotePortal)
 
             localPortal.link(remotePortal)
             return
         }
     }
 }
+
+//#if MC>=11400
+//$$ fun ServerWorld.getTopSolidOrLiquidBlock(below: BlockPos): BlockPos =
+//$$         getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, below)
+//#endif
 
 class TileEntityBetterEndPortal : TileEntityEndPortal() {
     override fun shouldRenderFace(side: EnumFacing): Boolean = false

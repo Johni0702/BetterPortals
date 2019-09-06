@@ -7,11 +7,18 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.network.NetHandlerPlayClient
+import net.minecraft.client.util.RecipeBookClient
 import net.minecraft.potion.Potion
 import net.minecraft.potion.PotionEffect
-import net.minecraft.stats.RecipeBook
 import net.minecraft.stats.StatisticsManager
 import java.util.*
+
+//#if MC>=11400
+//$$ import net.minecraft.entity.EntitySize
+//$$ import net.minecraft.entity.Pose
+//$$ import net.minecraft.item.crafting.RecipeManager
+//#else
+//#endif
 
 private val viewCameraUUID = UUID.randomUUID()
 
@@ -24,7 +31,11 @@ private fun createDummyNetHandler() = NetHandlerPlayClient(
 )
 
 internal class ViewCameraEntity constructor(world: WorldClient)
-    : EntityPlayerSP(Minecraft.getMinecraft(), world, createDummyNetHandler(), StatisticsManager(), RecipeBook()) {
+    : EntityPlayerSP(Minecraft.getMinecraft(), world, createDummyNetHandler(), StatisticsManager(), RecipeBookClient(
+        //#if MC>=11400
+        //$$ RecipeManager()
+        //#endif
+)) {
 
     init {
         // Negative ids cannot be used by the server
@@ -36,10 +47,15 @@ internal class ViewCameraEntity constructor(world: WorldClient)
         dimension = world.provider.dimension
     }
 
+    //#if MC>=11400
+    //$$ var eyeHeightOverwrite = 0.toFloat()
+    //$$ override fun getStandingEyeHeight(pose: Pose, size: EntitySize): Float = eyeHeightOverwrite
+    //$$ override fun getEyeHeight(pose: Pose): Float = eyeHeight
+    //#else
     override fun getEyeHeight(): Float = eyeHeight
+    //#endif
     override fun onUpdate() {}
     override fun isEntityInsideOpaqueBlock(): Boolean = false
-    override fun isInsideOfMaterial(materialIn: Material): Boolean = false
     override fun isInLava(): Boolean = false
     override fun isInWater(): Boolean = false
     override fun isBurning(): Boolean = false
@@ -47,8 +63,15 @@ internal class ViewCameraEntity constructor(world: WorldClient)
     override fun createRunningParticles() {}
     override fun canBeCollidedWith(): Boolean = false
     override fun isSpectator(): Boolean = true
-    override fun shouldRenderInPass(pass: Int): Boolean = false
     override fun isInvisible(): Boolean = true
+
+    //#if MC>=11400
+    //$$ override fun isInRangeToRender3d(x: Double, y: Double, z: Double): Boolean = false
+    //$$ override fun isInRangeToRenderDist(dist: Double): Boolean = false
+    //#else
+    override fun isInsideOfMaterial(materialIn: Material): Boolean = false
+    override fun shouldRenderInPass(pass: Int): Boolean = false
+    //#endif
 
     private val actualPlayer = ClientViewAPI.instance.getWorldsManager(mc)?.player
     override fun getActivePotionMap(): MutableMap<Potion, PotionEffect> = actualPlayer?.activePotionMap ?: mutableMapOf()

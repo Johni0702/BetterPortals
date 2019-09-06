@@ -1,26 +1,41 @@
 package de.johni0702.minecraft.view.impl.client
 
+import de.johni0702.minecraft.betterportals.common.currentlyOnMainThread
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.common.maybeValue
 import net.minecraft.client.Minecraft
 import net.minecraft.network.NetworkManager
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+
+//#if MC>=11400
+//#else
+import java.util.*
 import java.util.concurrent.FutureTask
+//#endif
 
 /**
  * Replacement for [Minecraft.scheduledTasks] which tries its best to call the tasks with the correct view where
  * possible.
  */
+//#if MC>=11400
+//$$ object ViewDemuxingTaskQueue {
+//$$     private val mc = Minecraft.getInstance()
+//#else
 internal class ViewDemuxingTaskQueue(
         private val mc: Minecraft,
         private val backingQueue: Queue<FutureTask<*>> = ArrayDeque()
 ) : AbstractQueue<FutureTask<*>>() {
+//#endif
 
     private val knownBadCallers = ConcurrentHashMap.newKeySet<StackTraceElement>()
 
+    //#if MC>=11400
+    //$$ @JvmStatic
+    //$$ fun wrapTask(inner: Runnable): Runnable {
+    //#else
     private fun <T> wrapTask(inner: FutureTask<T>): FutureTask<T> {
+    //#endif
         val viewManager = ClientViewAPIImpl.viewManagerImpl
 
         // Determine the view which this task most likely belongs to
@@ -30,7 +45,7 @@ internal class ViewDemuxingTaskQueue(
                 return inner
 
             // Calling from main thread? must the the currently active view
-            mc.isCallingFromMinecraftThread ->
+            mc.currentlyOnMainThread ->
                 viewManager.activeView.let { { it } }
 
             // Calling from any netty thread? must the the active server main view
@@ -68,7 +83,24 @@ internal class ViewDemuxingTaskQueue(
         return ViewWrappedFutureTask(view, inner)
     }
 
-    class ViewWrappedFutureTask<T>(
+    //#if MC>=11400
+    //$$ internal class ViewWrappedFutureTask(
+    //$$         private val viewGetter: () -> ClientState?,
+    //$$         private val wrapped: Runnable
+    //$$ ) : Runnable {
+    //$$     override fun run() {
+    //$$         val view = viewGetter()
+    //$$         if (view == null) {
+    //$$             wrapped.run()
+    //$$         } else {
+    //$$             ClientViewAPIImpl.viewManagerImpl.updateState(view) {
+    //$$                 wrapped.run()
+    //$$             }
+    //$$         }
+    //$$     }
+    //$$ }
+    //#else
+    internal class ViewWrappedFutureTask<T>(
             private val viewGetter: () -> ClientState?,
             private val wrapped: FutureTask<T>
     ) : FutureTask<T>({
@@ -82,11 +114,14 @@ internal class ViewDemuxingTaskQueue(
         }
         wrapped.get()
     })
+    //#endif
 
+    //#if MC<11400
     override fun offer(p0: FutureTask<*>): Boolean = backingQueue.offer(wrapTask(p0))
     override fun iterator(): MutableIterator<FutureTask<*>> = backingQueue.iterator()
     override fun peek(): FutureTask<*>? = backingQueue.peek()
     override fun poll(): FutureTask<*>? = backingQueue.poll()
     override fun isEmpty(): Boolean = backingQueue.isEmpty()
     override val size: Int get() = backingQueue.size
+    //#endif
 }

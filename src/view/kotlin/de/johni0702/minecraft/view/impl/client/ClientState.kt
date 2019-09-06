@@ -1,7 +1,10 @@
 package de.johni0702.minecraft.view.impl.client
 
-import de.johni0702.minecraft.betterportals.common.forceSpawnEntity
+import de.johni0702.minecraft.betterportals.common.DimensionId
+import de.johni0702.minecraft.betterportals.common.forceAddEntity
+import de.johni0702.minecraft.betterportals.common.forceRemoveEntity
 import de.johni0702.minecraft.view.impl.LOGGER
+import de.johni0702.minecraft.view.impl.net.CreateWorld
 import io.netty.channel.embedded.EmbeddedChannel
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
@@ -15,7 +18,12 @@ import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher
 import net.minecraft.entity.Entity
 import net.minecraft.network.*
 import net.minecraft.util.math.RayTraceResult
+import net.minecraft.world.WorldSettings
+
+//#if MC>=11400
+//#else
 import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher
+//#endif
 
 internal class ClientState(
         val manager: ClientWorldsManagerImpl,
@@ -25,7 +33,7 @@ internal class ClientState(
         var netManager: NetworkManager?
 ) {
     val isMainView: Boolean get() = manager.mainView == this
-    val dimension: Int get() = world.provider.dimension
+    val dimension: DimensionId get() = world.provider.dimension
     var isValid = true
     val player: EntityPlayerSP get() = manager.getServerPlayer(this)
     val clientPlayer: EntityPlayerSP get() = manager.getClientPlayer(this)
@@ -48,8 +56,8 @@ internal class ClientState(
         val withPlayer = with.thePlayer!!
         val mcPlayer = if (mc.player == thisPlayer) withPlayer else thisPlayer
 
-        this.world.removeEntityDangerously(thisPlayer)
-        with.world.removeEntityDangerously(withPlayer)
+        this.world.forceRemoveEntity(thisPlayer)
+        with.world.forceRemoveEntity(withPlayer)
 
         // We need to set thePlayer to null because it'll be used for the getEntityByID lookup in displaceEntity
         this.thePlayer = null
@@ -88,8 +96,8 @@ internal class ClientState(
         // E.g. StorageDrawers (#304), DynamicSurrounds (#313)
         mc.player = mcPlayer
 
-        this.world.spawnEntity(withPlayer)
-        with.world.spawnEntity(thisPlayer)
+        this.world.forceAddEntity(withPlayer)
+        with.world.forceAddEntity(thisPlayer)
     }
 
     /**
@@ -101,7 +109,7 @@ internal class ClientState(
     private fun displaceEntity(entityId: Int) {
         val world = _world ?: return
         world.getEntityByID(entityId)?.let {
-            world.removeEntityDangerously(it)
+            world.forceRemoveEntity(it)
             it.isDead = false
             displacedEntity = it
         }
@@ -114,7 +122,7 @@ internal class ClientState(
             val world = _world ?: return
             it.setWorld(world)
             it.dimension = world.provider.dimension
-            world.forceSpawnEntity(it)
+            world.forceAddEntity(it)
         }
     }
 
@@ -180,7 +188,7 @@ internal class ClientState(
     }
 
     companion object {
-        fun reuseOrCreate(manager: ClientWorldsManagerImpl, world: WorldClient, oldView: ClientState?): ClientState {
+        fun reuseOrCreate(manager: ClientWorldsManagerImpl, message: CreateWorld, oldView: ClientState?): ClientState {
             val mc = manager.mc
             val connection = mc.connection ?: throw IllegalStateException("Cannot create view without active connection")
             val networkManager = ViewNetworkManager()
@@ -193,6 +201,9 @@ internal class ClientState(
                     .fireChannelActive()
             networkManager.setConnectionState(EnumConnectionState.PLAY)
 
+            //#if MC>=11400
+            //$$ // FIXME oh no, I gotta understand forge's networking mess again
+            //#else
             val networkDispatcher = NetworkDispatcher.allocAndSet(networkManager)
             channel.pipeline().addBefore("packet_handler", "fml:packet_handler", networkDispatcher)
 
@@ -200,18 +211,16 @@ internal class ClientState(
             val connectedState = stateField.type.asSubclass(Enum::class.java).enumConstants.last()
             stateField.isAccessible = true
             stateField.set(networkDispatcher, connectedState)
-
-            val camera = ViewEntity(world, connection)
-            world.spawnEntity(camera)
+            //#endif
 
             val view: ClientState
             if (oldView == null) {
                 LOGGER.debug("Creating new view")
-                view = ClientState(manager, world, camera, channel, networkManager)
+                view = ClientState(manager, null, null, channel, networkManager)
 
             } else {
                 LOGGER.debug("Reusing stored view")
-                view = ClientState(manager, world, camera, channel, networkManager)
+                view = ClientState(manager, null, null, channel, networkManager)
                 view.itemRenderer = oldView.itemRenderer
                 view.renderGlobal = oldView.renderGlobal
                 view.entityRenderer = oldView.entityRenderer
@@ -228,10 +237,35 @@ internal class ClientState(
                     mc.renderGlobal = view.renderGlobal
                     view.entityRenderer = EntityRenderer(mc, mc.resourceManager)
                     mc.entityRenderer = view.entityRenderer
-                    view.particleManager = ParticleManager(world, mc.textureManager)
+                    @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS") // incorrect default annotation
+                    view.particleManager = ParticleManager(null, mc.textureManager)
                     mc.effectRenderer = view.particleManager
                 }
+            }
 
+            val world = WorldClient(mc.connection!!,
+                    WorldSettings(0L,
+                            message.gameType!!,
+                            false,
+                            mc.world.worldInfo.isHardcoreModeEnabled,
+                            message.worldType!!),
+                    message.dimensionID,
+                    //#if MC>=11400
+                    //$$ 0,
+                    //$$ mc.profiler,
+                    //$$ mc.worldRenderer
+                    //#else
+                    message.difficulty!!,
+                    mc.mcProfiler
+                    //#endif
+            )
+            val camera = ViewEntity(world, connection)
+
+            view._world = world
+            view.thePlayer = camera
+            world.forceAddEntity(camera)
+
+            manager.withView(view) {
                 with (mc.renderGlobal) {
                     if (renderDispatcher != null) {
                         renderDispatcher.stopWorkerThreads()

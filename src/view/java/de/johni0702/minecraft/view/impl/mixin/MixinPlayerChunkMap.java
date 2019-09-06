@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.view.impl.mixin;
 
 import de.johni0702.minecraft.view.impl.server.ServerWorldManager;
@@ -126,3 +127,4 @@ public abstract class MixinPlayerChunkMap {
         this.markSortPending();
     }
 }
+//#endif

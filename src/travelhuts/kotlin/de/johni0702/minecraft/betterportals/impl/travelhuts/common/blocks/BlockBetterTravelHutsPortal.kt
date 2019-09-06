@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.travelhuts.common.blocks
 
 import de.johni0702.minecraft.betterportals.common.FinitePortal
@@ -156,3 +157,4 @@ class BlockBetterTravelHutsPortal : BlockHutPortal("$TRAVELHUTS_MOD_ID:blockhutp
         private val PORTAL_BLOCKS_NEGATIVE = PORTAL_BLOCKS_POSITIVE.map { it.offset(EnumFacing.WEST) }.toSet()
     }
 }
+//#endif

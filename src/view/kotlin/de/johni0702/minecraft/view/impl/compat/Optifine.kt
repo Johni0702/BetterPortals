@@ -1,9 +1,9 @@
 package de.johni0702.minecraft.view.impl.compat
 
+import de.johni0702.minecraft.betterportals.common.hasClass
 import de.johni0702.minecraft.view.client.render.RenderPassEvent
 import de.johni0702.minecraft.view.impl.LOGGER
 import net.minecraft.client.renderer.chunk.RenderChunk
-import net.minecraft.launchwrapper.Launch
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
@@ -32,7 +32,7 @@ internal class OptifineReflection {
         set(value) { Shaders_shaderPackLoaded[null] = value }
 }
 
-internal val Optifine = if (Launch.classLoader.getClassBytes("optifine.OptiFineForgeTweaker") != null) {
+internal val Optifine = if (hasClass("optifine.OptiFineForgeTweaker")) {
     OptifineReflection()
 } else {
     null

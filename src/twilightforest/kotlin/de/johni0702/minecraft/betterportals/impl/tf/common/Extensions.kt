@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.tf.common
 
 import de.johni0702.minecraft.betterportals.client.render.RenderOneWayPortalEntity
@@ -70,3 +71,4 @@ fun initTwilightForest(
         })
     }
 }
+//#endif

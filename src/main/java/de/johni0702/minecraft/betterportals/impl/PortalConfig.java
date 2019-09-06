@@ -1,6 +1,9 @@
 package de.johni0702.minecraft.betterportals.impl;
 
+//#if MC>=11400
+//#else
 import net.minecraftforge.common.config.Config;
+//#endif
 
 public class PortalConfig {
     @Config.RequiresMcRestart

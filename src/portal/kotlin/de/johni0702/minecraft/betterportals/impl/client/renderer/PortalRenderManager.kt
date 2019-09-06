@@ -212,7 +212,11 @@ internal object PortalRenderManager {
             val planePos = parentPortal.remotePosition.to3dMid() + cameraSide.directionVec.to3d().scale(offset)
             // glClipPlane uses the current ModelView matrix to transform the given coordinates to view space
             // so we need to have the camera setup before calling it
-            mc.entityRenderer.setupCameraTransform(partialTicks, 0)
+            mc.entityRenderer.setupCameraTransform(partialTicks
+                    //#if MC<11400
+                    , 0
+                    //#endif
+            )
             // setupCameraTransform configures world space with the origin at the camera's feet.
             // planePos however is currently absolute world space, so we need to convert it
             val relPlanePos = planePos - camera.feetPosition
@@ -231,9 +235,13 @@ internal object PortalRenderManager {
         }
 
         renderPass.portalFogDetail?.let { fogDetail ->
+            //#if MC>=11400
+            //$$ mc.gameRenderer.fogRenderer.updateFogColor(mc.gameRenderer.activeRenderInfo, partialTicks)
+            //#else
             mc.entityRenderer.updateFogColor(partialTicks)
+            //#endif
             with(GlStateManager.clearState.color) {
-                fogDetail.color = Vec3d(red.toDouble(), green.toDouble(), blue.toDouble())
+                fogDetail.color = Vec3d(this.red.toDouble(), this.green.toDouble(), this.blue.toDouble())
             }
         }
     }

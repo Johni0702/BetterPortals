@@ -1,18 +1,21 @@
 package de.johni0702.minecraft.betterportals.impl.net
 
 import de.johni0702.minecraft.betterportals.common.portalManager
+import de.johni0702.minecraft.betterportals.impl.IMessage
+import de.johni0702.minecraft.betterportals.impl.IMessageHandler
+import de.johni0702.minecraft.betterportals.impl.MessageContext
+import de.johni0702.minecraft.betterportals.impl.NetworkDirection
 import de.johni0702.minecraft.betterportals.impl.common.LOGGER
-import de.johni0702.minecraft.betterportals.impl.common.sync
+import de.johni0702.minecraft.betterportals.impl.serverPlayer
+import de.johni0702.minecraft.betterportals.impl.sync
 import io.netty.buffer.ByteBuf
 import net.minecraft.network.PacketBuffer
 import net.minecraft.util.ResourceLocation
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage
-import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 
 internal class UsePortal(
         var id: ResourceLocation? = null
 ) : IMessage {
+    override val direction = NetworkDirection.TO_SERVER
 
     override fun fromBytes(buf: ByteBuf) {
         with(PacketBuffer(buf)) {
@@ -26,10 +29,12 @@ internal class UsePortal(
         }
     }
 
-    internal class Handler : IMessageHandler<UsePortal, IMessage> {
-        override fun onMessage(message: UsePortal, ctx: MessageContext): IMessage? {
+    internal class Handler : IMessageHandler<UsePortal> {
+        override fun new(): UsePortal = UsePortal()
+
+        override fun handle(message: UsePortal, ctx: MessageContext) {
             ctx.sync {
-                val player = ctx.serverHandler.player
+                val player = ctx.serverPlayer
                 if (player.connection.targetPos != null) {
                     LOGGER.warn("Ignoring use portal request from $player because they have an outstanding teleport.")
                     return@sync
@@ -41,7 +46,6 @@ internal class UsePortal(
                 }
                 portalAgent.serverPortalUsed(player)
             }
-            return null
         }
     }
 }

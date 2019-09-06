@@ -4,16 +4,12 @@ import de.johni0702.minecraft.view.impl.server.ViewAdvancements;
 import de.johni0702.minecraft.view.impl.server.ViewEntity;
 import de.johni0702.minecraft.view.impl.server.ViewStatsManager;
 import net.minecraft.advancements.PlayerAdvancements;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.Packet;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.management.PlayerList;
 import net.minecraft.stats.StatisticsManagerServer;
-import net.minecraft.world.WorldServer;
-import net.minecraftforge.common.DimensionManager;
-import net.minecraftforge.common.util.ITeleporter;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -21,6 +17,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.List;
+
+//#if MC>=11400
+//$$ import net.minecraft.world.dimension.DimensionType;
+//$$ import net.minecraft.world.server.ServerWorld;
+//#else
+import net.minecraftforge.common.DimensionManager;
+//#endif
 
 /**
  * The player list has some methods used to send packet to all online players.
@@ -33,18 +38,37 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinPlayerList {
     @Shadow @Final private MinecraftServer mcServer;
 
-    @Shadow public abstract void transferEntityToWorld(Entity entityIn, int lastDimension, WorldServer oldWorldIn, WorldServer toWorldIn, ITeleporter teleporter);
-
     @Inject(method = "sendPacketToAllPlayers", at = @At("HEAD"))
     private void sendPacketToAllViews(Packet<?> packetIn, CallbackInfo ci) {
+        //#if MC>=11400
+        //$$ for (ServerWorld world : server.getWorlds()) {
+        //$$     for (PlayerEntity entity : world.getPlayers()) {
+        //$$         if (entity instanceof ViewEntity) {
+        //$$             ((ViewEntity) entity).connection.sendPacket(packetIn);
+        //$$         }
+        //$$     }
+        //$$ }
+        //#else
         for (Integer dimension : DimensionManager.getIDs()) {
             sendPacketToAllViewsInDimension(packetIn, dimension, ci);
         }
+        //#endif
     }
 
     @Inject(method = "sendPacketToAllPlayersInDimension", at = @At("HEAD"))
-    private void sendPacketToAllViewsInDimension(Packet<?> packetIn, int dimension, CallbackInfo ci) {
-        for (EntityPlayer entity : mcServer.getWorld(dimension).playerEntities) {
+    private void sendPacketToAllViewsInDimension(Packet<?> packetIn,
+                                                 //#if MC>=11400
+                                                 //$$ DimensionType dimension,
+                                                 //#else
+                                                 int dimension,
+                                                 //#endif
+                                                 CallbackInfo ci) {
+        //#if MC>=11400
+        //$$ List<ServerPlayerEntity> players = this.server.getWorld(dimension).getPlayers();
+        //#else
+        List<EntityPlayer> players = this.mcServer.getWorld(dimension).playerEntities;
+        //#endif
+        for (EntityPlayer entity : players) {
             if (entity instanceof ViewEntity) {
                 ((ViewEntity) entity).connection.sendPacket(packetIn);
             }
@@ -52,8 +76,22 @@ public abstract class MixinPlayerList {
     }
 
     @Inject(method = "sendToAllNearExcept", at = @At("HEAD"))
-    private void sendPacketToAllViewsNearExcept(EntityPlayer except, double x, double y, double z, double radius, int dimension, Packet<?> packetIn, CallbackInfo ci) {
-        for (EntityPlayer entity : mcServer.getWorld(dimension).playerEntities) {
+    private void sendPacketToAllViewsNearExcept(EntityPlayer except,
+                                                double x, double y, double z,
+                                                double radius,
+                                                //#if MC>=11400
+                                                //$$ DimensionType dimension,
+                                                //#else
+                                                int dimension,
+                                                //#endif
+                                                Packet<?> packetIn,
+                                                CallbackInfo ci) {
+        //#if MC>=11400
+        //$$ List<ServerPlayerEntity> players = this.server.getWorld(dimension).getPlayers();
+        //#else
+        List<EntityPlayer> players = this.mcServer.getWorld(dimension).playerEntities;
+        //#endif
+        for (EntityPlayer entity : players) {
             if (entity instanceof ViewEntity && entity != except) {
                 double dx = x - entity.posX;
                 double dy = y - entity.posY;
@@ -68,7 +106,7 @@ public abstract class MixinPlayerList {
     @Inject(method = "getPlayerAdvancements", at = @At("HEAD"), cancellable = true)
     private void getPlayerAdvancementsForViewEntity(EntityPlayerMP player, CallbackInfoReturnable<PlayerAdvancements> ci) {
         if (player instanceof ViewEntity) {
-            ci.setReturnValue(new ViewAdvancements(mcServer, player));
+            ci.setReturnValue(new ViewAdvancements(this.mcServer, player));
         }
     }
 

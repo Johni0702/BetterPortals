@@ -50,7 +50,11 @@ class EndPortalRenderer(
         blocks.forEach { relativePos ->
             with(offset + relativePos.to3d()) {
                 firstPass = true
-                tileEntityRenderer.render(dummyTileEntity, x, y, z, partialTicks, 0, 1f)
+                tileEntityRenderer.render(dummyTileEntity, x, y, z, partialTicks, 0
+                        //#if MC<11400
+                        , 1f
+                        //#endif
+                )
             }
         }
     }

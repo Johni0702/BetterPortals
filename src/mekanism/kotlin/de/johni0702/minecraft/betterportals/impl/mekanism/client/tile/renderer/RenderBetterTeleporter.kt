@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.mekanism.client.tile.renderer
 
 import de.johni0702.minecraft.betterportals.client.render.FramedPortalRenderer
@@ -48,3 +49,4 @@ class RenderBetterTeleporter(private val opacity: () -> Double) : RenderTeleport
         super.bindTexture(location)
     }
 }
+//#endif

@@ -21,10 +21,10 @@ public class MixinNetHandlerPlayerClient {
         // but the server doesn't know yet), then the player has been teleported around on the server side and we need
         // to rewind the local portal usage. The server will ignored our UsePortal message because at the time it
         // receives the message we have an open teleport still awaiting confirmation (the one which caused this call).
-        ClientWorldsManagerImpl viewManager = ClientViewAPIImpl.INSTANCE.getViewManagerImpl$betterportals_view();
+        ClientWorldsManagerImpl viewManager = ClientViewAPIImpl.INSTANCE.getViewManagerImpl();
         // only when we are what the server sees as the main view
         if (viewManager.getActiveView() == viewManager.getServerMainView()) {
-            viewManager.rewindMainView$betterportals_view();
+            viewManager.rewindMainView();
         }
     }
 }

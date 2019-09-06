@@ -1,11 +1,14 @@
 package de.johni0702.minecraft.view.impl.client
 
-import de.johni0702.minecraft.view.impl.MOD_ID
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.util.ReferenceCountUtil
 import net.minecraft.network.play.server.SPacketCustomPayload
+
+//#if MC>=11400
+//$$ import net.minecraft.util.ResourceLocation
+//#endif
 
 internal class TransactionNettyHandler : ChannelInboundHandlerAdapter() {
     private var inTransaction = 0
@@ -13,11 +16,11 @@ internal class TransactionNettyHandler : ChannelInboundHandlerAdapter() {
 
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         if (msg is SPacketCustomPayload) {
-            if (msg.channelName == "$MOD_ID|TS") {
+            if (msg.channelName == CHANNEL_START) {
                 inTransaction++
                 return
             }
-            if (msg.channelName == "$MOD_ID|TE") {
+            if (msg.channelName == CHANNEL_END) {
                 if (inTransaction <= 1) {
                     queue.forEach {
                         ReferenceCountUtil.release(it)
@@ -38,6 +41,14 @@ internal class TransactionNettyHandler : ChannelInboundHandlerAdapter() {
     }
 
     companion object {
+        //#if MC>=11400
+        //$$ val CHANNEL_START = ResourceLocation("betterportals", "transaction_start")
+        //$$ val CHANNEL_END = ResourceLocation("betterportals", "transaction_end")
+        //#else
+        const val CHANNEL_START = "BP|TS"
+        const val CHANNEL_END = "BP|TE"
+        //#endif
+
         @JvmStatic
         fun inject(channel: Channel) {
             channel.pipeline().addBefore("packet_handler", "transaction_handler", TransactionNettyHandler())

@@ -84,7 +84,7 @@ abstract class PortalRenderer<in P: Portal> {
     protected open fun renderPortal(portal: P, pos: Vec3d, framebuffer: Framebuffer?, renderPass: RenderPass) {
         if (framebuffer == null) {
             GlStateManager.disableTexture2D()
-            GlStateManager.color(0f, 0f, 0f)
+            GlStateManager.color(0f, 0f, 0f, 1f)
         } else {
             shader.addSamplerTexture("sampler", framebuffer)
             shader.getShaderUniformOrDefault("screenSize")
@@ -101,7 +101,7 @@ abstract class PortalRenderer<in P: Portal> {
         }
         renderPortalSurface(portal, pos, renderPass, framebuffer != null)
         if (framebuffer == null) {
-            GlStateManager.color(1f, 1f, 1f)
+            GlStateManager.color(1f, 1f, 1f, 1f)
             GlStateManager.enableTexture2D()
         } else {
             shader.endShader()

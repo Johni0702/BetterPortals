@@ -1,12 +1,16 @@
 package de.johni0702.minecraft.betterportals.impl;
 
-import net.minecraftforge.common.config.Config;
-import net.minecraftforge.common.config.ConfigManager;
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 import static de.johni0702.minecraft.betterportals.impl.BetterPortalsModKt.MOD_ID;
+
+//#if MC>=11400
+//#else
+import net.minecraftforge.common.config.Config;
+import net.minecraftforge.common.config.ConfigManager;
+//#endif
 
 @Config(modid = MOD_ID)
 @Mod.EventBusSubscriber(modid = MOD_ID)
@@ -27,6 +31,7 @@ public class BPConfig {
         endPortals.renderDistMax = 6;
     }
 
+    //#if MC<11400
     @Config.Name("TwilightForest Portals")
     @Config.Comment("Configuration for TwilightForest portals.")
     public static PortalConfig twilightForestPortals = new PortalConfig();
@@ -50,6 +55,7 @@ public class BPConfig {
         // Default of 0.5 is a bit too translucent imo
         travelHutsPortals.opacity = 0.7;
     }
+    //#endif
 
     @Config.Name("Prevent Fall Damage")
     @Config.Comment("Whether to prevent the next fall damage after a player has passed through a lying portal.")
@@ -101,7 +107,19 @@ public class BPConfig {
     @SubscribeEvent
     public static void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
         if (MOD_ID.equals(event.getModID())) {
-            ConfigManager.sync(MOD_ID, Config.Type.INSTANCE);
+            load();
         }
     }
+
+    public static void load() {
+        //#if MC>=11400
+        //$$ SPEC.load();
+        //#else
+        ConfigManager.sync(MOD_ID, Config.Type.INSTANCE);
+        //#endif
+    }
+
+    //#if MC>=11400
+    //$$ private static final LegacyConfigSpec<BPConfig> SPEC = new LegacyConfigSpec<>(BPConfig.class);
+    //#endif
 }
