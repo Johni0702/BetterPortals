@@ -175,7 +175,11 @@ tasks.named<Jar>("jar") {
                 "TweakOrder" to "0",
                 "ForceLoadAsMod" to "true",
                 "FMLCorePluginContainsFMLMod" to "true",
-                "MixinConfigs" to "mixins.betterportals.json,mixins.betterportals.view.json",
+                "MixinConfigs" to listOf(
+                        "mixins.betterportals.json",
+                        "mixins.betterportals.view.json",
+                        "mixins.betterportals.transition.json"
+                ).joinToString(","),
                 "FMLAT" to "betterportals_at.cfg"
         )
     }
