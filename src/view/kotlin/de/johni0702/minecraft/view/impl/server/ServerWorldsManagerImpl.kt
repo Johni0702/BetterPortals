@@ -58,15 +58,24 @@ internal class ServerWorldsManagerImpl(
     fun updateActiveViews() {
         server.profiler.startSection("updateActiveViews")
 
-        val anchoredViews = mutableMapOf<WorldServer, MutableList<View>>()
-        val trackedViews = worldManagers.mapValues { Pair(mutableMapOf<View, Int>(), mutableSetOf<CubeSelector>()) }
         val anchorDistances = mutableMapOf<View, Int>()
         val queuedViews = PriorityQueue<View>(Comparator.comparing<View, Int> { anchorDistances[it]!! })
 
         // Queue main player view
         if (!player.hasDisconnected()) {
             queuedViews.add(VanillaView(this, player).also { anchorDistances[it] = 0 })
+            val world = player.serverWorld
+            if (world !in worldManagers) {
+                // (Non-enhanced) third-party world transfer (see [beforeTransferToDimension])
+                check(worldManagers.size == 1) { "Third-party transfer but not all views have been disposed of!" }
+                // Remove the manager for the old world and instead add the one for the new world
+                worldManagers.clear()
+                worldManagers[world] = ServerWorldManager(this, world, connection.player)
+            }
         }
+
+        val anchoredViews = mutableMapOf<WorldServer, MutableList<View>>()
+        val trackedViews = worldManagers.mapValues { Pair(mutableMapOf<View, Int>(), mutableSetOf<CubeSelector>()) }
 
         // Categorize all other views
         worldManagers.values.forEach { worldManager ->
@@ -139,6 +148,22 @@ internal class ServerWorldsManagerImpl(
     override fun changeDimension(newWorld: WorldServer, updatePosition: EntityPlayerMP.() -> Unit) {
         getOrCreateWorldManager(newWorld).makeMainWorld(updatePosition)
         needsUpdate = true
+    }
+
+    /**
+     * Non-enhanced third-party transfer.
+     * We need to tear down all of our dimensions before the Respawn packet is sent (otherwise the client will no longer
+     * be able to uniquely map dimension ids to world instances and stuff will break).
+     */
+    fun beforeTransferToDimension() {
+        worldManagers.values.toList().forEach {
+            // Vanilla hasn't not yet removed us from the previous world, so we need to keep
+            // that world manager around so we know which chunks we're tracking.
+            // All others need to go.
+            if (it.player is ViewEntity) {
+                destroyWorldManager(it)
+            }
+        }
     }
 
     override var player: EntityPlayerMP = connection.player

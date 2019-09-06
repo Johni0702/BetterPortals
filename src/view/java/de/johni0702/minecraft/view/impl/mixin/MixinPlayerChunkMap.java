@@ -59,7 +59,6 @@ public abstract class MixinPlayerChunkMap {
         ci.cancel();
 
         ServerWorldsManagerImpl worldsManager = getWorldsManagerImpl(player);
-        worldsManager.updateActiveViews();
         ServerWorldManager worldManager = worldsManager.getWorldManagers().get(world);
         for (ChunkPos pos : worldManager.getTrackedColumns()) {
             PlayerChunkMapEntry entry = getEntry(pos.x, pos.z);
@@ -67,6 +66,7 @@ public abstract class MixinPlayerChunkMap {
                 entry.removePlayer(player);
             }
         }
+        worldManager.getTrackedColumns().clear();
 
         players.remove(player);
         markSortPending();
