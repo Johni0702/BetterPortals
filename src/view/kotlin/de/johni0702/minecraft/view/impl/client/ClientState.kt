@@ -42,8 +42,11 @@ internal class ClientState(
      * **Warning:** Must be followed by restoreView as otherwise Minecraft's state will be invalid!
      */
     internal fun swapThePlayer(with: ClientState, swapPos: Boolean) {
+        val mc = Minecraft.getMinecraft()
+
         val thisPlayer = this.thePlayer!!
         val withPlayer = with.thePlayer!!
+        val mcPlayer = if (mc.player == thisPlayer) withPlayer else thisPlayer
 
         this.world.removeEntityDangerously(thisPlayer)
         with.world.removeEntityDangerously(withPlayer)
@@ -51,7 +54,7 @@ internal class ClientState(
         // We need to set thePlayer to null because it'll be used for the getEntityByID lookup in displaceEntity
         this.thePlayer = null
         with.thePlayer = null
-        Minecraft.getMinecraft().player = null // same as above (must be restored by caller, see docs)
+        mc.player = null
 
         this.reintroduceDisplacedEntity()
         with.reintroduceDisplacedEntity()
@@ -78,11 +81,15 @@ internal class ClientState(
             with.renderViewEntity = thisPlayer
         }
 
-        this.world.spawnEntity(withPlayer)
-        with.world.spawnEntity(thisPlayer)
-
         this.thePlayer = withPlayer
         with.thePlayer = thisPlayer
+
+        // Some mods react to the entity spawn event fired when the player is added to the world
+        // E.g. StorageDrawers (#304), DynamicSurrounds (#313)
+        mc.player = mcPlayer
+
+        this.world.spawnEntity(withPlayer)
+        with.world.spawnEntity(thisPlayer)
     }
 
     /**
