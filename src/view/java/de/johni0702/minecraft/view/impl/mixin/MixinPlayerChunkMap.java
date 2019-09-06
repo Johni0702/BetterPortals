@@ -58,6 +58,12 @@ public abstract class MixinPlayerChunkMap {
     private void removePlayerWithViews(EntityPlayerMP player, CallbackInfo ci) {
         ci.cancel();
 
+        if (player.connection == null) {
+            // removePlayer was called before the player was even fully connected
+            // e.g. disconnected by forge due to missing mods
+            return;
+        }
+
         ServerWorldsManagerImpl worldsManager = getWorldsManagerImpl(player);
         ServerWorldManager worldManager = worldsManager.getWorldManagers().get(world);
         for (ChunkPos pos : worldManager.getTrackedColumns()) {
