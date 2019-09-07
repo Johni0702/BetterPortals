@@ -243,7 +243,7 @@ fun determineVersion(): String {
         val diff = command("git", "log", "--format=oneline", "$releaseCommit..$currentCommit").size
         "$latestVersion-$diff-g${currentCommit.substring(0, 7)}"
     }
-    return if (command("git", "status", "--porcelain").isNotEmpty()) {
+    return if (command("git", "status", "--porcelain").any { it.isNotEmpty() }) {
         "$version*"
     } else {
         version
