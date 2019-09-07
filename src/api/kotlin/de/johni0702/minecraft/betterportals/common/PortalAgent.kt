@@ -23,6 +23,7 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
+import net.minecraftforge.common.DimensionManager
 import net.minecraftforge.common.ForgeHooks
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
@@ -141,16 +142,37 @@ open class PortalAgent<P: Portal>(
     open fun isLinked(other: PortalAgent<*>): Boolean =
             other.portal.isTarget(portal) && portal.isTarget(other.portal)
 
+    @Deprecated(
+            "Use remoteWorldIfLoaded or loadRemoteWorld() instead (different semantics!). " +
+                    "Will be replaced by remoteWorldIfLoaded in a future version.",
+            ReplaceWith("remoteWorldIfLoaded")
+    )
     val remoteWorld: World?
+        get() = loadRemoteWorld()
+
+    val remoteWorldIfLoaded: World?
         get() = if (world.isRemote) {
             remoteClientWorld
         } else {
-            portal.remoteDimension?.let { world.minecraftServer!!.getWorld(it) }
+            portal.remoteDimension?.let { DimensionManager.getWorld(it) }
         }
+
+    /**
+     * Loads and returns the remote world.
+     * In general [remoteWorldIfLoaded] should be used which will return `null` if the world isn't already loaded for
+     * some other reason and as such avoids constant world load/unload loops.
+     * If the remote world should be loaded even if it's not yet loaded (e.g. when create a new view or unlinking the
+     * remote agent, then this method should be used instead.
+     */
+    fun loadRemoteWorld(): World? = if (world.isRemote) {
+        remoteClientWorld
+    } else {
+        portal.remoteDimension?.let {  world.minecraftServer!!.getWorld(it) }
+    }
 
     val remoteAgent: PortalAgent<P>?
         @Suppress("UNCHECKED_CAST")
-        get() = remoteWorld?.portalManager?.loadedPortals?.find { isLinked(it) } as PortalAgent<P>?
+        get() = remoteWorldIfLoaded?.portalManager?.loadedPortals?.find { isLinked(it) } as PortalAgent<P>?
 
     /**
      * Loads and returns the remote agent.
@@ -159,7 +181,7 @@ open class PortalAgent<P: Portal>(
      * the case when [Entity.addTrackingPlayer] is called) or [PortalManager.loadedPortals].
      */
     fun loadRemoteAgent(): PortalAgent<P>? {
-        remoteWorld?.getBlockState(portal.remotePosition) // make sure the portal is loaded
+        loadRemoteWorld()?.getBlockState(portal.remotePosition) // make sure the portal is loaded
         return remoteAgent
     }
 
@@ -516,7 +538,7 @@ open class PortalAgent<P: Portal>(
     }
 
     protected open fun registerView(player: EntityPlayerMP): View? {
-        val remoteWorld = remoteWorld as WorldServer? ?: return null
+        val remoteWorld = loadRemoteWorld() as WorldServer? ?: return null
         val anchor = Pair(world as WorldServer, portal.localPosition.toCubePos())
         return player.worldsManager.createView(remoteWorld, portal.remotePosition.to3dMid(), anchor)
     }
@@ -564,7 +586,7 @@ open class PortalAgent<P: Portal>(
             manager.logger.warn("Entity $entity is still alive post portal usage!")
         }
 
-        val remoteWorld = remoteWorld
+        val remoteWorld = remoteClientWorld
         if (remoteWorld == null) {
             manager.logger.warn("Failed syncing of $entity after usage of portal $this because remote world is not loaded")
             return

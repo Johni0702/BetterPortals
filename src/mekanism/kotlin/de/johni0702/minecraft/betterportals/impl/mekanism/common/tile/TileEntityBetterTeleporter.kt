@@ -58,7 +58,7 @@ class TeleporterPortalAgent(
     }
 
     override fun teleport(entity: Entity, from: EnumFacing) {
-        val remoteWorld = remoteWorld ?: return
+        val remoteWorld = remoteWorldIfLoaded ?: return
         if (!tileEntity.active) {
             return
         }

@@ -114,7 +114,7 @@ abstract class AbstractPortalEntity(
 
     fun getRemotePortal(): AbstractPortalEntity? {
         val remoteWorld = if (world.isRemote) {
-            agent.remoteWorld ?: return null
+            agent.remoteClientWorld ?: return null
         } else {
             world.minecraftServer!!.getWorld(portal.remoteDimension ?: return null)
         }

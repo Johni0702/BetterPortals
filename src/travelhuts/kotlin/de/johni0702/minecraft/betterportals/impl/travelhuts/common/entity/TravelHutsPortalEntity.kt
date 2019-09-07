@@ -17,7 +17,7 @@ open class TravelHutsPortalAgent(manager: PortalManager) : PortalEntityPortalAge
     override fun getClippingPlaneOffset(cameraSide: EnumFacing): Double = 0.5 - 1.0 / 16.0
 
     override fun registerView(player: EntityPlayerMP): View? {
-        val remoteWorld = remoteWorld as WorldServer? ?: return null
+        val remoteWorld = loadRemoteWorld() as WorldServer? ?: return null
         val anchor = Pair(world as WorldServer, portal.localPosition.toCubePos())
         val manager = player.worldsManager
         return SimpleView(manager, remoteWorld, portal.remotePosition.to3dMid(), anchor, 4).also {

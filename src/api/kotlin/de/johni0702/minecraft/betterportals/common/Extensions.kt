@@ -512,7 +512,7 @@ fun World.findPortal(start: Vec3d, end: Vec3d): Triple<World, Vec3d, PortalAgent
         val negVec = vec * -1
         portal.localDetailedBounds.mapNotNull {
             it.contract(vec).contract(negVec).calculatePlaneIntercept(start, end)?.let { hitVec ->
-                Triple(agent.remoteWorld ?: return@let null, hitVec, agent)
+                Triple(agent.remoteWorldIfLoaded ?: return@let null, hitVec, agent)
             }
         }
     }.minBy {
@@ -550,7 +550,7 @@ fun World.rayTraceBlocksWithPortals(
             ignoreBlockWithoutBoundingBox,
             returnLastUncollidableBlock
     )
-    val remoteWorld = agent.remoteWorld ?: return localResult
+    val remoteWorld = agent.remoteWorldIfLoaded ?: return localResult
     localResult?.let {
         if (it.typeOfHit != RayTraceResult.Type.MISS) {
             return it
