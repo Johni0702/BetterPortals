@@ -253,6 +253,7 @@ internal class ServerWorldsManagerImpl(
             }
             if (manager.needsUpdate) {
                 manager.world.playerChunkMap.updateMovingPlayer(manager.player)
+                manager.world.entityTracker.updateVisibility(manager.player)
             }
         }
         worldManagers.values.filter { it.views.isEmpty() && it.player is ViewEntity }.forEach {
