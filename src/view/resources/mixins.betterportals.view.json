@@ -20,6 +20,7 @@
     "MixinEntityRenderer",
     "MixinEntityRenderer_NoOF",
     "MixinEntityRenderer_OF",
+    "MixinForgeHooksClient",
     "MixinIntegratedServer",
     "MixinNetHandlerLoginClient",
     "MixinNetHandlerPlayerClient",
