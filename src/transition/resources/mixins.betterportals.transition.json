@@ -1,6 +1,7 @@
 {
   "required": false,
   "package": "de.johni0702.minecraft.betterportals.impl.transition.mixin",
+  "plugin": "de.johni0702.minecraft.betterportals.impl.BetterPortalsMixinConfigPlugin",
   "mixins": [
     "MixinPlayerList"
   ],
