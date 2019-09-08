@@ -13,19 +13,21 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
  * that the transition is complete and that the current/soon-to-be-old main view is no longer
  * needed by sending a [TransferToDimensionDone] message.
  */
-internal class TransferToDimension : IMessage {
+internal class TransferToDimension(var id: Int = 0) : IMessage {
 
     override fun fromBytes(buf: ByteBuf) {
+        id = buf.readInt()
     }
 
     override fun toBytes(buf: ByteBuf) {
+        buf.writeInt(id)
     }
 
     internal class Handler : IMessageHandler<TransferToDimension, IMessage> {
         override fun onMessage(message: TransferToDimension, ctx: MessageContext): IMessage? {
             ctx.sync {
                 val whenDone = {
-                    Net.INSTANCE.sendToServer(TransferToDimensionDone())
+                    Net.INSTANCE.sendToServer(TransferToDimensionDone(message.id))
                 }
                 TransferToDimensionRenderer(whenDone)
             }

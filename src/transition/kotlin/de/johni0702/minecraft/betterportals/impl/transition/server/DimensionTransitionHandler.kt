@@ -12,8 +12,9 @@ import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraftforge.common.util.ITeleporter
 
 internal object DimensionTransitionHandler {
-    val views = mutableMapOf<WorldsManager, View>()
+    val views = mutableMapOf<WorldsManager, MutableMap<Int, View>>()
     var enabled = true
+    private var nextId = 0
     private val knownBadTeleporterClasses = listOf(
             // Stargate Network, see https://github.com/Johni0702/BetterPortals/issues/145
             "gcewing.sg.util.FakeTeleporter"
@@ -32,19 +33,17 @@ internal object DimensionTransitionHandler {
         val oldWorld = player.serverWorld
         val newWorld = player.server!!.getWorld(dimension)
         val worldsManager = player.worldsManager
-
-        // Dispose of any views of older, still ongoing transfers
-        views.remove(worldsManager)?.dispose()
+        val id = nextId++
 
         // Hold on to the old world until the client has finished the transition
         // (released in TransferToDimensionDone#Handler)
-        views[worldsManager] = worldsManager.createView(oldWorld, player.pos, null)
+        views.getOrPut(worldsManager, ::mutableMapOf)[id] = worldsManager.createView(oldWorld, player.pos, null)
 
         // Start transaction to allow the handler of TransferToDimension to update the camera in the target dimension before switching to it
         worldsManager.beginTransaction()
 
         // Inform the client of the transition to allow it to do a graphically fancy transition
-        TransferToDimension().sendTo(player)
+        TransferToDimension(id).sendTo(player)
 
         // Transfer player to new world (calling code expects the player to have been transferred when the method returns)
         worldsManager.changeDimension(newWorld) {

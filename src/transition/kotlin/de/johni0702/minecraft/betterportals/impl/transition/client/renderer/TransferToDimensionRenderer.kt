@@ -105,6 +105,12 @@ internal class TransferToDimensionRenderer(
         fun preClientTick(event: TickEvent.ClientTickEvent) {
             if (event.phase != TickEvent.Phase.START) return
             ticksPassed++
+
+            if (getProgress(0f) >= 1) {
+                registered = false
+                shader.deleteShader()
+                whenDone()
+            }
         }
 
         @SubscribeEvent
@@ -118,12 +124,6 @@ internal class TransferToDimensionRenderer(
             val rootPass = manager.root ?: return
             if (manager.current == rootPass) {
                 renderTransition(rootPass, event.partialTicks)
-            }
-
-            if (getProgress(event.partialTicks) >= 1) {
-                registered = false
-                shader.deleteShader()
-                whenDone()
             }
         }
     }

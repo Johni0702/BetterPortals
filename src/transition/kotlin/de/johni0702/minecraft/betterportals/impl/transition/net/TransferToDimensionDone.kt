@@ -11,18 +11,23 @@ import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 /**
  * Sent from the client when a dimension change initiated by a [TransferToDimension] message has been completed.
  */
-internal class TransferToDimensionDone : IMessage {
+internal class TransferToDimensionDone(var id: Int = 0) : IMessage {
 
     override fun fromBytes(buf: ByteBuf) {
+        id = buf.readInt()
     }
 
     override fun toBytes(buf: ByteBuf) {
+        buf.writeInt(id)
     }
 
     internal class Handler : IMessageHandler<TransferToDimensionDone, IMessage> {
         override fun onMessage(message: TransferToDimensionDone, ctx: MessageContext): IMessage? {
             ctx.sync {
-                DimensionTransitionHandler.views.remove(ctx.serverHandler.player.worldsManager)?.dispose()
+                DimensionTransitionHandler.views.computeIfPresent(ctx.serverHandler.player.worldsManager) { _, views ->
+                    views.remove(message.id)?.dispose()
+                    if (views.isEmpty()) null else views
+                }
             }
             return null
         }
