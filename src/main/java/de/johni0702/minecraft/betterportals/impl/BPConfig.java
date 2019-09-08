@@ -87,6 +87,13 @@ public class BPConfig {
     @Config.RequiresMcRestart
     public static boolean enhanceThirdPartyTransfers = true;
 
+    @Config.Name("Enhanced third-party transfer duration")
+    @Config.Comment("Duration of the \"Enhance third-party transfers\" effect in seconds.\n" +
+            "\n" +
+            "Needs to be set on the client / has no effect on the server.")
+    @Config.RangeInt(min = 0)
+    public static int enhancedThirdPartyTransferSeconds = 10;
+
     @Config.Name("Debug View")
     @Config.Comment("Show debug view instead of composed view.")
     public static boolean debugView = false;

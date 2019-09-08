@@ -64,7 +64,8 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
 
         initTransition(
                 init = { commonInitCallbacks.add(it) },
-                enable = BPConfig.enhanceThirdPartyTransfers
+                enable = BPConfig.enhanceThirdPartyTransfers,
+                duration = { BPConfig.enhancedThirdPartyTransferSeconds }
         )
 
         initPortal(

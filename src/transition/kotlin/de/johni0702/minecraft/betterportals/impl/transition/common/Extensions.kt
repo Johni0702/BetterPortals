@@ -4,6 +4,7 @@ import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import de.johni0702.minecraft.betterportals.common.server
+import de.johni0702.minecraft.betterportals.impl.transition.client.renderer.TransferToDimensionRenderer
 import de.johni0702.minecraft.betterportals.impl.transition.net.Net
 import de.johni0702.minecraft.betterportals.impl.transition.server.DimensionTransitionHandler
 import net.minecraft.client.Minecraft
@@ -12,15 +13,18 @@ import net.minecraftforge.common.capabilities.CapabilityDispatcher
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 import net.minecraftforge.fml.relauncher.Side
 import org.apache.logging.log4j.LogManager
+import java.time.Duration
 
 internal const val MOD_ID = "BP/transition"
 internal val LOGGER = LogManager.getLogger("betterportals/transition")
 
 fun initTransition(
         init: (() -> Unit) -> Unit,
-        enable: Boolean
+        enable: Boolean,
+        duration: () -> Int
 ) {
     DimensionTransitionHandler.enabled = enable
+    TransferToDimensionRenderer.defaultDuration = { Duration.ofSeconds(duration().toLong()) }
 
     init {
         Net.INSTANCE // initialize via <init>

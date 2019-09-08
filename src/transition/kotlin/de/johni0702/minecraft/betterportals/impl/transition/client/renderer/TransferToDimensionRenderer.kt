@@ -17,8 +17,11 @@ import java.time.Duration
 
 internal class TransferToDimensionRenderer(
         private val whenDone: () -> Unit,
-        private val duration: Duration = Duration.ofSeconds(10)
+        private val duration: Duration = defaultDuration()
 ) {
+    companion object {
+        lateinit var defaultDuration: () -> Duration
+    }
     private val mc = Minecraft.getMinecraft()
 
     private val shader = ShaderManager(mc.resourceManager, "betterportals:dimension_transition")
