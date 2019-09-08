@@ -7,10 +7,12 @@
     "MixinColumnWatcher_CC",
     "MixinCubeWatcher_CC",
     "MixinEntityTrackerEntry",
+    "MixinEntityUtil_Sponge",
     "MixinNetHandlerPlayerServer",
     "MixinPlayerChunkMap",
     "MixinPlayerCubeMap_CC",
     "MixinPlayerList",
+    "MixinPlayerList_NoSponge",
     "MixinServerWorldEventHandler"
   ],
   "server": [],

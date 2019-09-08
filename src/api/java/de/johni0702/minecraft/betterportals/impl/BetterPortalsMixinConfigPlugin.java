@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.impl;
 
 import net.minecraft.launchwrapper.Launch;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.lib.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
@@ -11,14 +12,20 @@ import java.util.List;
 import java.util.Set;
 
 public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
+    private Logger logger = LogManager.getLogger("mixin/betterportals");
     private boolean hasKotlin = Launch.classLoader.getClassBytes("kotlin.Pair") != null;
     private boolean hasOF = Launch.classLoader.getClassBytes("optifine.OptiFineForgeTweaker") != null;
     private boolean hasCC = Launch.classLoader.getClassBytes("io.github.opencubicchunks.cubicchunks.core.asm.coremod.CubicChunksCoreMod") != null;
+    private boolean hasSponge = Launch.classLoader.getClassBytes("org.spongepowered.common.SpongePlatform") != null;
 
     {
         if (!hasKotlin) {
-            LogManager.getLogger().error("Couldn't find kotlin.Pair class, Forgelin is probably missing, skipping all mixins!");
+            logger.error("Couldn't find kotlin.Pair class, Forgelin is probably missing, skipping all mixins!");
         }
+        logger.debug("hasKotlin: " + hasKotlin);
+        logger.debug("hasOF: " + hasOF);
+        logger.debug("hasCC: " + hasCC);
+        logger.debug("hasSponge: " + hasSponge);
     }
 
     @Override
@@ -28,6 +35,8 @@ public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
         if (mixinClassName.endsWith("_NoOF")) return !hasOF;
         if (mixinClassName.endsWith("_CC")) return hasCC;
         if (mixinClassName.endsWith("_NoCC")) return !hasCC;
+        if (mixinClassName.endsWith("_Sponge")) return hasSponge;
+        if (mixinClassName.endsWith("_NoSponge")) return !hasSponge;
         return true;
     }
 

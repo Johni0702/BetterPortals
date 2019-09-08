@@ -43,6 +43,11 @@ public abstract class MixinEntityTrackerEntry {
     private void isVisibleToAnyView(EntityPlayerMP player, CallbackInfoReturnable<Boolean> ci) {
         ServerWorldsManagerImpl worldsManager = getWorldsManagerImpl(player);
         ServerWorldManager worldManager = worldsManager.getWorldManagers().get(player.getServerWorld());
+        if (worldManager == null) {
+            // May be the case when the player is first added to the world during non-enhanced third-party transition
+            ci.setReturnValue(false);
+            return;
+        }
 
         boolean isCubic = ExtensionsKt.isCubicWorld(player.world);
         int baseRange = Math.min(this.range, this.maxRange);
