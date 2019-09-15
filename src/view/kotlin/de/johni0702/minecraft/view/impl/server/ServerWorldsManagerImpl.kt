@@ -246,7 +246,7 @@ internal class ServerWorldsManagerImpl(
             updateActiveViews()
         }
 
-        worldManagers.values.forEach { manager ->
+        worldManagers.values.toList().forEach { manager ->
             manager.views.removeIf { !it.isValid }
             if (manager.activeViews.keys.removeIf { !it.isValid }) {
                 manager.needsUpdate = true
@@ -255,9 +255,9 @@ internal class ServerWorldsManagerImpl(
                 manager.world.playerChunkMap.updateMovingPlayer(manager.player)
                 manager.world.entityTracker.updateVisibility(manager.player)
             }
-        }
-        worldManagers.values.filter { it.views.isEmpty() && it.player is ViewEntity }.forEach {
-            destroyWorldManager(it)
+            if (manager.views.isEmpty() && manager.player is ViewEntity) {
+                destroyWorldManager(manager)
+            }
         }
 
         flushPackets()
