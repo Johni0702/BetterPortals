@@ -30,7 +30,7 @@
     "MixinRenderChunk_OF",
     "MixinRenderGlobal",
     "MixinRenderLivingBase",
-    "MixinRenderPlayer",
+    "MixinEntityPlayerSP",
     "MixinVertexBuffer_OF",
     "MixinViewFrustum",
     "MixinViewFrustum_OF",
