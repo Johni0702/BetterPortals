@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.impl.transition.client.renderer
 
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.view.client.render.*
+import de.johni0702.minecraft.view.client.worldsManager
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.Tessellator
@@ -106,7 +107,8 @@ internal class TransferToDimensionRenderer(
             if (event.phase != TickEvent.Phase.START) return
             ticksPassed++
 
-            if (getProgress(0f) >= 1) {
+            val manager = Minecraft.getMinecraft().worldsManager ?: return
+            if (fromWorld !in manager.worlds || toWorld !in manager.worlds || getProgress(0f) >= 1) {
                 registered = false
                 shader.deleteShader()
                 whenDone()
@@ -115,6 +117,8 @@ internal class TransferToDimensionRenderer(
 
         @SubscribeEvent
         fun onPopulateTreeEvent(event: PopulateTreeEvent) {
+            val manager = Minecraft.getMinecraft().worldsManager ?: return
+            if (fromWorld !in manager.worlds || toWorld !in manager.worlds) return
             addOldViewToTree(event)
         }
 
