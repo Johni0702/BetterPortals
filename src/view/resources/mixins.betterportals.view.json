@@ -18,6 +18,7 @@
   "server": [],
   "client": [
     "MixinActiveRenderInfo",
+    "MixinChunkCompileTaskGenerator",
     "MixinChunkRenderWorker",
     "MixinEntityRenderer",
     "MixinEntityRenderer_NoOF",

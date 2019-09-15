@@ -12,8 +12,11 @@ import de.johni0702.minecraft.view.impl.server.ServerWorldsManagerImpl
 import de.johni0702.minecraft.view.server.ServerViewAPI
 import de.johni0702.minecraft.view.server.ServerWorldsManager
 import net.minecraft.client.Minecraft
+import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayerMP
+import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.network.NetHandlerPlayServer
+import net.minecraft.util.math.Vec3d
 import org.apache.logging.log4j.LogManager
 
 internal val LOGGER = LogManager.getLogger("betterportals/view")
@@ -52,4 +55,14 @@ internal val NetHandlerPlayServer.worldsManagerImpl get() = (this as IWorldsMana
 internal val EntityPlayerMP.worldsManagerImpl get() = connection.worldsManagerImpl
 internal interface IWorldsManagerHolder {
     val worldsManager: ServerWorldsManagerImpl
+}
+
+internal interface IChunkCompileTaskGenerator {
+    val viewerEyePos: Vec3d
+}
+@Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+class DummyEntity : Entity(null) {
+    override fun writeEntityToNBT(compound: NBTTagCompound) = Unit
+    override fun readEntityFromNBT(compound: NBTTagCompound) = Unit
+    override fun entityInit() = Unit
 }
