@@ -3,6 +3,7 @@
 //$$
 //$$ import de.johni0702.minecraft.betterportals.impl.IThreadTaskExecutor;
 //$$ import de.johni0702.minecraft.view.impl.client.ViewDemuxingTaskQueue;
+//$$ import net.minecraft.client.Minecraft;
 //$$ import net.minecraft.util.concurrent.ThreadTaskExecutor;
 //$$ import net.minecraftforge.api.distmarker.Dist;
 //$$ import net.minecraftforge.api.distmarker.OnlyIn;
@@ -46,7 +47,11 @@
 //$$
 //$$     @ModifyVariable(method = "enqueue", at = @At("HEAD"))
 //$$     private Runnable wrapWithView(Runnable task) {
-//$$         return ViewDemuxingTaskQueue.wrapTask(task);
+//$$         if ((Object) this instanceof Minecraft) {
+//$$             return ViewDemuxingTaskQueue.wrapTask(task);
+//$$         } else {
+//$$             return task;
+//$$         }
 //$$     }
 //$$     @Inject(method = "enqueue", at = @At("HEAD"), cancellable = true)
 //$$     private void enqueueTransaction(Runnable task, CallbackInfo ci) {

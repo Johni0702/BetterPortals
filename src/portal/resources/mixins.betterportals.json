@@ -8,6 +8,7 @@
   ],
   "server": [],
   "client": [
+    "Mixin_CallPostSetupFogEvent",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",
     "MixinJsonBlendingMode",

@@ -3,14 +3,17 @@
   "package": "de.johni0702.minecraft.view.impl.mixin",
   "plugin": "de.johni0702.minecraft.betterportals.impl.BetterPortalsMixinConfigPlugin",
   "mixins": [
+    //#if MC>=11400
+    //#else
     "AccessorCubeWatcher_CC",
     "MixinColumnWatcher_CC",
     "MixinCubeWatcher_CC",
+    "MixinPlayerChunkMap",
+    "MixinPlayerCubeMap_CC",
+    //#endif
     "MixinEntityTrackerEntry",
     "MixinEntityUtil_Sponge",
     "MixinNetHandlerPlayerServer",
-    "MixinPlayerChunkMap",
-    "MixinPlayerCubeMap_CC",
     "MixinPlayerList",
     "MixinPlayerList_NoSponge",
     "MixinServerWorldEventHandler"
@@ -19,7 +22,10 @@
   "client": [
     //#if MC>=11400
     //$$ "MixinThreadTaskExecutor",
+    //#else
+    //$$ "MixinWorldClient",
     //#endif
+    "Mixin_BlockBasedFogColor",
     "MixinActiveRenderInfo",
     "MixinChunkRenderWorker",
     "MixinEntityRenderer",
@@ -36,8 +42,7 @@
     "MixinRenderPlayer",
     "MixinVertexBuffer_OF",
     "MixinViewFrustum",
-    "MixinViewFrustum_OF",
-    "MixinWorldClient"
+    "MixinViewFrustum_OF"
   ],
   "compatibilityLevel": "JAVA_8",
   "minVersion": "0.6.11",

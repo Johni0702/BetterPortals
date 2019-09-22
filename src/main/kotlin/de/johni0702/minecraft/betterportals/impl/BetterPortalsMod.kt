@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger
 //$$ import net.minecraft.tileentity.TileEntityType
 //$$ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 //$$ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
+//$$ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext
 //#else
 import de.johni0702.minecraft.betterportals.impl.abyssalcraft.common.initAbyssalcraft
 import de.johni0702.minecraft.betterportals.impl.aether.common.initAether
@@ -61,6 +62,7 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
     init {
         INSTANCE = this
     //#if MC>=11400
+    //$$     FMLJavaModLoadingContext.get().modEventBus.register(this)
     //$$ }
     //$$
     //$$ @SubscribeEvent(priority = EventPriority.HIGH)

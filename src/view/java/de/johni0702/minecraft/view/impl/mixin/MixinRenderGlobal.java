@@ -27,6 +27,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import static de.johni0702.minecraft.betterportals.common.ExtensionsKt.approxEquals;
 
+//#if MC>=11400
+//$$ import net.minecraft.client.renderer.ActiveRenderInfo;
+//#else
+//#endif
+
 @Mixin(RenderGlobal.class)
 @SideOnly(Side.CLIENT)
 public abstract class MixinRenderGlobal {
@@ -35,13 +40,27 @@ public abstract class MixinRenderGlobal {
     @Shadow public abstract void loadRenderers();
 
     @Redirect(method = "loadRenderers", at = @At(value = "NEW", target = "net/minecraft/client/renderer/chunk/ChunkRenderDispatcher"))
-    private ChunkRenderDispatcher createChunkRenderDispatcher() {
-        return new ViewChunkRenderDispatcher();
+    private ChunkRenderDispatcher createChunkRenderDispatcher(
+            //#if MC>=11400
+            //$$ boolean is64bit
+            //#endif
+    ) {
+        return new ViewChunkRenderDispatcher(
+                //#if MC>=11400
+                //$$ is64bit
+                //#endif
+        );
     }
 
     // See [ChunkVisibilityDetail]
     @Redirect(method = "setupTerrain", at = @At(value = "NEW", target = "net/minecraft/util/math/BlockPos", ordinal = 0))
-    private BlockPos getChunkVisibilityFloodFillOrigin(double orgX, double orgY, double orgZ) {
+    private BlockPos getChunkVisibilityFloodFillOrigin(
+            //#if MC>=11400
+            //$$ int orgX, int orgY, int orgZ
+            //#else
+            double orgX, double orgY, double orgZ
+            //#endif
+    ) {
         RenderPass current = ViewRenderManager.Companion.getINSTANCE().getCurrent();
         if (current != null) {
             BlockPos origin = current.get(ChunkVisibilityDetail.class).getOrigin();
@@ -82,7 +101,18 @@ public abstract class MixinRenderGlobal {
     }
 
     @Inject(method = "setupTerrain", at = @At("HEAD"))
-    private void refreshIfOtherViewRefreshed(Entity viewEntity, double partialTicks, ICamera camera, int frameCount, boolean playerSpectator, CallbackInfo ci) {
+    private void refreshIfOtherViewRefreshed(
+            //#if MC>=11400
+            //$$ ActiveRenderInfo activeRenderInfo,
+            //#else
+            Entity viewEntity,
+            double partialTicks,
+            //#endif
+            ICamera camera,
+            int frameCount,
+            boolean playerSpectator,
+            CallbackInfo ci
+    ) {
         if (refreshCount != globalRefreshCount) {
             refreshCount = globalRefreshCount;
             ignoreRefresh = true;
@@ -155,6 +185,15 @@ public abstract class MixinRenderGlobal {
         return false;
     }
 
+    //#if MC>=11400
+    //$$ @Redirect(
+    //$$         method = "renderBlockLayer(Lnet/minecraft/util/BlockRenderLayer;Lnet/minecraft/client/renderer/ActiveRenderInfo;)I",
+    //$$         at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/ActiveRenderInfo;getProjectedView()Lnet/minecraft/util/math/Vec3d;")
+    //$$ )
+    //$$ private Vec3d getPosForTransparencySort(ActiveRenderInfo activeRenderInfo) {
+    //$$     return isMainView() ? activeRenderInfo.getProjectedView() : new Vec3d(prevRenderSortX, prevRenderSortY, prevRenderSortZ);
+    //$$ }
+    //#else
     @Redirect(
             method = "renderBlockLayer(Lnet/minecraft/util/BlockRenderLayer;DILnet/minecraft/entity/Entity;)I",
             at = @At(value = "FIELD", opcode = Opcodes.GETFIELD, target = "Lnet/minecraft/entity/Entity;posX:D")
@@ -178,4 +217,5 @@ public abstract class MixinRenderGlobal {
     private double getPlayerZForTransparencySort(Entity entity) {
         return isMainView() ? mc.player.posZ : prevRenderSortZ;
     }
+    //#endif
 }

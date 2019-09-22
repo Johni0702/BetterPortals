@@ -10,7 +10,11 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(EntityRenderer.class)
 public abstract class MixinEntityRenderer_OF {
+    //#if MC>=11400
+    //$$ @Redirect(method = "updateCameraAndRender(FJ)V", at = @At(value = "NEW"))
+    //#else
     @Redirect(method = "renderWorldPass", at = @At(value = "NEW"))
+    //#endif
     private Frustum createCamera(ClippingHelper clippingHelper) {
         ViewRenderPlan plan = ViewRenderPlan.Companion.getCURRENT();
         if (plan != null) {

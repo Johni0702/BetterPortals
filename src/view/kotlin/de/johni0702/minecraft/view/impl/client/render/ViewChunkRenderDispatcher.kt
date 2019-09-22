@@ -31,11 +31,11 @@ typealias FutureReturnType = Any
  * Almost complete re-implementation of the vanilla [ChunkRenderDispatcher] which can be used by multiple [RenderGlobal]s
  * in a non-conflicting way.
  */
-internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher(
-        //#if MC>=11400
-        //$$ Minecraft.getInstance().isJava64bit
-        //#endif
-) {
+//#if MC>=11400
+//$$ internal class ViewChunkRenderDispatcher(is64bit: Boolean) : ChunkRenderDispatcher(is64bit) {
+//#else
+internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
+//#endif
     private val states = ConcurrentHashMap<RenderGlobal, State>()
     private val activeState get() = Minecraft.getMinecraft().let { mc ->
         if (!mc.currentlyOnMainThread) {

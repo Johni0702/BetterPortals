@@ -9,6 +9,7 @@ import net.minecraft.network.NetworkManager
 import java.util.concurrent.ConcurrentHashMap
 
 //#if MC>=11400
+//$$ import net.minecraft.util.concurrent.ThreadTaskExecutor
 //#else
 import java.util.*
 import java.util.concurrent.FutureTask
@@ -61,8 +62,13 @@ internal class ViewDemuxingTaskQueue(
                 val exception = Exception()
                 // Find the method/class calling Minecraft.addScheduledTask
                 val caller = exception.stackTrace
+                        //#if MC>=11400
+                        //$$ .dropWhile { it.className != ThreadTaskExecutor::class.java.name } // Skip until we're in the mixin
+                        //$$ .dropWhile { it.className == ThreadTaskExecutor::class.java.name } // Skip past mixin/enqueue/execute
+                        //#else
                         .dropWhile { it.className != Minecraft::class.java.name } // Skip until we're in addScheduledTask
                         .dropWhile { it.className == Minecraft::class.java.name } // Skip past addScheduledTask
+                        //#endif
                         .firstOrNull()
                 // We know these to be fine with the main view, don't even bother warning
                 val confirmedBadCallers = listOf(

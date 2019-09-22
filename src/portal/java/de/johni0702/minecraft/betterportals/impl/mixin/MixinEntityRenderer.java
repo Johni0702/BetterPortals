@@ -1,23 +1,17 @@
 package de.johni0702.minecraft.betterportals.impl.mixin;
 
 import de.johni0702.minecraft.betterportals.common.Mat4d;
-import de.johni0702.minecraft.betterportals.impl.client.PostSetupFogEvent;
 import kotlin.Pair;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.WorldClient;
-import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-import net.minecraftforge.common.MinecraftForge;
-import org.spongepowered.asm.mixin.Final;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import javax.vecmath.Matrix4d;
 
@@ -30,20 +24,40 @@ import static de.johni0702.minecraft.betterportals.common.ExtensionsKt.toMC;
 import static de.johni0702.minecraft.betterportals.common.ExtensionsKt.toPoint;
 
 //#if MC>=11400
-//$$ import net.minecraft.util.math.EntityRayTraceResult;
+//$$ import net.minecraft.client.renderer.ActiveRenderInfo;
+//$$ import net.minecraft.util.Direction;
+//$$ import net.minecraft.util.math.BlockPos;
+//$$ import net.minecraft.util.math.BlockRayTraceResult;
 //$$ import net.minecraft.util.math.RayTraceContext;
+//$$ import net.minecraft.world.IBlockReader;
+//#else
+import net.minecraft.client.renderer.EntityRenderer;
+import net.minecraft.client.multiplayer.WorldClient;
 //#endif
 
+//#if MC>=11400
+//$$ @Mixin(ActiveRenderInfo.class)
+//#else
 @Mixin(EntityRenderer.class)
+//#endif
+@SideOnly(Side.CLIENT)
 public abstract class MixinEntityRenderer {
-    @Shadow @Final private Minecraft mc;
-
-    @Inject(method = "setupFog", at = @At("RETURN"))
-    private void postSetupFogInView(int start, float partialTicks, CallbackInfo ci) {
-        MinecraftForge.EVENT_BUS.post(new PostSetupFogEvent());
-    }
-
-    // FIXME moved to ActiveRenderInfo
+    //#if MC>=11400
+    //$$ @Redirect(
+    //$$         method = "calcCameraDistance",
+    //$$         at = @At(
+    //$$                 value = "INVOKE",
+    //$$                 target = "Lnet/minecraft/world/IBlockReader;rayTraceBlocks(Lnet/minecraft/util/math/RayTraceContext;)Lnet/minecraft/util/math/BlockRayTraceResult;"
+    //$$         )
+    //$$ )
+    //$$ private BlockRayTraceResult doRayTraceBlocksWithPortals(IBlockReader iBlockReader, RayTraceContext context) {
+    //$$     if (!(iBlockReader instanceof World)) {
+    //$$         return iBlockReader.rayTraceBlocks(context);
+    //$$     }
+    //$$     World world = (World) iBlockReader;
+    //$$     Vec3d start = context.func_222253_b();
+    //$$     Vec3d end = context.func_222250_a();
+    //#else
     @Redirect(
             method = "orientCamera",
             at = @At(
@@ -52,9 +66,10 @@ public abstract class MixinEntityRenderer {
             )
     )
     private RayTraceResult doRayTraceBlocksWithPortals(WorldClient clientWorld, Vec3d start, Vec3d end) {
-        Pair<World, Matrix4d> result;
         World world = clientWorld;
-        Entity viewEntity = mc.getRenderViewEntity();
+    //#endif
+        Pair<World, Matrix4d> result;
+        Entity viewEntity = Minecraft.getMinecraft().getRenderViewEntity();
         Entity vehicle = viewEntity.getLowestRidingEntity();
         Vec3d vehiclePos = getSyncPos(vehicle).addVector(0, vehicle.getEyeHeight(), 0);
         Vec3d eyePos = viewEntity.getPositionVector().addVector(0, viewEntity.getEyeHeight(), 0);
@@ -81,14 +96,16 @@ public abstract class MixinEntityRenderer {
         //#if MC>=11400
         //$$ RayTraceResult rayResult = rayTraceBlocksWithPortals(world, new RayTraceContext(start, end, RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, viewEntity));
         //$$ if (rayResult.getType() != RayTraceResult.Type.MISS) {
-        //$$     rayResult = new EntityRayTraceResult(null, toMC(times(matrix, toPoint(rayResult.getHitVec()))));
+        //$$     return new BlockRayTraceResult(toMC(times(matrix, toPoint(rayResult.getHitVec()))), Direction.DOWN, BlockPos.ZERO, false);
+        //$$ } else {
+        //$$     return BlockRayTraceResult.createMiss(Vec3d.ZERO, Direction.DOWN, BlockPos.ZERO);
         //$$ }
         //#else
         RayTraceResult rayResult = rayTraceBlocksWithPortals(world, start, end, false, false, false);
         if (rayResult != null) {
             rayResult.hitVec = toMC(times(matrix, toPoint(rayResult.hitVec)));
         }
-        //#endif
         return rayResult;
+        //#endif
     }
 }

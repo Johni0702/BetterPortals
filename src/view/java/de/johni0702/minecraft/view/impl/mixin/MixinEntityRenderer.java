@@ -3,13 +3,8 @@ package de.johni0702.minecraft.view.impl.mixin;
 import de.johni0702.minecraft.view.client.render.RenderDistanceDetail;
 import de.johni0702.minecraft.view.client.render.RenderPass;
 import de.johni0702.minecraft.view.impl.client.render.ViewRenderManager;
-import de.johni0702.minecraft.view.impl.client.render.ViewRenderPlan;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.EntityRenderer;
-import net.minecraft.init.Blocks;
-import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.lib.Opcodes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -25,8 +20,14 @@ public abstract class MixinEntityRenderer {
 
     @Shadow private float farPlaneDistance;
 
-    @Redirect(method = "updateCameraAndRender",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/EntityRenderer;renderWorld(FJ)V"))
+    @Redirect(
+            //#if MC>=11400
+            //$$ method = "updateCameraAndRender(FJZ)V",
+            //#else
+            method = "updateCameraAndRender",
+            //#endif
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/EntityRenderer;renderWorld(FJ)V")
+    )
     private void renderWorld(EntityRenderer entityRenderer, float partialTicks, long finishTimeNano) {
         ViewRenderManager.Companion.getINSTANCE().renderWorld(partialTicks, finishTimeNano);
     }
@@ -36,28 +37,17 @@ public abstract class MixinEntityRenderer {
                     opcode = Opcodes.PUTFIELD,
                     target = "Lnet/minecraft/client/renderer/EntityRenderer;farPlaneDistance:F",
                     shift = At.Shift.AFTER))
-    private void setExactFarPlaneDistance(float partialTicks, int pass, CallbackInfo ci) {
+    private void setExactFarPlaneDistance(
+            float partialTicks,
+            //#if MC<11400
+            int pass,
+            //#endif
+            CallbackInfo ci
+    ) {
         RenderPass renderPass = ViewRenderManager.Companion.getINSTANCE().getCurrent();
         if (renderPass == null) return;
         Double distance = renderPass.get(RenderDistanceDetail.class).getRenderDistance();
         if (distance == null) return;
         farPlaneDistance = distance.floatValue();
-    }
-
-    // See also MixinActiveRenderInfo#disableFogInView
-    @Redirect(
-            method = "updateFogColor",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/multiplayer/WorldClient;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/state/IBlockState;"
-            )
-    )
-    private IBlockState disableFogInView(WorldClient world, BlockPos blockPos) {
-        // If we aren't currently rendering the outermost view,
-        // then the camera shouldn't ever be considered to be in any blocks
-        if (ViewRenderPlan.Companion.getCURRENT() != ViewRenderPlan.Companion.getMAIN()) {
-            return Blocks.AIR.getDefaultState();
-        }
-        return world.getBlockState(blockPos);
     }
 }
