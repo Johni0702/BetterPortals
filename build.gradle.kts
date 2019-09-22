@@ -81,6 +81,7 @@ if (fg3) {
         val server by runs.creating
         configure(listOf(client, server)) {
             workingDirectory(project.file("run"))
+            args(listOf("", ".view", ".transition").flatMap { listOf("--mixin", "mixins.betterportals$it.json") })
             property("forge.logging.markers", "SCAN,REGISTRIES,REGISTRYDUMP")
             property("forge.logging.console.level", "debug")
             mods {
@@ -133,6 +134,7 @@ mixinRefMaps.forEach { (name, refMap) ->
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
     jcenter()
     maven("http://repo.spongepowered.org/maven/")
@@ -174,7 +176,7 @@ dependencies {
 
     "compile"("net.shadowfacts:Forgelin:1.8.3")
 
-    val mixinDep = "org.spongepowered:mixin:0.7.11-SNAPSHOT"
+    val mixinDep = "org.spongepowered:mixin:0.8-preview-SNAPSHOT"
     val withoutOldMixinDeps: ModuleDependency.() -> Unit = {
         exclude(group = "com.google.guava") // 17.0
         exclude(group = "com.google.code.gson") // 2.2.4
