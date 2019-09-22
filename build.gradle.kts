@@ -76,7 +76,7 @@ if (fg3) {
     configure<UserDevExtension> {
         mappings("snapshot", "20190905-1.14.3")
         // TODO get rid of ATs
-        accessTransformer(File(project.rootDir, "src/main/resources/META-INF/betterportals_at.cfg"))
+        accessTransformer(File(project.rootDir, "src/main/resources/META-INF/accesstransformer.cfg"))
         val client by runs.creating
         val server by runs.creating
         configure(listOf(client, server)) {
