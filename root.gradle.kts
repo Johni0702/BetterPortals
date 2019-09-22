@@ -24,7 +24,7 @@ buildscript {
 
 plugins {
     kotlin("jvm") version "1.3.40" apply false
-    id("com.replaymod.preprocess") version "056acbf" apply false
+    id("com.replaymod.preprocess") version "4af749d" apply false
 }
 
 version = determineVersion()
