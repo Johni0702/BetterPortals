@@ -201,7 +201,7 @@ internal class ServerWorldsManagerImpl(
         val worldManager = ServerWorldManager(this, world, camera)
         worldManagers[world] = worldManager
 
-        CreateWorld(camera.dimension, world.difficulty,
+        CreateWorld(camera.dimension, world.provider.dimensionType.name, world.difficulty,
                 world.worldInfo.gameType, world.worldType).sendTo(connection.player)
         world.spawnEntity(camera)
         server.playerList.preparePlayer(camera, null)
