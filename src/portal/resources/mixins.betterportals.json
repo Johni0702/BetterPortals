@@ -8,6 +8,7 @@
   ],
   "server": [],
   "client": [
+    "AccessorEntityRenderer_VC",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",
     "MixinJsonBlendingMode",

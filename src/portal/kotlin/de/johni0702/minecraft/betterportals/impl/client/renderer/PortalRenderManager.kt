@@ -8,6 +8,7 @@ import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.impl.client.PostSetupFogEvent
 import de.johni0702.minecraft.betterportals.impl.client.glClipPlane
 import de.johni0702.minecraft.betterportals.impl.common.maxRenderRecursionGetter
+import de.johni0702.minecraft.betterportals.impl.mixin.AccessorEntityRenderer_VC
 import de.johni0702.minecraft.view.client.render.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GlStateManager
@@ -213,6 +214,9 @@ internal object PortalRenderManager {
             // glClipPlane uses the current ModelView matrix to transform the given coordinates to view space
             // so we need to have the camera setup before calling it
             mc.entityRenderer.setupCameraTransform(partialTicks, 0)
+            if (hasVivecraft) {
+                (mc.entityRenderer as? AccessorEntityRenderer_VC)?.invokeApplyCameraDepth(false)
+            }
             // setupCameraTransform configures world space with the origin at the camera's feet.
             // planePos however is currently absolute world space, so we need to convert it
             val relPlanePos = planePos - camera.feetPosition

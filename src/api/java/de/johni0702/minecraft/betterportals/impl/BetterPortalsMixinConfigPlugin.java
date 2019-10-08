@@ -17,6 +17,7 @@ public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
     private boolean hasOF = Launch.classLoader.getClassBytes("optifine.OptiFineForgeTweaker") != null;
     private boolean hasCC = Launch.classLoader.getClassBytes("io.github.opencubicchunks.cubicchunks.core.asm.coremod.CubicChunksCoreMod") != null;
     private boolean hasSponge = Launch.classLoader.getClassBytes("org.spongepowered.common.SpongePlatform") != null;
+    private boolean hasVC = Launch.classLoader.getClassBytes("org.vivecraft.asm.VivecraftASMTransformer") != null;
 
     {
         if (!hasKotlin) {
@@ -26,17 +27,28 @@ public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
         logger.debug("hasOF: " + hasOF);
         logger.debug("hasCC: " + hasCC);
         logger.debug("hasSponge: " + hasSponge);
+        logger.debug("hasVC: " + hasVC);
     }
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         if (!hasKotlin) return false;
+        if (hasVC) {
+            if (mixinClassName.endsWith("MixinEntityRenderer_NoOF")) {
+                return true;
+            }
+            if (mixinClassName.endsWith("MixinEntityRenderer_OF")) {
+                return false;
+            }
+        }
         if (mixinClassName.endsWith("_OF")) return hasOF;
         if (mixinClassName.endsWith("_NoOF")) return !hasOF;
         if (mixinClassName.endsWith("_CC")) return hasCC;
         if (mixinClassName.endsWith("_NoCC")) return !hasCC;
         if (mixinClassName.endsWith("_Sponge")) return hasSponge;
         if (mixinClassName.endsWith("_NoSponge")) return !hasSponge;
+        if (mixinClassName.endsWith("_VC")) return hasVC;
+        if (mixinClassName.endsWith("_NoVC")) return !hasVC;
         return true;
     }
 

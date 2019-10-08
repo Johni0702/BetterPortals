@@ -4,6 +4,8 @@ import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.view.client.render.*
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.client.ViewEntity
+import de.johni0702.minecraft.view.impl.compat.viewRenderManagerSupported
+import de.johni0702.minecraft.view.impl.mixin.AccessorEntityRenderer_VC
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.*
@@ -59,7 +61,7 @@ internal class ViewRenderManager : RenderPassManager {
      */
     fun renderWorld(partialTicks: Float, finishTimeNano: Long) {
         val mc = Minecraft.getMinecraft()
-        if (mc.player == null) {
+        if (mc.player == null || !viewRenderManagerSupported) {
             mc.entityRenderer.renderWorld(partialTicks, finishTimeNano)
             return
         }
@@ -80,7 +82,9 @@ internal class ViewRenderManager : RenderPassManager {
 
         mc.mcProfiler.startSection("captureMainViewCamera")
         val viewEntity = mc.renderViewEntity!!
-        val interpEntityPos = viewEntity.getPositionEyes(partialTicks)
+        val interpEntityPos = viewEntity.getPositionEyes(if (hasVivecraft) {
+            1f // Vivecraft moves the room, not the entity
+        } else { partialTicks })
         val cameraYaw = viewEntity.prevRotationYaw + (viewEntity.rotationYaw - viewEntity.prevRotationYaw) * partialTicks.toDouble()
         val cameraPitch = viewEntity.prevRotationPitch + (viewEntity.rotationPitch - viewEntity.prevRotationPitch) * partialTicks.toDouble()
 
@@ -90,6 +94,9 @@ internal class ViewRenderManager : RenderPassManager {
         val camera = viewManager.withView(view) {
             eventHandler.capture = true
             mc.entityRenderer.setupCameraTransform(partialTicks, 0)
+            if (hasVivecraft) {
+                (mc.entityRenderer as? AccessorEntityRenderer_VC)?.invokeApplyCameraDepth(false)
+            }
             eventHandler.capture = false
 
             val buf = GLAllocation.createDirectFloatBuffer(16)
@@ -224,6 +231,13 @@ internal class ViewRenderManager : RenderPassManager {
                 GL11.glLoadMatrix(modelViewMatrix)
                 projectionMatrix.rewind()
                 modelViewMatrix.rewind()
+
+                if (hasVivecraft) {
+                    // Vivecraft ignores the result of the event, so we manually rotate.
+                    // Only yaw because VC has also already applied rotations, so doing pitch/roll is difficult.
+                    GlStateManager.rotate(yaw - event.yaw, 0f, 1f, 0f)
+                    return
+                }
 
                 // If this is the first camera setup for this plan, then capture the current yaw/pitch/roll
                 // We do this in case yaw/pitch/roll change in a later call (e.g. because of portal gun mod or similar)
@@ -360,7 +374,9 @@ internal class ViewRenderPlan(
         // Inject the entity from which the world will be rendered
         // We do not spawn it into the world as we don't need it there (until some third-party mod does)
         val orgViewEntity = mc.renderViewEntity ?: mc.player
-        val interpEntityPos = orgViewEntity.getPositionEyes(partialTicks)
+        val interpEntityPos = orgViewEntity.getPositionEyes(if (hasVivecraft) {
+            1f // Vivecraft moves the room, not the entity
+        } else { partialTicks })
         // Unless this is the first person view
         if (mc.player is ViewEntity || mc.gameSettings.thirdPersonView > 0 || !interpEntityPos.approxEquals(camera.eyePosition, 1e-4)) {
             val cameraEntity = ViewCameraEntity(mc.world)

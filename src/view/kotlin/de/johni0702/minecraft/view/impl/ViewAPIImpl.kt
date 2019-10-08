@@ -8,6 +8,7 @@ import de.johni0702.minecraft.view.impl.client.ClientWorldsManagerImpl
 import de.johni0702.minecraft.view.impl.client.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.view.impl.client.render.ViewRenderManager
 import de.johni0702.minecraft.view.impl.compat.registerOptifineCompat
+import de.johni0702.minecraft.view.impl.compat.registerVivecraftCompat
 import de.johni0702.minecraft.view.impl.server.ServerWorldsManagerImpl
 import de.johni0702.minecraft.view.server.ServerViewAPI
 import de.johni0702.minecraft.view.server.ServerWorldsManager
@@ -44,6 +45,7 @@ internal object ClientViewAPIImpl : ClientViewAPI {
         }
 
         registerOptifineCompat()
+        registerVivecraftCompat()
     }
 }
 

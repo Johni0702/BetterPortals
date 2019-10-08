@@ -14,6 +14,7 @@ import net.minecraft.entity.item.EntityMinecart
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.init.Blocks
+import net.minecraft.launchwrapper.Launch
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.network.PacketBuffer
 import net.minecraft.server.management.PlayerList
@@ -605,3 +606,5 @@ operator fun <T, V> ThreadLocal<V>.provideDelegate(thisRef: T, prop: KProperty<*
         }
     }
 }
+
+val hasVivecraft by lazy { Launch.classLoader.getClassBytes("org.vivecraft.asm.VivecraftASMTransformer") != null }
