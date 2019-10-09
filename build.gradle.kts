@@ -74,7 +74,7 @@ val integrationTest by sourceSets.registering {
 
 if (fg3) {
     configure<UserDevExtension> {
-        mappings("snapshot", "20190905-1.14.3")
+        mappings("snapshot", "20191009-1.14.3")
         // TODO get rid of ATs
         accessTransformer(File(project.rootDir, "src/main/resources/META-INF/accesstransformer.cfg"))
         val client by runs.creating
@@ -166,7 +166,7 @@ fun DependencyHandler.deobf(dep: String, configure: Dependency.() -> Unit = {}):
 
 dependencies {
     if (fg3) {
-        "minecraft"("net.minecraftforge:forge:1.14.4-28.0.75")
+        "minecraft"("net.minecraftforge:forge:1.14.4-28.1.40")
 
         // TODO shade
         "compile"("org.lwjgl.lwjgl:lwjgl_util:2.9.3") {

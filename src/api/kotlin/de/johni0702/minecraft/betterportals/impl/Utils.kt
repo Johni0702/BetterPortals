@@ -9,6 +9,7 @@ import net.minecraft.network.Packet
 //$$ import net.minecraftforge.fml.network.simple.SimpleChannel
 //$$ import net.minecraftforge.fml.network.NetworkEvent
 //$$ import net.minecraftforge.registries.IForgeRegistry
+//$$ import java.util.function.BiConsumer
 //#else
 import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
@@ -49,10 +50,10 @@ object TileEntityTypeRegistry
 //$$     messageBuilder(T::class.java, id)
 //$$             .encoder { msg, buf -> msg.toBytes(buf) }
 //$$             .decoder { buf -> handler.new().also { it.fromBytes(buf) } }
-//$$             .consumer { msg, ctx ->
+//$$             .consumer(BiConsumer { msg, ctx ->
 //$$                 handler.handle(msg, ctx.get())
 //$$                 ctx.get().packetHandled = true
-//$$             }
+//$$             })
 //$$             .add()
 //$$ }
 //$$ fun SimpleChannel.toVanilla(packet: IMessage): IPacket<*> = toVanillaPacket(packet, packet.direction.forge)
