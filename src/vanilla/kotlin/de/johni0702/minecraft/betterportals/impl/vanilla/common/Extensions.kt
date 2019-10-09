@@ -96,6 +96,7 @@ fun initVanilla(
             //$$
             //$$ TileEntityType.Builder.create(Supplier { TileEntityBetterEndPortal() }, Blocks.END_PORTAL)
             //$$         .build(dataFixerType)
+            //$$         .setRegistryName("minecraft", key)
             //$$         .also { register(it) }
             //#else
             TileEntity.register("end_portal", TileEntityBetterEndPortal::class.java)
@@ -113,8 +114,9 @@ fun initVanilla(
             //$$         .setUpdateInterval(Int.MAX_VALUE)
             //$$         .setTrackingRange(256)
             //$$         .setCustomClientFactory { _, world -> NetherPortalEntity(world = world) }
-            //$$         .build("$MOD_ID:nether_portal")
-            //$$         .also { NetherPortalEntity.ENTITY_TYPE = it }
+            //$$         .build(NetherPortalEntity.ID.toString())
+            //$$         .setRegistryName(NetherPortalEntity.ID)
+            //$$         .let { register(it) }
             //#else
             EntityRegistry.registerModEntity(
                     ResourceLocation(MOD_ID, "nether_portal"),
@@ -147,8 +149,9 @@ fun initVanilla(
             //$$         .setUpdateInterval(Int.MAX_VALUE)
             //$$         .setTrackingRange(256)
             //$$         .setCustomClientFactory { _, world -> EndEntryPortalEntity(world = world) }
-            //$$         .build("$MOD_ID:end_entry_portal")
-            //$$         .also { EndEntryPortalEntity.ENTITY_TYPE = it }
+            //$$         .build(EndEntryPortalEntity.ID.toString())
+            //$$         .setRegistryName(EndEntryPortalEntity.ID)
+            //$$         .let { register(it) }
             //$$ EntityType.Builder.create<EndExitPortalEntity>(::EndExitPortalEntity, EntityClassification.MISC)
             //$$         .disableSummoning()
             //$$         .immuneToFire()
@@ -156,8 +159,9 @@ fun initVanilla(
             //$$         .setUpdateInterval(Int.MAX_VALUE)
             //$$         .setTrackingRange(256)
             //$$         .setCustomClientFactory { _, world -> EndExitPortalEntity(world = world) }
-            //$$         .build("$MOD_ID:end_exit_portal")
-            //$$         .also { EndExitPortalEntity.ENTITY_TYPE = it }
+            //$$         .build(EndExitPortalEntity.ID.toString())
+            //$$         .setRegistryName(EndExitPortalEntity.ID)
+            //$$         .let { register(it) }
             //#else
             EntityRegistry.registerModEntity(
                     ResourceLocation(MOD_ID, "end_entry_portal"),

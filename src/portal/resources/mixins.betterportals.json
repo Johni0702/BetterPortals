@@ -3,11 +3,22 @@
   "package": "de.johni0702.minecraft.betterportals.impl.mixin",
   "plugin": "de.johni0702.minecraft.betterportals.impl.BetterPortalsMixinConfigPlugin",
   "mixins": [
+    //#if MC>=11400
+    //$$ "AccessorChunkManager",
+    //$$ "AccessorEntityTracker",
+    //$$ "MixinRayTraceContext",
+    //$$ "MixinServerWorld",
+    //#else
+    "MixinObjectHolderRegistry",
+    //#endif
     "MixinEntity",
     "MixinWorld"
   ],
   "server": [],
   "client": [
+    //#if MC>=11400
+    //$$ "MixinClientWorld",
+    //#endif
     "Mixin_CallPostSetupFogEvent",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",

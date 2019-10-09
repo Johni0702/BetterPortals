@@ -435,7 +435,13 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
                     list.add(idx, "Dim: ${it.world.provider.dimension}, ${it.renderGlobal?.debugInfoEntities}")
                 }
             }
-            list.indexOfFirst { it.startsWith("MultiplayerChunkCache: ") }.let { idx ->
+            list.indexOfFirst {
+                //#if MC>=11400
+                //$$ it.startsWith("Client Chunk Cache: ")
+                //#else
+                it.startsWith("MultiplayerChunkCache: ")
+                //#endif
+            }.let { idx ->
                 if (idx == -1) return@let
                 list.removeAt(idx)
                 worlds.forEach {

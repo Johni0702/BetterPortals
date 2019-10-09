@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.betterportals.common.block
 
 //#if MC>=11400
+//$$ import net.minecraftforge.common.DimensionManager
 //#else
 import net.minecraftforge.common.ForgeChunkManager
 //#endif
@@ -193,7 +194,9 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
 
         // Make sure the world isn't unloaded while we're searching (that would invalidate our remoteWorld reference)
         //#if MC>=11400
-        //$$ // FIXME
+        //$$ // TODO this isn't optimal because it's not really compatible with other mods
+        //$$ val wasLoaded = DimensionManager.keepLoaded(remoteWorld.dimension.type)
+        //$$ DimensionManager.keepLoaded(remoteWorld.dimension.type, true)
         //#else
         val ticket = ForgeChunkManager.requestTicket(mod, remoteWorld, ForgeChunkManager.Type.NORMAL)
         ForgeChunkManager.forceChunk(ticket, remoteChunkPos)
@@ -272,7 +275,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             return@thenApplyAsync Pair(remotePosition, portalRotation)
         }, remoteWorld.server.executor::execute).whenCompleteAsync({ _, _ ->
             //#if MC>=11400
-            //$$ // FIXME
+            //$$ DimensionManager.keepLoaded(remoteWorld.dimension.type, wasLoaded)
             //#else
             // Finally, unforce the chunk we force to prevent the world from being unload
             ForgeChunkManager.releaseTicket(ticket)

@@ -261,6 +261,7 @@ internal class ClientState(
             )
             val camera = ViewEntity(world, connection)
 
+            view.netManager = networkManager
             view._world = world
             view.thePlayer = camera
             world.forceAddEntity(camera)

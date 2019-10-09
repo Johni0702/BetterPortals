@@ -4,6 +4,9 @@
   "plugin": "de.johni0702.minecraft.betterportals.impl.BetterPortalsMixinConfigPlugin",
   "mixins": [
     //#if MC>=11400
+    //$$ "AccessorChunkManager",
+    //$$ "AccessorTicketManager",
+    //$$ "MixinChunkManager",
     //#else
     "AccessorCubeWatcher_CC",
     "MixinColumnWatcher_CC",
@@ -21,6 +24,8 @@
   "server": [],
   "client": [
     //#if MC>=11400
+    //$$ "Mixin_FmlNoGrab",
+    //$$ "MixinClientChunkProvider",
     //$$ "MixinThreadTaskExecutor",
     //#else
     //$$ "MixinWorldClient",

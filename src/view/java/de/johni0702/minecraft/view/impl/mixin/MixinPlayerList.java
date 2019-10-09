@@ -113,7 +113,7 @@ public abstract class MixinPlayerList {
     @Inject(method = "getPlayerStatsFile", at = @At("HEAD"), cancellable = true)
     private void getPlayerStatsForViewEntity(EntityPlayer player, CallbackInfoReturnable<StatisticsManagerServer> ci) {
         if (player instanceof ViewEntity) {
-            ci.setReturnValue(new ViewStatsManager());
+            ci.setReturnValue(new ViewStatsManager(this.mcServer));
         }
     }
 }

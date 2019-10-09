@@ -43,8 +43,10 @@ class BlockBetterNetherPortal(override val mod: Any) : BlockPortal(
         //#endif
 ), PortalBlock<NetherPortalEntity> {
     init {
+        //#if MC>=11400
+        //$$ setRegistryName("minecraft", "nether_portal")
+        //#else
         setRegistryName("minecraft", "portal")
-        //#if MC<11400
         unlocalizedName = "portal"
         setBlockUnbreakable()
         setLightLevel(1f)

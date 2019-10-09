@@ -112,6 +112,9 @@ internal class ViewRenderManager : RenderPassManager {
                     , 0
                     //#endif
             )
+            //#if MC>=11400
+            //$$ mc.gameRenderer.activeRenderInfo.update(mc.world, mc.renderViewEntity!!, mc.gameSettings.thirdPersonView > 0, mc.gameSettings.thirdPersonView == 2, partialTicks)
+            //#endif
             eventHandler.capture = false
 
             val buf = GLAllocation.createDirectFloatBuffer(16)
@@ -429,6 +432,11 @@ internal class ViewRenderPlan(
         mc.framebufferMc = framebuffer
         framebuffer.bindFramebuffer(false)
         GlStateManager.pushMatrix()
+
+        //#if MC>=11400
+        //$$ // Setup active render info
+        //$$ mc.gameRenderer.activeRenderInfo.update(mc.world, mc.renderViewEntity!!, mc.gameSettings.thirdPersonView > 0, mc.gameSettings.thirdPersonView == 2, partialTicks)
+        //#endif
 
         // Clear framebuffer
         // TODO given we move the fog calculations into some mixin, we should no longer need this block

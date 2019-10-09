@@ -67,8 +67,7 @@ internal class ViewEntity(
     //#endif
 }
 
-@Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS") // all relevant methods have been overridden
-internal class ViewStatsManager : StatisticsManagerServer(null, null) {
+internal class ViewStatsManager(server: MinecraftServer) : StatisticsManagerServer(server, File(".")) {
     override fun saveStatFile() = Unit
     //#if MC>=11400
     //$$ override fun parseLocal(dataFixer: DataFixer, json: String) = Unit

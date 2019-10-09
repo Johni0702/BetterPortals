@@ -15,7 +15,11 @@ import net.minecraft.world.World
 import kotlin.math.abs
 
 //#if MC>=11400
+//$$ import de.johni0702.minecraft.betterportals.common.ObjectHolder
+//$$ import de.johni0702.minecraft.betterportals.impl.vanilla.common.MOD_ID
+//$$ import net.minecraft.util.ResourceLocation
 //$$ import net.minecraft.entity.EntityType
+//$$ import net.minecraftforge.registries.ForgeRegistries
 //#endif
 
 abstract class EndPortalEntity(
@@ -59,7 +63,8 @@ class EndEntryPortalEntity(
 
     //#if MC>=11400
     //$$ companion object {
-    //$$     lateinit var ENTITY_TYPE: EntityType<EndEntryPortalEntity>
+    //$$     val ID = ResourceLocation("$MOD_ID:end_entry_portal")
+    //$$     val ENTITY_TYPE: EntityType<EndEntryPortalEntity> by ObjectHolder(ForgeRegistries.ENTITIES, ID)
     //$$ }
     //#endif
 }
@@ -104,7 +109,8 @@ class EndExitPortalEntity(
 
     //#if MC>=11400
     //$$ companion object {
-    //$$     lateinit var ENTITY_TYPE: EntityType<EndExitPortalEntity>
+    //$$     val ID = ResourceLocation("$MOD_ID:end_exit_portal")
+    //$$     val ENTITY_TYPE: EntityType<EndExitPortalEntity> by ObjectHolder(ForgeRegistries.ENTITIES, ID)
     //$$ }
     //#endif
 }

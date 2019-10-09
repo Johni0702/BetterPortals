@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.betterportals.common
 
+import de.johni0702.minecraft.betterportals.impl.theImpl
 import io.github.opencubicchunks.cubicchunks.api.util.CubePos
 import io.github.opencubicchunks.cubicchunks.api.world.ICubeProviderServer
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld
@@ -16,6 +17,7 @@ import net.minecraft.network.PacketBuffer
 import net.minecraft.server.management.PlayerList
 import net.minecraft.util.BitArray
 import net.minecraft.util.EnumFacing
+import net.minecraft.util.ResourceLocation
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.*
 import net.minecraft.world.World
@@ -25,6 +27,9 @@ import net.minecraft.world.chunk.BlockStatePaletteLinear
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.Event
 import net.minecraftforge.fml.common.eventhandler.EventBus
+import net.minecraftforge.registries.IForgeRegistry
+import net.minecraftforge.registries.IForgeRegistryEntry
+import net.minecraftforge.registries.ObjectHolderRegistry
 import org.lwjgl.util.vector.Quaternion
 import java.lang.IllegalArgumentException
 import java.util.*
@@ -34,6 +39,7 @@ import javax.vecmath.*
 import kotlin.Comparator
 import kotlin.collections.HashMap
 import kotlin.math.*
+import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 import org.lwjgl.util.vector.Matrix3f as LwjglMatrix3f
@@ -480,6 +486,35 @@ fun BlockStateContainer.copy(): BlockStateContainer {
     copy.storage = BitArray(bits, 4096)
     System.arraycopy(storage.backingLongArray, 0, copy.storage.backingLongArray, 0, storage.backingLongArray.size)
     return copy
+}
+
+class ObjectHolder<in R, T: U, U: IForgeRegistryEntry<U>>(
+        private val registry: IForgeRegistry<U>,
+        val id: ResourceLocation
+) : ReadOnlyProperty<R, T> {
+    constructor(registry: IForgeRegistry<U>, id: String)
+            : this(registry, ResourceLocation(id))
+
+    private var value: T? = null
+
+    init {
+        //#if MC>=11400
+        //$$ theImpl.addObjectHolderHandler { filter ->
+        //$$     if (!filter(registry.registryName)) {
+        //$$         return@addObjectHolderHandler
+        //$$     }
+        //$$     @Suppress("UNCHECKED_CAST")
+        //$$     value = registry.getValue(id) as T?
+        //$$ }
+        //#else
+        theImpl.addObjectHolderHandler { _ ->
+            @Suppress("UNCHECKED_CAST")
+            value = registry.getValue(id) as T?
+        }
+        //#endif
+    }
+
+    override fun getValue(thisRef: R, property: KProperty<*>): T = value!!
 }
 
 operator fun <T> EventBus.provideDelegate(thisRef: T, prop: KProperty<*>): ReadWriteProperty<T, Boolean>

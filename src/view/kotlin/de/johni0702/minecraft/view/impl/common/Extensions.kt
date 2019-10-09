@@ -91,7 +91,7 @@ internal val <T> LazyLoadBase<T>.maybeValue get() =
 internal fun clientSyncIgnoringView(task: () -> Unit) {
     val mc = Minecraft.getMinecraft()
     //#if MC>=11400
-    //$$ mc.enqueue(ViewDemuxingTaskQueue.ViewWrappedFutureTask({ null }, Runnable { task }))
+    //$$ mc.enqueue(ViewDemuxingTaskQueue.ViewWrappedFutureTask({ null }, Runnable { task() }))
     //#else
     synchronized(mc.scheduledTasks) {
         mc.scheduledTasks.offer(ViewDemuxingTaskQueue.ViewWrappedFutureTask({

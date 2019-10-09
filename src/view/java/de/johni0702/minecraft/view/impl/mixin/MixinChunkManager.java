@@ -48,20 +48,20 @@
 //$$                 MethodHandles.Lookup lookup = MethodHandles.lookup();
 //$$                 Method getTicketManagerMethod;
 //$$                 try {
-//$$                     getTicketManagerMethod = getClass().getDeclaredMethod("getTicketManager");
+//$$                     getTicketManagerMethod = ChunkManager.class.getDeclaredMethod("getTicketManager");
 //$$                 } catch (NoSuchMethodException ignored) {
-//$$                     getTicketManagerMethod = getClass().getDeclaredMethod("func_219246_e");
+//$$                     getTicketManagerMethod = ChunkManager.class.getDeclaredMethod("func_219246_e");
 //$$                 }
 //$$                 MethodHandle handle = lookup.unreflect(getTicketManagerMethod);
 //$$                 //noinspection unchecked
 //$$                 getTheTicketManagerFunc = (Supplier<TicketManager>) LambdaMetafactory.metafactory(
 //$$                         lookup,
 //$$                         "get",
-//$$                         MethodType.methodType(Supplier.class, getClass()),
+//$$                         MethodType.methodType(Supplier.class, ChunkManager.class),
 //$$                         MethodType.methodType(Object.class),
 //$$                         handle,
 //$$                         MethodType.methodType(TicketManager.class)
-//$$                 ).getTarget().invoke(this);
+//$$                 ).getTarget().invoke((ChunkManager) (Object) this);
 //$$             } catch (Throwable e) {
 //$$                 throw new RuntimeException(e);
 //$$             }

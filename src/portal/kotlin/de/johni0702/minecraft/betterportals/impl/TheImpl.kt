@@ -2,11 +2,16 @@ package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.BetterPortalsAPI
 import net.minecraft.entity.Entity
+import net.minecraft.util.ResourceLocation
 import net.minecraft.world.World
+import net.minecraftforge.registries.ObjectHolderRegistry
 
 //#if MC>=11400
+//$$ import de.johni0702.minecraft.betterportals.common.provideDelegate
+//$$ import de.johni0702.minecraft.betterportals.impl.mixin.AccessorChunkManager
 //$$ import net.minecraft.entity.player.ServerPlayerEntity
 //$$ import net.minecraft.util.math.RayTraceContext
+//$$ import net.minecraft.util.math.SectionPos
 //$$ import net.minecraft.util.math.Vec3d
 //$$ import net.minecraft.world.server.ServerWorld
 //#else
@@ -18,12 +23,24 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.world.IWorldEventListener
 //#endif
 
+//#if MC>=11400
+//$$ interface EntityEventEmitter {
+//$$     fun addEntitiesListener(onEntityAdded: (Entity) -> Unit, onEntityRemoved: (Entity) -> Unit)
+//$$ }
+//#endif
+
+//#if MC<11400
+interface IObjectHolderRegistry {
+    fun addHandler(handler: () -> Unit)
+}
+//#endif
+
 object TheImpl : Impl {
     override val portalApi: BetterPortalsAPI = BetterPortalsAPIImpl
 
     override fun World.addEntitiesListener(onEntityAdded: (Entity) -> Unit, onEntityRemoved: (Entity) -> Unit) {
         //#if MC>=11400
-        //$$ TODO("1.14")
+        //$$ (this as EntityEventEmitter).addEntitiesListener(onEntityAdded, onEntityRemoved)
         //#else
         addEventListener(object : IWorldEventListener {
             override fun onEntityAdded(entity: Entity) {
@@ -48,21 +65,40 @@ object TheImpl : Impl {
         //#endif
     }
 
+    override fun addObjectHolderHandler(handler: (filter: (ResourceLocation) -> Boolean) -> Unit) {
+        //#if MC>=11400
+        //$$ ObjectHolderRegistry.addHandler { filter -> handler { filter.test(it) }  }
+        //#else
+        (ObjectHolderRegistry.INSTANCE as IObjectHolderRegistry).addHandler { handler { true } }
+        //#endif
+    }
+
     //#if MC>=11400
-    //$$ override fun ServerWorld.getTracking(entity: Entity): Set<ServerPlayerEntity> {
-    //$$     TODO("1.14")
-    //$$ }
+    //$$ private fun ServerWorld.getTracker(entity: Entity) =
+    //$$         (chunkProvider.chunkManager as AccessorChunkManager).entities.get(entity.entityId)!!
+    //$$
+    //$$ override fun ServerWorld.getTracking(entity: Entity): Set<ServerPlayerEntity> =
+    //$$         getTracker(entity).trackingPlayers
     //$$
     //$$ override fun ServerWorld.updateTrackingState(entity: Entity) {
-    //$$     TODO("1.14")
+    //$$     val tracker = getTracker(entity)
+    //$$     tracker.pos = SectionPos.from(entity)
+    //$$     tracker.entry.tick()
     //$$ }
     //$$
     //$$ override fun Entity.forcePartialUnmount() {
-    //$$     TODO("1.14")
+    //$$     ridingEntity = null
     //$$ }
     //$$
+    //$$ var rayTraceContextOverwrite: RayTraceContext? by ThreadLocal()
     //$$ override fun RayTraceContext.withImpl(start: Vec3d, end: Vec3d): RayTraceContext {
-    //$$     TODO("1.14")
+    //$$     rayTraceContextOverwrite = this
+    //$$     try {
+    //$$         @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS") // Magic values for mixin
+    //$$         return RayTraceContext(start, end, null, null, null)
+    //$$     } finally {
+    //$$         rayTraceContextOverwrite = null
+    //$$     }
     //$$ }
     //#endif
 }

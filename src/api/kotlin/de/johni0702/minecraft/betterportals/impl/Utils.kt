@@ -49,7 +49,10 @@ object TileEntityTypeRegistry
 //$$     messageBuilder(T::class.java, id)
 //$$             .encoder { msg, buf -> msg.toBytes(buf) }
 //$$             .decoder { buf -> handler.new().also { it.fromBytes(buf) } }
-//$$             .consumer { msg, ctx -> handler.handle(msg, ctx.get()) }
+//$$             .consumer { msg, ctx ->
+//$$                 handler.handle(msg, ctx.get())
+//$$                 ctx.get().packetHandled = true
+//$$             }
 //$$             .add()
 //$$ }
 //$$ fun SimpleChannel.toVanilla(packet: IMessage): IPacket<*> = toVanillaPacket(packet, packet.direction.forge)

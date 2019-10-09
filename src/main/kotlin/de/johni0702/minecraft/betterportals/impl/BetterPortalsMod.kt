@@ -59,16 +59,20 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
     private val registerTileEntitiesCallbacks = mutableListOf<TileEntityTypeRegistry.() -> Unit>()
     private val registerEntitiesCallbacks = mutableListOf<EntityTypeRegistry.() -> Unit>()
 
-    init {
-        INSTANCE = this
     //#if MC>=11400
-    //$$     FMLJavaModLoadingContext.get().modEventBus.register(this)
-    //$$ }
+    //$$ init { FMLJavaModLoadingContext.get().modEventBus.register(this) }
     //$$
     //$$ @SubscribeEvent(priority = EventPriority.HIGH)
     //$$ fun init(event: FMLCommonSetupEvent) {
     //$$     BPConfig.load()
+    //$$     // TODO we currently assume our config to be loaded before registry events but that's not the case
+    //$$     //      need to figure out how to en-/disable registry overrides based on the config (probably during
+    //$$     //      server startup?).
+    //$$ }
     //#endif
+
+    init {
+        INSTANCE = this
 
         fun PortalConfig.toConfiguration() = PortalConfiguration(
                 { opacity },

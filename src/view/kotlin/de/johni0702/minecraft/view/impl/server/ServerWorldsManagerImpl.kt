@@ -38,6 +38,7 @@ import kotlin.math.ceil
 import kotlin.math.sqrt
 
 //#if MC>=11400
+//$$ import io.netty.util.AttributeKey
 //#else
 import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher
 //#endif
@@ -201,7 +202,8 @@ internal class ServerWorldsManagerImpl(
         camera.connection.networkManager.setConnectionState(EnumConnectionState.PLAY)
 
         //#if MC>=11400
-        //$$ // FIXME forge 1.14 networking
+        //$$ val marker = AttributeKey.valueOf<String>("fml:netversion")!!
+        //$$ channel.attr(marker).set(connection.networkManager.channel().attr(marker).get())
         //#else
         val networkDispatcher = NetworkDispatcher.allocAndSet(camera.connection.networkManager, server.playerList)
         channel.pipeline().addBefore("packet_handler", "fml:packet_handler", networkDispatcher)

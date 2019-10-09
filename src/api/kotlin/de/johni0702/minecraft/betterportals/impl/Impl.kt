@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.BetterPortalsAPI
 import net.minecraft.entity.Entity
+import net.minecraft.util.ResourceLocation
 import net.minecraft.world.World
 
 //#if MC>=11400
@@ -19,6 +20,7 @@ interface Impl {
     val portalApi: BetterPortalsAPI
 
     fun World.addEntitiesListener(onEntityAdded: (Entity) -> Unit, onEntityRemoved: (Entity) -> Unit)
+    fun addObjectHolderHandler(handler: (filter: (ResourceLocation) -> Boolean) -> Unit)
 
     //#if MC>=11400
     //$$ fun ServerWorld.getTracking(entity: Entity): Set<ServerPlayerEntity>
