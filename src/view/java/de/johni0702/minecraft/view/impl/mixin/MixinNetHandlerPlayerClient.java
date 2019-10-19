@@ -4,6 +4,9 @@ import de.johni0702.minecraft.view.impl.ClientViewAPIImpl;
 import de.johni0702.minecraft.view.impl.client.ClientWorldsManagerImpl;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetHandlerPlayClient;
+import net.minecraft.network.PacketThreadUtil;
+import net.minecraft.network.play.INetHandlerPlayClient;
+import net.minecraft.network.play.server.SPacketKeepAlive;
 import net.minecraft.network.play.server.SPacketPlayerPosLook;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -12,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(NetHandlerPlayClient.class)
-public class MixinNetHandlerPlayerClient {
+public abstract class MixinNetHandlerPlayerClient implements INetHandlerPlayClient {
     @Shadow private Minecraft gameController;
 
     @Inject(method = "handlePlayerPosLook", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/EntityPlayer;setPositionAndRotation(DDDFF)V"))
@@ -26,5 +29,13 @@ public class MixinNetHandlerPlayerClient {
         if (viewManager.getActiveView() == viewManager.getServerMainView()) {
             viewManager.rewindMainView();
         }
+    }
+
+    @Inject(method = "handleKeepAlive", at = @At(value = "HEAD"))
+    private void forceKeepAliveToSyncWithMainThread(SPacketKeepAlive packet, CallbackInfo ci) {
+        // Keep alive packets are handled on the network thread (presumably just case it doesn't strictly need to
+        // access MC state). This can cause issues since there's no guarantee that the right view will be active
+        // when sending the reply and as a result the packet may get lost.
+        PacketThreadUtil.checkThreadAndEnqueue(packet, this, this.gameController);
     }
 }

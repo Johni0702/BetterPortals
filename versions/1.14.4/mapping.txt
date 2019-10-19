@@ -53,10 +53,12 @@ net.minecraft.client.renderer.FirstPersonRenderer net.minecraft.client.renderer.
 net.minecraft.client.renderer.WorldRenderer net.minecraft.client.renderer.RenderGlobal
 net.minecraft.client.gui.overlay.BossOverlayGui net.minecraft.client.gui.GuiBossOverlay
 net.minecraft.client.network.play.ClientPlayNetHandler net.minecraft.client.network.NetHandlerPlayClient
+net.minecraft.client.network.play.IClientPlayNetHandler net.minecraft.network.play.INetHandlerPlayClient
 net.minecraft.client.network.login.ClientLoginNetHandler net.minecraft.client.network.NetHandlerLoginClient
 net.minecraft.client.network.play.ServerPlayNetHandler net.minecraft.client.network.NetHandlerPlayServer
 net.minecraft.client.network.login.ServerLoginNetHandler net.minecraft.client.network.NetHandlerLoginServer
 net.minecraft.network.login.server.SLoginSuccessPacket net.minecraft.network.login.server.SPacketLoginSuccess
+net.minecraft.network.play.server.SKeepAlivePacket net.minecraft.network.play.server.SPacketKeepAlive
 net.minecraft.network.play.server.SPlayerPositionLookPacket net.minecraft.network.play.server.SPacketPlayerPosLook
 net.minecraft.client.renderer.WorldRenderer net.minecraft.client.renderer.RenderGlobal
 net.minecraft.network.PacketDirection net.minecraft.network.EnumPacketDirection

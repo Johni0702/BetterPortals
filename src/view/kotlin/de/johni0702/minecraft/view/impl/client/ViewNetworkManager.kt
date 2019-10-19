@@ -18,7 +18,6 @@ internal class ViewNetworkManager : NetworkManager(EnumPacketDirection.CLIENTBOU
 
     override fun sendPacket(packetIn: Packet<*>) {
         val viewManager = ClientViewAPIImpl.viewManagerImpl
-        // FIXME does sending keep alive responses actually make sense here?
         if (viewManager.activeView.isMainView) {
             // Send packet via main connection
             if (viewManager.serverMainView.netManager == this) {
