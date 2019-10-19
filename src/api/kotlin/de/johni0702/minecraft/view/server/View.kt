@@ -167,29 +167,29 @@ data class CuboidCubeSelector(
         /**
          * The center chunk.
          */
-        private val center: Vec3i,
+        val center: Vec3i,
 
         /**
          * Chebyshev distance (in chunks) used to determine which chunks around [center] will be synced to the client.
          * This is usually but not necessarily the server's view-distance.
          * A value of `0` will only sync the chunk at [center].
          */
-        private val horizontalViewDistance: Int,
+        val horizontalViewDistance: Int,
 
         /**
          * When CubicChunks is installed and enabled for the world, this value is used for the vertical view distance.
          * If it is not installed, only [horizontalViewDistance] is used.
          */
-        private val verticalViewDistance: Int,
+        val verticalViewDistance: Int,
 
         /**
          * See [CubeSelector.withAnchorDistance].
          */
-        private val anchorDistance: Int = 0
+        val anchorDistance: Int = 0
 ) : CubeSelector {
 
-    private val horizontalEffectiveDistance = max(horizontalViewDistance - anchorDistance, 0)
-    private val verticalEffectiveDistance = max(verticalViewDistance - anchorDistance, 0)
+    val horizontalEffectiveDistance = max(horizontalViewDistance - anchorDistance, 0)
+    val verticalEffectiveDistance = max(verticalViewDistance - anchorDistance, 0)
 
     override fun withAnchorDistance(distance: Int): CubeSelector =
             if (anchorDistance == distance) this else copy(anchorDistance = distance)

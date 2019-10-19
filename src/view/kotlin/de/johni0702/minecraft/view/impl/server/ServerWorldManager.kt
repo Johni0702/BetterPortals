@@ -22,6 +22,8 @@ import net.minecraftforge.event.world.ChunkWatchEvent
 
 //#if MC>=11400
 //$$ import net.minecraftforge.fml.hooks.BasicEventHooks
+//$$ import de.johni0702.minecraft.view.impl.mixin.AccessorServerChunkProvider
+//$$ import de.johni0702.minecraft.view.server.CuboidCubeSelector
 //#else
 import de.johni0702.minecraft.view.impl.mixin.AccessorCubeWatcher_CC
 import io.github.opencubicchunks.cubicchunks.core.server.PlayerCubeMap
@@ -50,6 +52,15 @@ internal class ServerWorldManager(
             field = value
         }
 
+    //#if MC>=11400
+    //$$ interface ITicketManager {
+    //$$     fun addCuboidView(player: ServerPlayerEntity, selector: CuboidCubeSelector)
+    //$$     fun removeCuboidView(player: ServerPlayerEntity, selector: CuboidCubeSelector)
+    //$$     fun getSourceLevelForChunk(chunkPos: Long): Int
+    //$$ }
+    //$$ var trackedSelectors = mutableSetOf<CuboidCubeSelector>()
+    //#endif
+
     var trackedColumns = mutableSetOf<ChunkPos>()
     var trackedCubes = mutableSetOf<Vec3i>()
 
@@ -58,6 +69,21 @@ internal class ServerWorldManager(
     //#if MC>=11400
     //$$ interface ColumnTrackingUpdater { operator fun invoke(chunkPos: ChunkPos, load: Boolean) }
     //$$ fun updateTrackedColumns(updater: ColumnTrackingUpdater) {
+    //$$     val ticketManager = ((world.chunkProvider as AccessorServerChunkProvider).ticketManager) as ITicketManager
+    //$$     val updatedSelectors = mutableSetOf<CuboidCubeSelector>()
+    //$$     for (selector in trackedSelectors) {
+    //$$         if (selector in activeSelectors) {
+    //$$             updatedSelectors.add(selector)
+    //$$         } else {
+    //$$             ticketManager.removeCuboidView(player, selector)
+    //$$         }
+    //$$     }
+    //$$     for (selector in activeSelectors) {
+    //$$         if (updatedSelectors.add(selector as? CuboidCubeSelector ?: continue)) {
+    //$$             ticketManager.addCuboidView(player, selector)
+    //$$         }
+    //$$     }
+    //$$
     //$$     updateTrackedColumns({ updater(it, true) }, { updater(it, false) })
     //$$ }
     //#else
