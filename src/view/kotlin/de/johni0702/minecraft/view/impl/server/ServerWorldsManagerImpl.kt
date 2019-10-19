@@ -242,7 +242,7 @@ internal class ServerWorldsManagerImpl(
 
         val player = manager.player
         val world = manager.world
-        world.removeEntity(player)
+        world.forceRemoveEntity(player)
         //#if MC<11400
         world.playerChunkMap.removePlayer(player)
         //#endif
@@ -255,7 +255,7 @@ internal class ServerWorldsManagerImpl(
 
         worldManagers.toList().forEach { (world, manager) ->
             val player = manager.player as? ViewEntity ?: return@forEach
-            world.removeEntity(player)
+            world.forceRemoveEntity(player)
             //#if MC<11400
             world.playerChunkMap.removePlayer(player)
             //#endif

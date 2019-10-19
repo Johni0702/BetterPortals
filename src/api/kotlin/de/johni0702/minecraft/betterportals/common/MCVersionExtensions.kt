@@ -16,6 +16,7 @@ import java.util.concurrent.Executor
 
 //#if MC>=11400
 //$$ import de.johni0702.minecraft.betterportals.impl.theImpl
+//$$ import net.minecraft.client.entity.player.AbstractClientPlayerEntity
 //$$ import net.minecraft.client.world.ClientWorld
 //$$ import net.minecraft.world.dimension.DimensionType
 //$$ import net.minecraftforge.fml.LogicalSide
@@ -89,33 +90,31 @@ fun World.isObstructed(aabb: AxisAlignedBB) =
 //#endif
 
 fun World.forceAddEntity(entity: Entity) {
-    //#if MC>=11400
-    //$$ if (this is ServerWorld) {
-    //$$     func_217460_e(entity)
-    //$$ } else if (this is ClientWorld) {
-    //$$     addEntity(entity.entityId, entity)
-    //$$ } else {
-    //$$     throw UnsupportedOperationException()
-    //$$ }
-    //#else
     val wasForceSpawn = entity.forceSpawn
     entity.forceSpawn = true
+    //#if MC>=11400
+    //$$ when (this) {
+    //$$     is ServerWorld -> if (entity is ServerPlayerEntity) addNewPlayer(entity) else func_217460_e(entity)
+    //$$     is ClientWorld -> if (entity is AbstractClientPlayerEntity) addPlayer(entity.entityId, entity) else addEntity(entity.entityId, entity)
+    //$$     else -> throw UnsupportedOperationException()
+    //$$ }
+    //#else
     spawnEntity(entity)
-    entity.forceSpawn = wasForceSpawn
     //#endif
+    entity.forceSpawn = wasForceSpawn
 }
 
 fun World.forceRemoveEntity(entity: Entity) {
     //#if MC>=11400
-    //$$ if (this is ServerWorld) {
-    //$$     removeEntity(entity, true)
-    //$$ } else if (this is ClientWorld) {
-    //$$     val entityId = entity.entityId
-    //$$     if (getEntityByID(entityId) == entity) {
-    //$$         removeEntityFromWorld(entityId)
+    //$$ when (this) {
+    //$$     is ServerWorld -> if (entity is ServerPlayerEntity) removePlayer(entity, true) else removeEntity(entity, true)
+    //$$     is ClientWorld -> {
+    //$$         val entityId = entity.entityId
+    //$$         if (getEntityByID(entityId) == entity) {
+    //$$             removeEntityFromWorld(entityId)
+    //$$         }
     //$$     }
-    //$$ } else {
-    //$$     throw UnsupportedOperationException()
+    //$$     else -> throw UnsupportedOperationException()
     //$$ }
     //#else
     removeEntityDangerously(entity)
