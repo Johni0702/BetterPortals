@@ -166,7 +166,7 @@ fun DependencyHandler.deobf(dep: String, configure: Dependency.() -> Unit = {}):
 
 dependencies {
     if (fg3) {
-        "minecraft"("net.minecraftforge:forge:1.14.4-28.1.40")
+        "minecraft"("net.minecraftforge:forge:1.14.4-28.0.75")
 
         // TODO shade
         "compile"("org.lwjgl.lwjgl:lwjgl_util:2.9.3") {
