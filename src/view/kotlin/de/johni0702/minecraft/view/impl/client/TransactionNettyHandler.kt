@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.view.impl.client
 
+import de.johni0702.minecraft.view.impl.net.Transaction
 import io.netty.channel.Channel
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
@@ -22,11 +23,13 @@ internal class TransactionNettyHandler : ChannelInboundHandlerAdapter() {
             }
             if (msg.channelName == CHANNEL_END) {
                 if (inTransaction <= 1) {
+                    Transaction.lock()
                     queue.forEach {
                         ReferenceCountUtil.release(it)
                         super.channelRead(ctx, it)
                     }
                     queue.clear()
+                    Transaction.unlock()
                 }
                 inTransaction--
                 return

@@ -316,12 +316,10 @@ internal class ServerWorldsManagerImpl(
     override fun beginTransaction() {
         flushPackets()
         connection.sendPacket(SPacketCustomPayload(TransactionNettyHandler.CHANNEL_START, PacketBuffer(Unpooled.EMPTY_BUFFER)))
-        Transaction(Transaction.Phase.START).sendTo(player)
     }
 
     override fun endTransaction() {
         flushPackets()
-        Transaction(Transaction.Phase.END).sendTo(player)
         connection.sendPacket(SPacketCustomPayload(TransactionNettyHandler.CHANNEL_END, PacketBuffer(Unpooled.EMPTY_BUFFER)))
     }
 

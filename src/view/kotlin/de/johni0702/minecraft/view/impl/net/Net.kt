@@ -36,7 +36,6 @@ internal object Net {
             register(WorldData.Handler(), ++nextId)
             register(DestroyWorld.Handler(), ++nextId)
             register(ChangeServerMainWorld.Handler(), ++nextId)
-            register(Transaction.Handler(), ++nextId)
         }
     }
 
