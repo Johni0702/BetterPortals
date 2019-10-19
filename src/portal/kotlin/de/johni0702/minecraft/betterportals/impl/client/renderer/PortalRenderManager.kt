@@ -123,7 +123,11 @@ internal object PortalRenderManager {
     private fun RenderPass.addPortals(maxRecursions: Int, previousFrame: RenderPass?): Boolean {
         if (maxRecursions <= 0) return false
 
+        //#if MC>=11400
+        //$$ with(camera.viewPosition) { camera.frustum.setPosition(x, y, z) }
+        //#else
         with(camera.feetPosition) { camera.frustum.setPosition(x, y, z) }
+        //#endif
 
         var changed = false
         val parentPortal = portalDetail?.parent
