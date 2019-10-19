@@ -217,6 +217,9 @@ internal object PortalRenderManager {
                     , 0
                     //#endif
             )
+            //#if MC>=11400
+            //$$ mc.gameRenderer.activeRenderInfo.update(mc.world, mc.renderViewEntity!!, mc.gameSettings.thirdPersonView > 0, mc.gameSettings.thirdPersonView == 2, partialTicks)
+            //#endif
             // setupCameraTransform configures world space with the origin at the camera's feet.
             // planePos however is currently absolute world space, so we need to convert it
             val relPlanePos = planePos - camera.feetPosition
