@@ -12,6 +12,7 @@ import net.minecraft.world.World
 //$$ import net.minecraft.util.math.Vec3d
 //$$ import net.minecraft.world.server.ServerWorld
 //$$ import java.util.*
+//$$ import java.util.concurrent.BlockingQueue
 //#endif
 
 lateinit var theImpl: Impl
@@ -33,7 +34,7 @@ interface Impl {
 //#if MC>=11400
 //$$ interface IThreadTaskExecutor<R: Runnable> {
 //$$     val queue: Queue<R>
-//$$     var blockingQueue: Queue<R>?
+//$$     var blockingQueue: BlockingQueue<R>?
 //$$
 //$$     companion object {
 //$$         @Suppress("UNCHECKED_CAST")

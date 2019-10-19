@@ -18,6 +18,7 @@
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //$$
 //$$ import java.util.Queue;
+//$$ import java.util.concurrent.BlockingQueue;
 //$$ import java.util.concurrent.locks.LockSupport;
 //$$
 //$$ @Mixin(ThreadTaskExecutor.class)
@@ -26,7 +27,7 @@
 //$$     @Shadow protected abstract void run(Runnable taskIn);
 //$$     @Shadow protected abstract Thread getExecutionThread();
 //$$     @Shadow @Final private Queue<Runnable> queue;
-//$$     private Queue<Runnable> blockingQueue;
+//$$     private BlockingQueue<Runnable> blockingQueue;
 //$$
 //$$     @NotNull
 //$$     @Override
@@ -36,12 +37,12 @@
 //$$
 //$$     @NotNull
 //$$     @Override
-//$$     public Queue<Runnable> getBlockingQueue() {
+//$$     public BlockingQueue<Runnable> getBlockingQueue() {
 //$$         return blockingQueue;
 //$$     }
 //$$
 //$$     @Override
-//$$     public void setBlockingQueue(Queue<Runnable> blockingQueue) {
+//$$     public void setBlockingQueue(BlockingQueue<Runnable> blockingQueue) {
 //$$         this.blockingQueue = blockingQueue;
 //$$     }
 //$$
@@ -64,8 +65,8 @@
 //$$     }
 //$$
 //$$     @Inject(method = "driveOne", at = @At("HEAD"))
-//$$     private void driveTransaction(CallbackInfoReturnable<Boolean> ci) {
-//$$         Queue<Runnable> blockingQueue = this.blockingQueue;
+//$$     private void driveTransaction(CallbackInfoReturnable<Boolean> ci) throws InterruptedException {
+//$$         BlockingQueue<Runnable> blockingQueue = this.blockingQueue;
 //$$         if (blockingQueue == null) return;
 //$$
 //$$         // Drain the vanilla queue first (to preserve order)
@@ -75,7 +76,7 @@
 //$$
 //$$         // Drain the main queue (may be blocking)
 //$$         while (this.blockingQueue != null) {
-//$$             run(blockingQueue.poll());
+//$$             run(blockingQueue.take());
 //$$         }
 //$$
 //$$         // Drain any items remaining in the (now no longer installed) blocking queue
