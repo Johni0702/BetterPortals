@@ -130,13 +130,24 @@ internal class ViewRenderManager : RenderPassManager {
             val viewRot = Quaternion.setFromMatrix(mat, Quaternion()).apply { normalise() }.toPitchYawRoll()
 
             val feetPos = interpEntityPos - viewEntity.eyeOffset
+            //#if MC>=11400
+            //$$ val mcViewPos = mc.gameRenderer.activeRenderInfo.pos
+            //$$ // Note: In theory we no longer need to derive data from GL state (viewPosOffset should be 0 in all cases)
+            //$$ //       Keeping it mostly because we already have it and who knows what 3rd-party mods might do.
+            //$$ val viewPos = mcViewPos + viewPosOffset
+            //#else
             val viewPos = feetPos + viewPosOffset
+            //#endif
 
             eventHandler.mainCameraYaw = cameraYaw.toFloat()
             eventHandler.mainCameraPitch = cameraPitch.toFloat()
 
             val frustum = Frustum(ClippingHelperImpl().apply { init() }).apply {
+                //#if MC>=11400
+                //$$ with(mcViewPos) { setPosition(x, y, z) }
+                //#else
                 with(feetPos) { setPosition(x, y, z) }
+                //#endif
             }
             Camera(
                     frustum,
