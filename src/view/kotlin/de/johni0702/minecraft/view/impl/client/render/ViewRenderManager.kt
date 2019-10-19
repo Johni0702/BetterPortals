@@ -69,9 +69,9 @@ internal class ViewRenderManager : RenderPassManager {
         val viewManager = ClientViewAPIImpl.viewManagerImpl
         val view = viewManager.mainView
 
-        if (mc.displayWidth != frameWidth || mc.displayHeight != frameHeight) {
-            frameWidth = mc.displayWidth
-            frameHeight = mc.displayHeight
+        if (mc.framebuffer.framebufferWidth != frameWidth || mc.framebuffer.framebufferHeight != frameHeight) {
+            frameWidth = mc.framebuffer.framebufferWidth
+            frameHeight = mc.framebuffer.framebufferHeight
             framebufferPool.forEach { it.deleteFramebuffer() }
             framebufferPool.clear()
         }
