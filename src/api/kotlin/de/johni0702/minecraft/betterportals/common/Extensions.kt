@@ -636,8 +636,8 @@ fun World.rayTracePortals(start: Vec3d, end: Vec3d): Pair<World, Matrix4d> {
 }
 
 //#if MC>=11400
-//$$ val RayTraceContext.start get() = func_222250_a()
-//$$ val RayTraceContext.end get() = func_222253_b()
+//$$ val RayTraceContext.start get() = func_222253_b()
+//$$ val RayTraceContext.end get() = func_222250_a()
 //$$ operator fun RayTraceContext.component1(): Vec3d = start
 //$$ operator fun RayTraceContext.component2(): Vec3d = end
 //$$ fun RayTraceContext.with(start: Vec3d = this.start, end: Vec3d = this.end) = with(theImpl) { withImpl(start, end) }
