@@ -27,6 +27,8 @@
   "server": [],
   "client": [
     //#if MC>=11400
+    //$$ "Mixin_ActiveRenderInfo_From_Camera",
+    //$$ "Mixin_ActiveRenderInfo_SplitUpdateFromApply",
     //$$ "Mixin_FmlNoGrab",
     //$$ "MixinClientChunkProvider",
     //$$ "MixinThreadTaskExecutor",

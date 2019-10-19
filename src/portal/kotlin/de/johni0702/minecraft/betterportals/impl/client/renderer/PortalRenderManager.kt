@@ -218,11 +218,19 @@ internal object PortalRenderManager {
                     //#endif
             )
             //#if MC>=11400
-            //$$ mc.gameRenderer.activeRenderInfo.update(mc.world, mc.renderViewEntity!!, mc.gameSettings.thirdPersonView > 0, mc.gameSettings.thirdPersonView == 2, partialTicks)
+            //$$ with(mc.gameRenderer.activeRenderInfo) {
+            //$$     // TODO roll, anyone?
+            //$$     GlStateManager.rotatef(pitch, 1.0f, 0.0f, 0.0f)
+            //$$     GlStateManager.rotatef(yaw + 180.0f, 0.0f, 1.0f, 0.0f)
+            //$$ }
             //#endif
-            // setupCameraTransform configures world space with the origin at the camera's feet.
+            // setupCameraTransform configures world space with the origin at the camera (or at it's feet pre-1.14)
             // planePos however is currently absolute world space, so we need to convert it
+            //#if MC>=11400
+            //$$ val relPlanePos = planePos - camera.viewPosition
+            //#else
             val relPlanePos = planePos - camera.feetPosition
+            //#endif
             glClipPlane(GL11.GL_CLIP_PLANE5, cameraSide.directionVec.to3d().scale(-1.0), relPlanePos)
             GL11.glEnable(GL11.GL_CLIP_PLANE5) // FIXME don't hard-code clipping plane id
 

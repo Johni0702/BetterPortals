@@ -25,6 +25,10 @@ import org.lwjgl.util.vector.Quaternion
 import kotlin.math.ceil
 import kotlin.math.sqrt
 
+//#if MC>=11400
+//$$ import net.minecraft.entity.Entity
+//#endif
+
 internal class ViewRenderManager : RenderPassManager {
     override val root: RenderPass?
         get() = ViewRenderPlan.MAIN
@@ -446,7 +450,7 @@ internal class ViewRenderPlan(
 
         //#if MC>=11400
         //$$ // Setup active render info
-        //$$ mc.gameRenderer.activeRenderInfo.update(mc.world, mc.renderViewEntity!!, mc.gameSettings.thirdPersonView > 0, mc.gameSettings.thirdPersonView == 2, partialTicks)
+        //$$ (mc.gameRenderer.activeRenderInfo as IActiveRenderInfo).update(mc.renderViewEntity!!, camera)
         //#endif
 
         // Clear framebuffer
@@ -576,3 +580,9 @@ internal class ViewRenderPlan(
         }
     }
 }
+
+//#if MC>=11400
+//$$ interface IActiveRenderInfo {
+//$$     fun update(entity: Entity, camera: Camera)
+//$$ }
+//#endif
