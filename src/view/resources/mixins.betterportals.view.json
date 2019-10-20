@@ -5,6 +5,7 @@
   "mixins": [
     //#if MC>=11400
     //$$ "AccessorChunkManager",
+    //$$ "AccessorEntityTracker",
     //$$ "AccessorServerChunkProvider",
     //$$ "AccessorTicketManager",
     //$$ "MixinChunkManager",

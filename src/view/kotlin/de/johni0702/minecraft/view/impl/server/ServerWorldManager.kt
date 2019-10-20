@@ -22,6 +22,8 @@ import net.minecraftforge.event.world.ChunkWatchEvent
 
 //#if MC>=11400
 //$$ import net.minecraftforge.fml.hooks.BasicEventHooks
+//$$ import de.johni0702.minecraft.view.impl.mixin.AccessorChunkManager
+//$$ import de.johni0702.minecraft.view.impl.mixin.AccessorEntityTracker
 //$$ import de.johni0702.minecraft.view.impl.mixin.AccessorServerChunkProvider
 //$$ import de.johni0702.minecraft.view.server.CuboidCubeSelector
 //#else
@@ -270,10 +272,13 @@ internal interface SwapHandler {
 internal object EntityTrackerHandler : SwapHandler {
     override fun swap(prevPlayer: EntityPlayerMP): (EntityPlayerMP) -> Unit {
         //#if MC>=11400
-        //$$ TODO("1.14")
+        //$$ val knownEntities = mutableListOf<AccessorEntityTracker>()
+        //$$ val entries = (prevPlayer.serverWorld.chunkProvider.chunkManager as AccessorChunkManager).entities.values
         //#else
         val knownEntities = mutableListOf<EntityTrackerEntry>()
-        prevPlayer.serverWorld.entityTracker.entries.forEach { entry ->
+        val entries = prevPlayer.serverWorld.entityTracker.entries
+        //#endif
+        entries.forEach { entry ->
             if (entry.trackingPlayers.remove(prevPlayer)) {
                 entry.trackedEntity.removeTrackingPlayer(prevPlayer)
                 knownEntities.add(entry)
@@ -285,14 +290,23 @@ internal object EntityTrackerHandler : SwapHandler {
                 it.trackedEntity.addTrackingPlayer(newPlayer)
             }
         }
-        //#endif
     }
 }
 
 internal object PlayerChunkMapHandler : SwapHandler {
+    //#if MC>=11400
+    //$$ interface IChunkManager {
+    //$$     fun removePlayerForSwap(player: ServerPlayerEntity)
+    //$$     fun addPlayerForSwap(player: ServerPlayerEntity)
+    //$$ }
+    //#endif
+
     override fun swap(prevPlayer: EntityPlayerMP): (EntityPlayerMP) -> Unit {
         //#if MC>=11400
-        //$$ TODO("1.14")
+        //$$ (prevPlayer.serverWorld.chunkProvider.chunkManager as IChunkManager).removePlayerForSwap(prevPlayer)
+        //$$ return { newPlayer ->
+        //$$     (newPlayer.serverWorld.chunkProvider.chunkManager as IChunkManager).addPlayerForSwap(newPlayer)
+        //$$ }
         //#else
         val world = prevPlayer.serverWorld
         val worldManager = prevPlayer.worldsManagerImpl.worldManagers.getValue(world)

@@ -1,6 +1,7 @@
 //#if MC>=11400
 //$$ package de.johni0702.minecraft.view.impl.mixin;
 //$$
+//$$ import de.johni0702.minecraft.view.impl.server.PlayerChunkMapHandler;
 //$$ import de.johni0702.minecraft.view.impl.server.ServerWorldManager;
 //$$ import de.johni0702.minecraft.view.impl.server.ServerWorldsManagerImpl;
 //$$ import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
@@ -12,6 +13,7 @@
 //$$ import net.minecraft.world.server.ChunkManager;
 //$$ import net.minecraft.world.server.ServerWorld;
 //$$ import net.minecraft.world.server.TicketManager;
+//$$ import org.jetbrains.annotations.NotNull;
 //$$ import org.spongepowered.asm.mixin.Final;
 //$$ import org.spongepowered.asm.mixin.Mixin;
 //$$ import org.spongepowered.asm.mixin.Shadow;
@@ -32,7 +34,7 @@
 //$$ import static de.johni0702.minecraft.view.impl.ViewAPIImplKt.getWorldsManagerImpl;
 //$$
 //$$ @Mixin(ChunkManager.class)
-//$$ public abstract class MixinChunkManager {
+//$$ public abstract class MixinChunkManager implements PlayerChunkMapHandler.IChunkManager {
 //$$
 //$$     @Shadow @Final private ServerWorld world;
 //$$     @Shadow private int viewDistance;
@@ -71,6 +73,16 @@
 //$$
 //$$     private List<ServerPlayerEntity> players = new ArrayList<>();
 //$$
+//$$     @Override
+//$$     public void addPlayerForSwap(@NotNull ServerPlayerEntity player) {
+//$$         players.add(player);
+//$$     }
+//$$
+//$$     @Override
+//$$     public void removePlayerForSwap(@NotNull ServerPlayerEntity player) {
+//$$         players.remove(player);
+//$$     }
+//$$
 //$$     @Inject(method = "setViewDistance", at = @At("HEAD"))
 //$$     private void setPlayerViewDistanceWithViews(int viewDistance, CallbackInfo ci) {
 //$$         viewDistance = MathHelper.clamp(viewDistance + 1, 3, 33);
@@ -93,10 +105,8 @@
 //$$     private void setPlayerTrackingWithViews(ServerPlayerEntity player, boolean track, CallbackInfo ci) {
 //$$         ci.cancel();
 //$$
-//$$         if (track) {
-//$$             players.add(player);
-//$$         } else {
-//$$             players.remove(player);
+//$$         if (!(track ? players.add(player) : players.remove(player))) {
+//$$             return;
 //$$         }
 //$$
 //$$         ServerWorldsManagerImpl worldsManager = getWorldsManagerImpl(player);
