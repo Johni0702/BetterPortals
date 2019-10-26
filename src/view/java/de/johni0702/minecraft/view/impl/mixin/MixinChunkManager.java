@@ -9,6 +9,7 @@
 //$$ import net.minecraft.network.IPacket;
 //$$ import net.minecraft.util.math.ChunkPos;
 //$$ import net.minecraft.util.math.MathHelper;
+//$$ import net.minecraft.world.chunk.PlayerGenerationTracker;
 //$$ import net.minecraft.world.server.ChunkHolder;
 //$$ import net.minecraft.world.server.ChunkManager;
 //$$ import net.minecraft.world.server.ServerWorld;
@@ -20,6 +21,7 @@
 //$$ import org.spongepowered.asm.mixin.injection.At;
 //$$ import org.spongepowered.asm.mixin.injection.Inject;
 //$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+//$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 //$$
 //$$ import java.lang.invoke.LambdaMetafactory;
 //$$ import java.lang.invoke.MethodHandle;
@@ -40,6 +42,7 @@
 //$$     @Shadow @Final private Long2ObjectLinkedOpenHashMap<ChunkHolder> field_219251_e;
 //$$     @Shadow public abstract Stream<ServerPlayerEntity> getTrackingPlayers(ChunkPos pos, boolean boundaryOnly);
 //$$     @Shadow protected abstract void setChunkLoadedAtClient(ServerPlayerEntity player, ChunkPos chunkPosIn, IPacket<?>[] packetCache, boolean wasLoaded, boolean load);
+//$$     @Shadow @Final private PlayerGenerationTracker playerGenerationTracker;
 //$$     // Workaround for https://github.com/SpongePowered/Mixin/issues/284
 //$$     // @Shadow @Final private ChunkManager.ProxyTicketManager ticketManager;
 //$$     private Supplier<TicketManager> getTheTicketManagerFunc;
@@ -132,6 +135,19 @@
 //$$             worldManager.updateTrackedColumns((pos, load) -> setChunkLoadedAtClient(player, pos, new IPacket[2], !load, load));
 //$$             worldManager.setNeedsUpdate(false);
 //$$         }
+//$$     }
+//$$
+//$$     @Inject(method = "getTrackingPlayers", at = @At("HEAD"), cancellable = true)
+//$$     private void getTrackingViews(ChunkPos pos, boolean boundaryOnly, CallbackInfoReturnable<Stream<ServerPlayerEntity>> cir) {
+//$$         cir.setReturnValue(players.stream().filter(player -> {
+//$$             ServerWorldsManagerImpl worldsManager = getWorldsManagerImpl(player);
+//$$             ServerWorldManager worldManager = worldsManager.getWorldManagers().get(world);
+//$$             // FIXME figure out what this boundary business is all about,
+//$$             //       i.e. do two touching but non-overlapping views have two boundaries or none?
+//$$             //            how about those that overlap by one chunk? still one boundary or none?
+//$$             //            how about views that form a concave shape?
+//$$             return worldManager.getTrackedColumns().contains(pos);
+//$$         }));
 //$$     }
 //$$ }
 //#endif
