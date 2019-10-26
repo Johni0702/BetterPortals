@@ -16,11 +16,12 @@ import net.minecraftforge.fml.common.network.NetworkRegistry
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper
 //#endif
 
-internal object Net {
+object Net {
     //#if MC>=11400
     //$$ val MOD_VERSION = ModList.get().getModContainerById("betterportals").get()!!.modInfo.version.toString()
+    //$$ val CHANNEL = ResourceLocation("betterportals", "view"),
     //$$ val INSTANCE = NetworkRegistry.newSimpleChannel(
-    //$$         ResourceLocation("betterportals", "view"),
+    //$$         CHANNEL,
     //$$         { MOD_VERSION },
     //$$         { it == MOD_VERSION },
     //$$         { it == MOD_VERSION }

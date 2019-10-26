@@ -14,6 +14,13 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+//#if MC>=11400
+//$$ import de.johni0702.minecraft.view.impl.net.Net;
+//$$ import net.minecraft.network.NetworkManager;
+//$$ import net.minecraft.network.play.server.SCustomPayloadPlayPacket;
+//$$ import net.minecraftforge.fml.network.NetworkHooks;
+//#endif
+
 @Mixin(NetHandlerPlayClient.class)
 public abstract class MixinNetHandlerPlayerClient implements INetHandlerPlayClient {
     @Shadow private Minecraft gameController;
@@ -38,4 +45,20 @@ public abstract class MixinNetHandlerPlayerClient implements INetHandlerPlayClie
         // when sending the reply and as a result the packet may get lost.
         PacketThreadUtil.checkThreadAndEnqueue(packet, this, this.gameController);
     }
+
+    //#if MC>=11400
+    //$$ @Shadow public NetworkManager netManager;
+    //$$
+    //$$ // View packets need to be handled on the network thread since most of them need to be executed under specific
+    //$$ // context (and in most cases without the current-view-wrapper).
+    //$$ // This used to be the default in Forge 1.12 but has apparently changed in 1.14. This inject special-cases our
+    //$$ // packets and reverts back to the 1.12 behavior for them.
+    //$$ @Inject(method = "handleCustomPayload", at = @At("HEAD"), cancellable = true)
+    //$$ private void handleViewPacketsOnNetworkThread(SCustomPayloadPlayPacket packet, CallbackInfo ci) {
+    //$$     if (Net.CHANNEL.equals(packet.getChannelName())) {
+    //$$         NetworkHooks.onCustomPayload(packet, netManager);
+    //$$         ci.cancel();
+    //$$     }
+    //$$ }
+    //#endif
 }
