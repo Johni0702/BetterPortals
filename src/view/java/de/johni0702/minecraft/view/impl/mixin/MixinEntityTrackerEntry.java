@@ -49,9 +49,12 @@ public abstract class MixinEntityTrackerEntry {
     //$$ }
     //$$
     //$$ @Redirect(method = "updateTrackingState(Lnet/minecraft/entity/player/ServerPlayerEntity;)V",
-    //$$         at = @At(value = "INVOKE", target = "Lnet/minecraft/world/server/ChunkManager;func_219215_b(Lnet/minecraft/util/math/ChunkPos;Lnet/minecraft/entity/player/ServerPlayerEntity;Z)I"))
+    //$$         // FIXME add srg-named target
+    //$$         at = @At(value = "INVOKE", target = "Lnet/minecraft/world/server/ChunkManager;access$500(Lnet/minecraft/util/math/ChunkPos;Lnet/minecraft/entity/player/ServerPlayerEntity;Z)I"))
     //$$ private int getShortestChunkDistToAnyView(ChunkPos chunkPos, ServerPlayerEntity player, boolean useManagedPos) {
-    //$$     return 0; // FIXME method name may also not be accurate
+    //$$     // not entirely sure why MC has this extra check, afaict we've already checked the distance in
+    //$$     // isVisibleToAnyView, so we just force this condition to always be true.
+    //$$     return 0;
     //$$ }
     //$$
     //$$ @Redirect(method = "updateTrackingState(Lnet/minecraft/entity/player/ServerPlayerEntity;)V",
