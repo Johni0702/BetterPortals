@@ -227,6 +227,10 @@ internal class ClientState(
                 view.particleManager = oldView.particleManager
             }
 
+            //#if MC>=11400
+            //$$ val orgParticleManager = mc.particles as IParticleManager
+            //#endif
+
             manager.withView(view) {
                 if (view.itemRenderer == null) {
                     // Need to initialize the newly create view state while it's active since several of the components
@@ -237,8 +241,12 @@ internal class ClientState(
                     mc.renderGlobal = view.renderGlobal
                     view.entityRenderer = EntityRenderer(mc, mc.resourceManager)
                     mc.entityRenderer = view.entityRenderer
+                    //#if MC>=11400
+                    //$$ view.particleManager = orgParticleManager.createWithSharedAtlas()
+                    //#else
                     @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS") // incorrect default annotation
                     view.particleManager = ParticleManager(null, mc.textureManager)
+                    //#endif
                     mc.effectRenderer = view.particleManager
                 }
             }
@@ -281,4 +289,10 @@ internal class ClientState(
             return view
         }
     }
+
+    //#if MC>=11400
+    //$$ interface IParticleManager {
+    //$$     fun createWithSharedAtlas(): ParticleManager
+    //$$ }
+    //#endif
 }
