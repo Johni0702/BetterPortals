@@ -28,6 +28,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import static de.johni0702.minecraft.betterportals.common.ExtensionsKt.approxEquals;
 
 //#if MC>=11400
+//$$ import net.minecraft.client.entity.player.ClientPlayerEntity;
 //$$ import net.minecraft.client.renderer.ActiveRenderInfo;
 //#else
 //#endif
@@ -51,6 +52,37 @@ public abstract class MixinRenderGlobal {
                 //#endif
         );
     }
+
+    //#if MC>=11400
+    //$$ //
+    //$$ // MC centers the view frustum on the player as opposed to the view entity.
+    //$$ // Didn't do so in 1.12, not sure why it has changed, probably because in vanilla the server sends chunks around
+    //$$ // the player, so having it as the center for the view frustum makes sense (did they not think of people who
+    //$$ // spectate and have a lower view distance than the server?! or does the player finally move with the spectated
+    //$$ // entity, in which case: why this change in the first place?).
+    //$$ // What makes this even more stupid is the fact that MC itself still uses the view entity to initialize the
+    //$$ // ViewFrustum in `loadRenderer()`...
+    //$$ // Anyhow, it's no good for us since our view frustum can easily be repositioned (and must be centered on the
+    //$$ // view entity for portals to work properly!), so we undo that change by redirecting any access the mc.player back
+    //$$ // to the view entity.
+    //$$ //
+    //$$ @Redirect(
+    //$$         method = "setupTerrain",
+    //$$         slice = @Slice(to = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/ViewFrustum;updateChunkPositions(DD)V")),
+    //$$         at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;player:Lnet/minecraft/client/entity/player/ClientPlayerEntity;", opcode = Opcodes.GETFIELD)
+    //$$ )
+    //$$ private ClientPlayerEntity centerViewFrustumOnViewEntityInsteadOfPlayer(Minecraft minecraft) {
+    //$$     Entity viewEntity = minecraft.getRenderViewEntity();
+    //$$     if (viewEntity instanceof ClientPlayerEntity) {
+    //$$         return (ClientPlayerEntity) viewEntity;
+    //$$     } else {
+    //$$         // View entity isn't a player (so not one of our camera entities), let whoever set it deal with this issue
+    //$$         // (chances are we're close to the real player anyway).
+    //$$         return mc.player;
+    //$$     }
+    //$$ }
+    //#endif
+
 
     // See [ChunkVisibilityDetail]
     //#if MC>=11400
