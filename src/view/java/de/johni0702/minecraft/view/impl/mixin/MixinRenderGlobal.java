@@ -53,10 +53,14 @@ public abstract class MixinRenderGlobal {
     }
 
     // See [ChunkVisibilityDetail]
+    //#if MC>=11400
+    //$$ @Redirect(method = "setupTerrain", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/ActiveRenderInfo;getBlockPos()Lnet/minecraft/util/math/BlockPos;"))
+    //#else
     @Redirect(method = "setupTerrain", at = @At(value = "NEW", target = "net/minecraft/util/math/BlockPos", ordinal = 0))
+    //#endif
     private BlockPos getChunkVisibilityFloodFillOrigin(
             //#if MC>=11400
-            //$$ int orgX, int orgY, int orgZ
+            //$$ ActiveRenderInfo activeRenderInfo
             //#else
             double orgX, double orgY, double orgZ
             //#endif
@@ -68,7 +72,11 @@ public abstract class MixinRenderGlobal {
                 return origin;
             }
         }
+        //#if MC>=11400
+        //$$ return activeRenderInfo.getBlockPos();
+        //#else
         return new BlockPos(orgX, orgY, orgZ);
+        //#endif
     }
 
     //
