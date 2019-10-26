@@ -273,14 +273,19 @@ internal class ServerWorldsManagerImpl(
             if (manager.activeViews.keys.removeIf { !it.isValid }) {
                 manager.needsUpdate = true
             }
+            //#if MC>=11400
+            //$$ // This isn't particularly efficient but vanilla requires it for entities to load:
+            //$$ // When an entity is initially added to the world, it won't yet be tracked since its chunk doesn't yet
+            //$$ // have the required level and once it does have the required level, tracked entities aren't updated
+            //$$ // accordingly. Instead it relies on this method being called each tick (or rather, each player position
+            //$$ // packet).
+            //$$ manager.world.chunkProvider.updatePlayerPosition(manager.player)
+            //#else
             if (manager.needsUpdate) {
-                //#if MC>=11400
-                //$$ manager.world.chunkProvider.updatePlayerPosition(manager.player)
-                //#else
                 manager.world.playerChunkMap.updateMovingPlayer(manager.player)
                 manager.world.entityTracker.updateVisibility(manager.player)
-                //#endif
             }
+            //#endif
         }
         worldManagers.values.filter { it.views.isEmpty() && it.player is ViewEntity }.forEach {
             destroyWorldManager(it)
