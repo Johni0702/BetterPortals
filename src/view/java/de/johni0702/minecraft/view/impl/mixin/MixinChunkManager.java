@@ -26,8 +26,7 @@
 //$$ import java.lang.invoke.MethodHandles;
 //$$ import java.lang.invoke.MethodType;
 //$$ import java.lang.reflect.Method;
-//$$ import java.util.ArrayList;
-//$$ import java.util.List;
+//$$ import java.util.*;
 //$$ import java.util.function.Supplier;
 //$$ import java.util.stream.Stream;
 //$$
@@ -71,7 +70,7 @@
 //$$         return getTheTicketManagerFunc.get();
 //$$     }
 //$$
-//$$     private List<ServerPlayerEntity> players = new ArrayList<>();
+//$$     private Set<ServerPlayerEntity> players = Collections.newSetFromMap(new IdentityHashMap<>());
 //$$
 //$$     @Override
 //$$     public void addPlayerForSwap(@NotNull ServerPlayerEntity player) {
