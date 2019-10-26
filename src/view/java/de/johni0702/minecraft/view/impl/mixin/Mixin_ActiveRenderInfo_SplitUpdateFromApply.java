@@ -3,9 +3,12 @@
 //$$
 //$$ import com.mojang.blaze3d.platform.GlStateManager;
 //$$ import de.johni0702.minecraft.view.impl.client.render.ViewRenderManager;
+//$$ import net.minecraft.client.Minecraft;
 //$$ import net.minecraft.client.renderer.ActiveRenderInfo;
 //$$ import net.minecraft.entity.Entity;
 //$$ import net.minecraft.world.IBlockReader;
+//$$ import net.minecraftforge.client.event.EntityViewRenderEvent;
+//$$ import net.minecraftforge.common.MinecraftForge;
 //$$ import org.spongepowered.asm.mixin.Mixin;
 //$$ import org.spongepowered.asm.mixin.Shadow;
 //$$ import org.spongepowered.asm.mixin.injection.At;
@@ -27,10 +30,33 @@
 //$$         if (ViewRenderManager.Companion.getINSTANCE().getCurrent() != null) {
 //$$             ci.cancel();
 //$$
-//$$             // TODO roll, anyone?
-//$$             GlStateManager.rotatef(this.pitch, 1.0F, 0.0F, 0.0F);
-//$$             GlStateManager.rotatef(this.yaw + 180.0F, 0.0F, 1.0F, 0.0F);
+//$$             apply(partialTicks);
 //$$         }
+//$$     }
+//$$
+//$$     private void apply(float partialTicks) {
+//$$         // Forge doesn't yet fire this but we need it, so guess we'll be adding it ourselves until Forge decides to do
+//$$         // so. See https://github.com/MinecraftForge/MinecraftForge/issues/5911
+//$$         EntityViewRenderEvent.CameraSetup event = new EntityViewRenderEvent.CameraSetup(
+//$$                 Minecraft.getInstance().gameRenderer,
+//$$                 (ActiveRenderInfo) (Object) this,
+//$$                 partialTicks,
+//$$                 this.yaw,
+//$$                 this.pitch,
+//$$                 0
+//$$         );
+//$$         MinecraftForge.EVENT_BUS.post(event);
+//$$
+//$$         GlStateManager.rotatef(event.getRoll(), 0.0F, 0.0F, 1.0F);
+//$$         GlStateManager.rotatef(event.getPitch(), 1.0F, 0.0F, 0.0F);
+//$$         GlStateManager.rotatef(event.getYaw() + 180.0F, 0.0F, 1.0F, 0.0F);
+//$$     }
+//$$
+//$$     @Inject(method = "update", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/platform/GlStateManager;rotatef(FFFF)V"), cancellable = true)
+//$$     private void applyWithEvent(IBlockReader worldIn, Entity renderViewEntity, boolean thirdPersonIn, boolean thirdPersonReverseIn, float partialTicks, CallbackInfo ci) {
+//$$         ci.cancel();
+//$$
+//$$         apply(partialTicks);
 //$$     }
 //$$ }
 //#endif

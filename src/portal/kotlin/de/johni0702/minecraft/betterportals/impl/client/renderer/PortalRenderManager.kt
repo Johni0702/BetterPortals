@@ -18,6 +18,11 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import org.lwjgl.opengl.GL11
 import kotlin.math.min
 
+//#if MC>=11400
+//$$ import net.minecraft.client.renderer.ActiveRenderInfo
+//$$ import net.minecraftforge.client.event.EntityViewRenderEvent
+//#endif
+
 internal object PortalRenderManager {
     var registered by MinecraftForge.EVENT_BUS
     private val mc get() = Minecraft.getMinecraft()
@@ -223,9 +228,18 @@ internal object PortalRenderManager {
             )
             //#if MC>=11400
             //$$ with(mc.gameRenderer.activeRenderInfo) {
-            //$$     // TODO roll, anyone?
-            //$$     GlStateManager.rotatef(pitch, 1.0f, 0.0f, 0.0f)
-            //$$     GlStateManager.rotatef(yaw + 180.0f, 0.0f, 1.0f, 0.0f)
+            //$$     val event = EntityViewRenderEvent.CameraSetup(
+            //$$             Minecraft.getInstance().gameRenderer,
+            //$$             this as Any as ActiveRenderInfo,
+            //$$             partialTicks.toDouble(),
+            //$$             this.yaw,
+            //$$             this.pitch,
+            //$$             0f
+            //$$     )
+            //$$     MinecraftForge.EVENT_BUS.post(event)
+            //$$     GlStateManager.rotatef(event.roll, 0.0f, 0.0f, 1.0f)
+            //$$     GlStateManager.rotatef(event.pitch, 1.0f, 0.0f, 0.0f)
+            //$$     GlStateManager.rotatef(event.yaw + 180.0f, 0.0f, 1.0f, 0.0f)
             //$$ }
             //#endif
             // setupCameraTransform configures world space with the origin at the camera (or at it's feet pre-1.14)
