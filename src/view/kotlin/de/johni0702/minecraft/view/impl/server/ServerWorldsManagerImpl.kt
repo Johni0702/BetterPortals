@@ -39,8 +39,13 @@ import kotlin.math.sqrt
 
 //#if MC>=11400
 //$$ import io.netty.util.AttributeKey
+//$$ import net.minecraftforge.fml.network.NetworkHooks
 //#else
 import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher
+import net.minecraftforge.fml.relauncher.Side
+import net.minecraftforge.common.network.ForgeMessage
+import net.minecraftforge.fml.common.network.FMLOutboundHandler
+import net.minecraftforge.fml.common.network.NetworkRegistry
 //#endif
 
 internal class ServerWorldsManagerImpl(
@@ -217,7 +222,22 @@ internal class ServerWorldsManagerImpl(
         val worldManager = ServerWorldManager(this, world, camera)
         worldManagers[world] = worldManager
 
-        CreateWorld(camera.dimension, world.provider.dimensionType.name, world.difficulty,
+        // Make sure the world type is registered on the client (important for e.g. hot-loaded sponge worlds)
+        //#if MC>=11400
+        //$$ // sendDimensionDataPacket uses dimension of `player` but we want to send dimension of `camera` to `player`
+        //$$ player.dimension = player.dimension.also {
+        //$$     player.dimension = camera.dimension
+        //$$     NetworkHooks.sendDimensionDataPacket(connection.netManager, player)
+        //$$ }
+        //#else
+        // See https://github.com/SpongePowered/SpongeForge/blob/57e51b6760e610081bf313e44d34c5429ebf0c13/src/main/java/org/spongepowered/mod/mixin/core/common/world/WorldManagerMixin_Forge.java#L107-L124
+        val forgeChannel = NetworkRegistry.INSTANCE.getChannel("FORGE", Side.SERVER)
+        forgeChannel.attr(FMLOutboundHandler.FML_MESSAGETARGET).set(FMLOutboundHandler.OutboundTarget.PLAYER)
+        forgeChannel.attr(FMLOutboundHandler.FML_MESSAGETARGETARGS).set(player)
+        forgeChannel.writeOutbound(ForgeMessage.DimensionRegisterMessage(camera.dimension, world.provider.dimensionType.name))
+        //#endif
+
+        CreateWorld(camera.dimension, world.difficulty,
                 world.worldInfo.gameType, world.worldType).sendTo(connection.player)
         world.forceAddEntity(camera)
         //#if MC<11400

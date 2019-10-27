@@ -17,7 +17,6 @@ import net.minecraft.world.WorldType
 
 internal class CreateWorld(
         var dimensionID: DimensionId = 0.toDimensionId()!!,
-        var providerID: String? = null,
         var difficulty: EnumDifficulty? = null,
         var gameType: GameType? = null,
         var worldType: WorldType? = null
@@ -27,7 +26,6 @@ internal class CreateWorld(
     override fun fromBytes(byteBuf: ByteBuf) {
         val buf = PacketBuffer(byteBuf)
         dimensionID = buf.readInt().toDimensionId()!!
-        providerID = buf.readString(Short.MAX_VALUE.toInt())
         difficulty = EnumDifficulty.getDifficultyEnum(buf.readUnsignedByte().toInt())
         gameType = GameType.getByID(buf.readUnsignedByte().toInt())
         worldType = WorldType.parseWorldType(buf.readString(16))
@@ -39,7 +37,6 @@ internal class CreateWorld(
     override fun toBytes(byteBuf: ByteBuf) {
         val buf = PacketBuffer(byteBuf)
         buf.writeInt(dimensionID.toIntId())
-        buf.writeString(providerID!!)
         buf.writeByte(difficulty!!.difficultyId)
         buf.writeByte(gameType!!.id)
         buf.writeString(worldType!!.name)

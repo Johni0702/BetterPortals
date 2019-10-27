@@ -18,9 +18,7 @@ import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher
 import net.minecraft.entity.Entity
 import net.minecraft.network.*
 import net.minecraft.util.math.RayTraceResult
-import net.minecraft.world.DimensionType
 import net.minecraft.world.WorldSettings
-import net.minecraftforge.common.DimensionManager
 
 //#if MC>=11400
 //#else
@@ -252,12 +250,6 @@ internal class ClientState(
                     mc.effectRenderer = view.particleManager
                 }
             }
-
-            if (DimensionManager.isDimensionRegistered(message.dimensionID)) {
-                DimensionManager.unregisterDimension(message.dimensionID)
-            }
-            DimensionManager.registerDimension(message.dimensionID, DimensionType.valueOf(message.providerID!!))
-
 
             val world = WorldClient(mc.connection!!,
                     WorldSettings(0L,
