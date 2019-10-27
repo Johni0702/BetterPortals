@@ -23,7 +23,7 @@ public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
         //$$ if (stream != null) stream.close();
         //$$ return stream != null;
         //#else
-        return Launch.classLoader.getClassBytes("kotlin.Pair") != null;
+        return Launch.classLoader.getClassBytes(name) != null;
         //#endif
     }
 
