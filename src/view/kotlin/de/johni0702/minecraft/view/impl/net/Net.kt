@@ -19,7 +19,8 @@ import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper
 object Net {
     //#if MC>=11400
     //$$ val MOD_VERSION = ModList.get().getModContainerById("betterportals").get()!!.modInfo.version.toString()
-    //$$ val CHANNEL = ResourceLocation("betterportals", "view"),
+    //$$ @JvmField
+    //$$ val CHANNEL = ResourceLocation("betterportals", "view")
     //$$ val INSTANCE = NetworkRegistry.newSimpleChannel(
     //$$         CHANNEL,
     //$$         { MOD_VERSION },
