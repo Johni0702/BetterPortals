@@ -1,3 +1,5 @@
+// Used to be for fixing a vanilla bug (see usages of interface) but has been fixed in 1.13/14 \o/
+//#if MC<11400
 package de.johni0702.minecraft.view.impl.mixin;
 
 import de.johni0702.minecraft.view.impl.IChunkCompileTaskGenerator;
@@ -30,3 +32,4 @@ public abstract class MixinChunkCompileTaskGenerator implements IChunkCompileTas
         return viewerEyePos;
     }
 }
+//#endif

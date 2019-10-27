@@ -62,6 +62,8 @@ internal interface IWorldsManagerHolder {
     val worldsManager: ServerWorldsManagerImpl
 }
 
+// Used to be for fixing a vanilla bug (see usages) but has been fixed in 1.13/14 \o/
+//#if MC<11400
 internal interface IChunkCompileTaskGenerator {
     val viewerEyePos: Vec3d
 }
@@ -71,3 +73,4 @@ class DummyEntity : Entity(null) {
     override fun readEntityFromNBT(compound: NBTTagCompound) = Unit
     override fun entityInit() = Unit
 }
+//#endif

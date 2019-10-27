@@ -1,3 +1,5 @@
+// Has been fixed in Vanilla 1.13/14 \o/
+//#if MC<11400
 package de.johni0702.minecraft.view.impl.mixin;
 
 import de.johni0702.minecraft.view.impl.DummyEntity;
@@ -46,3 +48,4 @@ public abstract class MixinChunkRenderWorker {
         return entity;
     }
 }
+//#endif

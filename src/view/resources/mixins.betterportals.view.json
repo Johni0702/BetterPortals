@@ -35,14 +35,14 @@
     //$$ "MixinClientChunkProvider",
     //$$ "MixinThreadTaskExecutor",
     //#else
-    //$$ "MixinWorldClient",
+    "MixinChunkRenderWorker",
+    "MixinChunkCompileTaskGenerator",
+    "MixinWorldClient",
     //#endif
     "Mixin_BlockBasedFogColor",
     "AccessorEntityRenderer_VC",
     "MixinAbstractClientPlayer_VC",
     "MixinActiveRenderInfo",
-    "MixinChunkCompileTaskGenerator",
-    "MixinChunkRenderWorker",
     "MixinEntityRenderer",
     "MixinEntityRenderer_NoOF",
     "MixinEntityRenderer_OF",
