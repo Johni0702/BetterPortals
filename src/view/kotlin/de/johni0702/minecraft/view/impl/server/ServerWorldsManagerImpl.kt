@@ -217,7 +217,7 @@ internal class ServerWorldsManagerImpl(
         val worldManager = ServerWorldManager(this, world, camera)
         worldManagers[world] = worldManager
 
-        CreateWorld(camera.dimension, world.difficulty,
+        CreateWorld(camera.dimension, world.provider.dimensionType.name, world.difficulty,
                 world.worldInfo.gameType, world.worldType).sendTo(connection.player)
         world.forceAddEntity(camera)
         //#if MC<11400
@@ -268,7 +268,7 @@ internal class ServerWorldsManagerImpl(
             updateActiveViews()
         }
 
-        worldManagers.values.forEach { manager ->
+        worldManagers.values.toList().forEach { manager ->
             manager.views.removeIf { !it.isValid }
             if (manager.activeViews.keys.removeIf { !it.isValid }) {
                 manager.needsUpdate = true
@@ -286,9 +286,9 @@ internal class ServerWorldsManagerImpl(
                 manager.world.entityTracker.updateVisibility(manager.player)
             }
             //#endif
-        }
-        worldManagers.values.filter { it.views.isEmpty() && it.player is ViewEntity }.forEach {
-            destroyWorldManager(it)
+            if (manager.views.isEmpty() && manager.player is ViewEntity) {
+                destroyWorldManager(manager)
+            }
         }
 
         flushPackets()

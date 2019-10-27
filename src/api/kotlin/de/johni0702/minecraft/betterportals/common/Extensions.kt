@@ -747,3 +747,5 @@ operator fun <T, V> ThreadLocal<V>.provideDelegate(thisRef: T, prop: KProperty<*
         }
     }
 }
+
+val hasVivecraft by lazy { hasClass("org.vivecraft.asm.VivecraftASMTransformer") }

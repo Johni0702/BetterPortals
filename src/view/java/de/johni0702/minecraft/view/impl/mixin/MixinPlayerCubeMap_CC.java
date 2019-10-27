@@ -124,12 +124,16 @@ public abstract class MixinPlayerCubeMap_CC extends PlayerChunkMap {
             CubeWatcher watcher = getOrCreateCubeWatcher(cubePos);
             ServerWorldManagerKt.removePlayer(watcher, player);
         }
-        worldManager.getTrackedCubes().clear();
+        if (!PlayerCubeMapHandler.INSTANCE.getSwapInProgress()) {
+            worldManager.getTrackedCubes().clear();
+        }
         for (ChunkPos columnPos : worldManager.getTrackedColumns()) {
             PlayerChunkMapEntry watcher = invokeGetOrCreateColumnWatcher(columnPos);
             watcher.removePlayer(player);
         }
-        worldManager.getTrackedColumns().clear();
+        if (!PlayerCubeMapHandler.INSTANCE.getSwapInProgress()) {
+            worldManager.getTrackedColumns().clear();
+        }
     }
 
     @Inject(method = "updatePlayer", at = @At("HEAD"), cancellable = true, remap = false)

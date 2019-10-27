@@ -8,6 +8,7 @@ import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.impl.client.PostSetupFogEvent
 import de.johni0702.minecraft.betterportals.impl.client.glClipPlane
 import de.johni0702.minecraft.betterportals.impl.common.maxRenderRecursionGetter
+import de.johni0702.minecraft.betterportals.impl.mixin.AccessorEntityRenderer_VC
 import de.johni0702.minecraft.view.client.render.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GlStateManager
@@ -242,6 +243,9 @@ internal object PortalRenderManager {
             //$$     GlStateManager.rotatef(event.yaw + 180.0f, 0.0f, 1.0f, 0.0f)
             //$$ }
             //#endif
+            if (hasVivecraft) {
+                (mc.entityRenderer as? AccessorEntityRenderer_VC)?.invokeApplyCameraDepth(false)
+            }
             // setupCameraTransform configures world space with the origin at the camera (or at it's feet pre-1.14)
             // planePos however is currently absolute world space, so we need to convert it
             //#if MC>=11400

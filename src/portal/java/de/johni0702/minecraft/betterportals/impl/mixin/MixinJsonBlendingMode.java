@@ -5,8 +5,10 @@ import net.minecraft.client.shader.ShaderManager;
 import net.minecraft.client.util.JsonBlendingMode;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(JsonBlendingMode.class)
 public abstract class MixinJsonBlendingMode {
@@ -40,8 +42,10 @@ public abstract class MixinJsonBlendingMode {
      *
      * @author johni0702
      */
-    @Overwrite
-    public void apply() {
+    @Inject(method = "apply", at = @At("HEAD"), cancellable = true)
+    private void apply(CallbackInfo ci) {
+        ci.cancel();
+
         ShaderManager shaderManager = ShaderManager.staticShaderManager;
         if (shaderManager != null && "entity_outline".equals(shaderManager.programFilename)) {
             GlStateManager.disableBlend();

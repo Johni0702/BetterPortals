@@ -238,6 +238,7 @@ tasks.named<Jar>("jar") {
     from(implementations.keys.map { sourceSets[it].output })
     exclude("de/johni0702/minecraft/betterportals/MixinLoader.class")
     exclude("net/optifine") // skeletons
+    exclude("org/vivecraft") // skeletons
     from(mixinRefMaps.filterNot { it.key == "integrationTest" }.values)
     manifest {
         attributes(

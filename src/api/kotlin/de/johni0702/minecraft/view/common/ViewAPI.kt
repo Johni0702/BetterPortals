@@ -30,7 +30,7 @@ interface ViewAPI {
             //$$ val mod = ModList.get().getModObjectById<ViewAPI>("betterportals").orElse(null)
             //$$ if (mod == null && FMLEnvironment.dist == Dist.CLIENT && Minecraft.getInstance().currentScreen is LoadingErrorScreen) {
             //#else
-            val mod = Loader.instance().indexedModList["betterportals"]!!.mod
+            val mod = Loader.instance().indexedModList["betterportals"]?.mod
             if (mod == null && FMLCommonHandler.instance().side == Side.CLIENT && FMLClientHandler.instance().hasError()) {
             //#endif
                 // Forge has probably aborted mod loading and may wish to show a user-friendly error GUI,
