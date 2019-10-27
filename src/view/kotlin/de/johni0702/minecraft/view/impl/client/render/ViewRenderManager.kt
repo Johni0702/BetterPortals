@@ -5,7 +5,9 @@ import de.johni0702.minecraft.view.client.render.*
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.client.ViewEntity
 import de.johni0702.minecraft.view.impl.compat.viewRenderManagerSupported
+import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityRenderer
 import de.johni0702.minecraft.view.impl.mixin.AccessorEntityRenderer_VC
+import de.johni0702.minecraft.betterportals.impl.accessors.AccMinecraft
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.GLAllocation
@@ -115,7 +117,7 @@ internal class ViewRenderManager : RenderPassManager {
         GlStateManager.pushMatrix()
         val camera = viewManager.withView(view) {
             eventHandler.capture = true
-            mc.entityRenderer.setupCameraTransform(partialTicks
+            (mc.entityRenderer as AccEntityRenderer).invokeSetupCameraTransform(partialTicks
                     //#if MC<11400
                     , 0
                     //#endif
@@ -142,7 +144,7 @@ internal class ViewRenderManager : RenderPassManager {
 
             val feetPos = interpEntityPos - viewEntity.eyeOffset
             //#if MC>=11400
-            //$$ val mcViewPos = mc.gameRenderer.activeRenderInfo.pos
+            //$$ val mcViewPos = mc.gameRenderer.activeRenderInfo.projectedView
             //$$ // Note: In theory we no longer need to derive data from GL state (viewPosOffset should be 0 in all cases)
             //$$ //       Keeping it mostly because we already have it and who knows what 3rd-party mods might do.
             //$$ val viewPos = mcViewPos + viewPosOffset
@@ -420,6 +422,7 @@ internal class ViewRenderPlan(
             }
         }
         val mc = Minecraft.getMinecraft()
+        val mcAccessor = mc as AccMinecraft
 
         // Render GUI only in main view
         if (!mc.gameSettings.hideGUI && mc.player is ViewEntity) {
@@ -464,8 +467,8 @@ internal class ViewRenderPlan(
         }
 
         // Bind framebuffer and temporarily replace MC's one
-        val framebufferMc = mc.framebufferMc
-        mc.framebufferMc = framebuffer
+        val framebufferMc = mcAccessor.framebuffer
+        mcAccessor.framebuffer = framebuffer
         framebuffer.bindFramebuffer(false)
         GlStateManager.pushMatrix()
 
@@ -481,9 +484,9 @@ internal class ViewRenderPlan(
         GlStateManager.disableLighting()
         mc.entityRenderer.disableLightmap()
         //#if MC>=11400
-        //$$ mc.gameRenderer.fogRenderer.updateFogColor(mc.gameRenderer.activeRenderInfo, partialTicks)
+        //$$ (mc.gameRenderer as AccEntityRenderer).fogRenderer.updateFogColor(mc.gameRenderer.activeRenderInfo, partialTicks)
         //#else
-        mc.entityRenderer.updateFogColor(partialTicks)
+        (mc.entityRenderer as AccEntityRenderer).invokeUpdateFogColor(partialTicks)
         //#endif
         GL11.glClearDepth(1.0)
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT or GL11.GL_DEPTH_BUFFER_BIT)
@@ -510,7 +513,7 @@ internal class ViewRenderPlan(
 
         GlStateManager.popMatrix()
         framebuffer.unbindFramebuffer()
-        mc.framebufferMc = framebufferMc
+        mcAccessor.framebuffer = framebufferMc
         world.profiler.endSection()
         return framebuffer
     }

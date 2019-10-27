@@ -5,6 +5,7 @@ import de.johni0702.minecraft.betterportals.client.render.PortalFogDetail
 import de.johni0702.minecraft.betterportals.client.render.portalDetail
 import de.johni0702.minecraft.betterportals.client.render.portalFogDetail
 import de.johni0702.minecraft.betterportals.common.*
+import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityRenderer
 import de.johni0702.minecraft.betterportals.impl.client.PostSetupFogEvent
 import de.johni0702.minecraft.betterportals.impl.client.glClipPlane
 import de.johni0702.minecraft.betterportals.impl.common.maxRenderRecursionGetter
@@ -222,7 +223,7 @@ internal object PortalRenderManager {
             val planePos = parentPortal.remotePosition.to3dMid() + cameraSide.directionVec.to3d().scale(offset)
             // glClipPlane uses the current ModelView matrix to transform the given coordinates to view space
             // so we need to have the camera setup before calling it
-            mc.entityRenderer.setupCameraTransform(partialTicks
+            (mc.entityRenderer as AccEntityRenderer).invokeSetupCameraTransform(partialTicks
                     //#if MC<11400
                     , 0
                     //#endif
@@ -260,7 +261,7 @@ internal object PortalRenderManager {
             // to the rendered portal but then with the fog of the correct dimension.
             // This won't give quite correct results for large portals but far better ones than using the incorrect fog.
             val dist = (camera.viewPosition - portalPos).lengthVector().toFloat()
-            when (GlStateManager.FogMode.values().find { it.capabilityId == GlStateManager.fogState.mode }) {
+            when (GlStateTracker.fogMode) {
                 GlStateManager.FogMode.LINEAR -> fogOffset = dist
                 // TODO
                 else -> fogOffset = 0f
@@ -269,12 +270,12 @@ internal object PortalRenderManager {
 
         renderPass.portalFogDetail?.let { fogDetail ->
             //#if MC>=11400
-            //$$ mc.gameRenderer.fogRenderer.updateFogColor(mc.gameRenderer.activeRenderInfo, partialTicks)
+            //$$ (mc.gameRenderer as AccEntityRenderer).fogRenderer.updateFogColor(mc.gameRenderer.activeRenderInfo, partialTicks)
             //#else
-            mc.entityRenderer.updateFogColor(partialTicks)
+            (mc.entityRenderer as AccEntityRenderer).invokeUpdateFogColor(partialTicks)
             //#endif
-            with(GlStateManager.clearState.color) {
-                fogDetail.color = Vec3d(this.red.toDouble(), this.green.toDouble(), this.blue.toDouble())
+            with(GlStateTracker) {
+                fogDetail.color = Vec3d(clearRed.toDouble(), clearGreen.toDouble(), clearBlue.toDouble())
             }
         }
     }
@@ -290,8 +291,17 @@ internal object PortalRenderManager {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     fun postSetupFog(event: PostSetupFogEvent) {
         if (fogOffset != 0f) {
-            GlStateManager.setFogStart(GlStateManager.fogState.start + fogOffset)
-            GlStateManager.setFogEnd(GlStateManager.fogState.end + fogOffset)
+            GlStateManager.setFogStart(GlStateTracker.fogStart + fogOffset)
+            GlStateManager.setFogEnd(GlStateTracker.fogEnd + fogOffset)
         }
     }
+}
+
+object GlStateTracker {
+    var fogMode = GlStateManager.FogMode.LINEAR
+    var fogStart = 0f
+    var fogEnd = 0f
+    var clearRed = 0f
+    var clearGreen = 0f
+    var clearBlue = 0f
 }

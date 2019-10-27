@@ -22,6 +22,7 @@ import java.util.concurrent.Executor
 //$$ import net.minecraftforge.fml.LogicalSide
 //$$ import net.minecraftforge.fml.ModList
 //#else
+import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityTracker
 import net.minecraft.entity.EntityList
 import net.minecraft.launchwrapper.Launch
 import net.minecraftforge.fml.common.Loader
@@ -170,12 +171,5 @@ fun WorldServer.updateTrackingState(entity: Entity) =
 //#if MC>=11400
 //$$         with(theImpl) { updateTrackingState(entity) }
 //#else
-        entityTracker.entries.find { it.trackedEntity == entity }?.updatePlayerList(playerEntities)
-//#endif
-
-fun Entity.forcePartialUnmount() =
-//#if MC>=11400
-//$$         with(theImpl) { forcePartialUnmount() }
-//#else
-        run { ridingEntity = null }
+        (entityTracker as AccEntityTracker).entries.find { it.trackedEntity == entity }?.updatePlayerList(playerEntities)
 //#endif

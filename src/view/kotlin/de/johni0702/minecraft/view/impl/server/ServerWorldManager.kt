@@ -3,6 +3,7 @@ package de.johni0702.minecraft.view.impl.server
 import de.johni0702.minecraft.betterportals.common.forceAddEntity
 import de.johni0702.minecraft.betterportals.common.forceRemoveEntity
 import de.johni0702.minecraft.betterportals.common.haveCubicChunks
+import de.johni0702.minecraft.betterportals.impl.accessors.AccNetHandlerPlayServer
 import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.net.ChangeServerMainWorld
 import de.johni0702.minecraft.view.impl.net.sendTo
@@ -27,6 +28,9 @@ import net.minecraftforge.event.world.ChunkWatchEvent
 //$$ import de.johni0702.minecraft.view.impl.mixin.AccessorServerChunkProvider
 //$$ import de.johni0702.minecraft.view.server.CuboidCubeSelector
 //#else
+import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityTracker
+import de.johni0702.minecraft.betterportals.impl.accessors.AccPlayerChunkMap
+import de.johni0702.minecraft.betterportals.impl.accessors.AccPlayerChunkMapEntry
 import de.johni0702.minecraft.view.impl.mixin.AccessorCubeWatcher_CC
 import io.github.opencubicchunks.cubicchunks.core.server.PlayerCubeMap
 import net.minecraft.entity.EntityTrackerEntry
@@ -228,7 +232,7 @@ internal class ServerWorldManager(
 
         updatePosition(player)
 
-        player.connection.captureCurrentPosition()
+        (player.connection as AccNetHandlerPlayServer).invokeCaptureCurrentPosition()
 
         player.setWorld(newWorld)
         camera.setWorld(oldWorld)
@@ -276,7 +280,7 @@ internal object EntityTrackerHandler : SwapHandler {
         //$$ val entries = (prevPlayer.serverWorld.chunkProvider.chunkManager as AccessorChunkManager).entities.values
         //#else
         val knownEntities = mutableListOf<EntityTrackerEntry>()
-        val entries = prevPlayer.serverWorld.entityTracker.entries
+        val entries = (prevPlayer.serverWorld.entityTracker as AccEntityTracker).entries
         //#endif
         entries.forEach { entry ->
             if (entry.trackingPlayers.remove(prevPlayer)) {
@@ -314,7 +318,7 @@ internal object PlayerChunkMapHandler : SwapHandler {
         val knownChunks = mutableListOf<PlayerChunkMapEntry>()
         worldManager.trackedColumns.forEach {
             val entry = playerChunkMap.getEntry(it.x, it.z)
-            if (entry != null && entry.players.remove(prevPlayer)) {
+            if (entry != null && (entry as AccPlayerChunkMapEntry).players.remove(prevPlayer)) {
                 if (entry.isSentToPlayers) {
                     MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.UnWatch(entry.chunk, prevPlayer))
                 }
@@ -322,16 +326,16 @@ internal object PlayerChunkMapHandler : SwapHandler {
             }
         }
 
-        playerChunkMap.players.remove(prevPlayer)
+        (playerChunkMap as AccPlayerChunkMap).players.remove(prevPlayer)
 
         return { newPlayer ->
             knownChunks.forEach {
-                it.players.add(newPlayer)
+                (it as AccPlayerChunkMapEntry).players.add(newPlayer)
                 if (it.isSentToPlayers) {
                     MinecraftForge.EVENT_BUS.post(ChunkWatchEvent.Watch(it.chunk, newPlayer))
                 }
             }
-            newPlayer.serverWorld.playerChunkMap.players.add(newPlayer)
+            (newPlayer.serverWorld.playerChunkMap as AccPlayerChunkMap).players.add(newPlayer)
         }
         //#endif
     }

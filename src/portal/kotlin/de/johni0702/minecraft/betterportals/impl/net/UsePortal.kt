@@ -5,6 +5,7 @@ import de.johni0702.minecraft.betterportals.impl.IMessage
 import de.johni0702.minecraft.betterportals.impl.IMessageHandler
 import de.johni0702.minecraft.betterportals.impl.MessageContext
 import de.johni0702.minecraft.betterportals.impl.NetworkDirection
+import de.johni0702.minecraft.betterportals.impl.accessors.AccNetHandlerPlayServer
 import de.johni0702.minecraft.betterportals.impl.common.LOGGER
 import de.johni0702.minecraft.betterportals.impl.serverPlayer
 import de.johni0702.minecraft.betterportals.impl.sync
@@ -35,7 +36,7 @@ internal class UsePortal(
         override fun handle(message: UsePortal, ctx: MessageContext) {
             ctx.sync {
                 val player = ctx.serverPlayer
-                if (player.connection.targetPos != null) {
+                if ((player.connection as AccNetHandlerPlayServer).targetPos != null) {
                     LOGGER.warn("Ignoring use portal request from $player because they have an outstanding teleport.")
                     return@sync
                 }

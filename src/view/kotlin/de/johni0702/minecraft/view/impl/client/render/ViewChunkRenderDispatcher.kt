@@ -3,6 +3,8 @@ package de.johni0702.minecraft.view.impl.client.render
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.ListenableFutureTask
 import de.johni0702.minecraft.betterportals.common.currentlyOnMainThread
+import de.johni0702.minecraft.betterportals.impl.accessors.AccChunkRenderDispatcher
+import de.johni0702.minecraft.betterportals.impl.accessors.AccChunkRenderWorker
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.BufferBuilder
@@ -45,6 +47,11 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
             null
         } ?: mc.renderGlobal.let { states.getOrPut(it, { State(it) }) }
     }
+
+    @Suppress("CAST_NEVER_SUCCEEDS") // Mixin
+    private val listWorkerThreads = (this as AccChunkRenderDispatcher).listWorkerThreads
+    @Suppress("CAST_NEVER_SUCCEEDS") // Mixin
+    private val renderWorker = (this as AccChunkRenderDispatcher).renderWorker as AccChunkRenderWorker
 
     /**
      * Keeps track of the last state a thread has been associated with.
@@ -187,7 +194,7 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
                 val task = pollNextChunkUpdate(false)
                 if (task != null) {
                     try {
-                        renderWorker.processTask(task)
+                        renderWorker.invokeProcessTask(task)
                         allDone = false
                     } catch (ignored: InterruptedException) {}
                 }
@@ -270,7 +277,7 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
                     val task = queuedUpdates.poll()
                     if (task != null) {
                         try {
-                            renderWorker.processTask(task)
+                            renderWorker.invokeProcessTask(task)
                             allDone = false
                         } catch (ignored: InterruptedException) {}
                     }

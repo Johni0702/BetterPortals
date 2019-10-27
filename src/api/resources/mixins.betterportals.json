@@ -1,0 +1,36 @@
+{
+  "required": true,
+  "package": "de.johni0702.minecraft.betterportals.impl.accessors",
+  "plugin": "de.johni0702.minecraft.betterportals.impl.BetterPortalsMixinConfigPlugin",
+  "mixins": [
+    //#if MC>=11400
+    //#else
+    "AccEntityTracker",
+    "AccPlayerChunkMap",
+    "AccPlayerChunkMapEntry",
+    //#endif
+    "AccEntity",
+    "AccEntityLivingBase",
+    "AccEntityMinecart",
+    "AccEntityPlayerMP",
+    "AccLazyLoadBase",
+    "AccNetHandlerPlayServer"
+  ],
+  "server": [],
+  "client": [
+    "AccAbstractClientPlayer",
+    "AccChunkRenderDispatcher",
+    "AccChunkRenderWorker",
+    "AccEntityOtherPlayerMP",
+    "AccEntityRenderer",
+    "AccGuiIngame",
+    "AccItemRenderer",
+    "AccMinecraft",
+    "AccNetHandlerPlayClient",
+    "AccRenderGlobal",
+    "AccShaderManager"
+  ],
+  "compatibilityLevel": "JAVA_8",
+  "minVersion": "0.6.11",
+  "refmap": "mixins.betterportals.refmap.json"
+}

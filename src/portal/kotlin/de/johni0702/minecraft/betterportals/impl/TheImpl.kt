@@ -86,10 +86,6 @@ object TheImpl : Impl {
     //$$     tracker.entry.tick()
     //$$ }
     //$$
-    //$$ override fun Entity.forcePartialUnmount() {
-    //$$     ridingEntity = null
-    //$$ }
-    //$$
     //$$ var rayTraceContextOverwrite: RayTraceContext? by ThreadLocal()
     //$$ override fun RayTraceContext.withImpl(start: Vec3d, end: Vec3d): RayTraceContext {
     //$$     rayTraceContextOverwrite = this

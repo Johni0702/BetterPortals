@@ -23,11 +23,12 @@
     "AccessorEntityRenderer_VC",
     "MixinEntityPlayerSP",
     "MixinEntityRenderer",
+    "MixinGlStateManager",
     "MixinJsonBlendingMode",
     "MixinRenderManager",
     "MixinSoundManager"
   ],
   "compatibilityLevel": "JAVA_8",
   "minVersion": "0.6.11",
-  "refmap": "mixins.betterportals.refmap.json"
+  "refmap": "mixins.betterportals.portal.refmap.json"
 }

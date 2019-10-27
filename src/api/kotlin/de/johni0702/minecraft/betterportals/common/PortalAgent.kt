@@ -1,6 +1,10 @@
 package de.johni0702.minecraft.betterportals.common
 
 import de.johni0702.minecraft.betterportals.client.deriveClientPosRotFrom
+import de.johni0702.minecraft.betterportals.impl.accessors.AccAbstractClientPlayer
+import de.johni0702.minecraft.betterportals.impl.accessors.AccEntity
+import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityMinecart
+import de.johni0702.minecraft.betterportals.impl.accessors.AccNetHandlerPlayServer
 import de.johni0702.minecraft.view.client.worldsManager
 import de.johni0702.minecraft.view.server.*
 import net.minecraft.block.material.Material
@@ -10,7 +14,6 @@ import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.culling.ICamera
 import net.minecraft.entity.Entity
-import net.minecraft.entity.item.EntityMinecart
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.nbt.NBTTagCompound
@@ -29,13 +32,13 @@ import org.apache.logging.log4j.Logger
 import java.lang.IllegalArgumentException
 
 //#if MC>=11400
-//$$ import net.minecraft.entity.LivingEntity
+//$$ import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityLivingBase
 //$$ import net.minecraft.util.math.shapes.VoxelShape
 //$$ import net.minecraft.util.math.shapes.VoxelShapes
 //$$ import java.util.stream.Stream
 //$$ import kotlin.streams.asStream
 //#else
-import net.minecraft.client.entity.EntityOtherPlayerMP
+import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityOtherPlayerMP
 //#endif
 
 interface PortalAccessor {
@@ -466,14 +469,14 @@ open class PortalAgent<P: Portal>(
             val newEntity = if (entity is EntityPlayerMP) {
                 if (localWorld == remoteWorld) {
                     entity.derivePosRotFrom(entity, portal)
-                    entity.connection.captureCurrentPosition()
+                    (entity.connection as AccNetHandlerPlayServer).invokeCaptureCurrentPosition()
                 } else {
                     val worldsManager = entity.worldsManager
 
                     // Forcefully dismount player without changing its position
                     // We cannot just use dismountRidingEntity() as that'll send a position packet to the client.
                     // There's no need to remove them from their vehicle because it'll be killed in the transfer anyway.
-                    entity.forcePartialUnmount()
+                    (entity as AccEntity).ridingEntity = null
 
                     worldsManager.changeDimension(remoteWorld) {
                         derivePosRotFrom(this, portal)
@@ -553,7 +556,7 @@ open class PortalAgent<P: Portal>(
         // Teleport
         if (world == remotePortal.world) {
             player.derivePosRotFrom(player, portal)
-            player.connection.captureCurrentPosition()
+            (player.connection as AccNetHandlerPlayServer).invokeCaptureCurrentPosition()
         } else {
             worldsManager.changeDimension(remotePortal.world as WorldServer) {
                 derivePosRotFrom(this, portal)
@@ -645,25 +648,25 @@ open class PortalAgent<P: Portal>(
         val pitch = newEntity.rotationPitch
         newEntity.derivePosRotFrom(entity, portal)
         //#if MC>=11400
-        //$$ if (newEntity is LivingEntity) {
+        //$$ if (newEntity is AccEntityLivingBase) {
         //$$     newEntity.newPosRotationIncrements = 3 // prevent sudden jumps
         //$$ }
         //#else
-        if (newEntity is EntityOtherPlayerMP) {
+        if (newEntity is AccEntityOtherPlayerMP) {
             newEntity.otherPlayerMPPos = pos // preserve otherPlayerMP pos to prevent desync
             newEntity.otherPlayerMPYaw = yaw.toDouble()
             newEntity.otherPlayerMPPitch = pitch.toDouble()
             newEntity.otherPlayerMPPosRotationIncrements = 3 // and sudden jumps
         }
         //#endif
-        if (newEntity is EntityMinecart) {
+        if (newEntity is AccEntityMinecart) {
             newEntity.minecartPos = pos // preserve minecart pos to prevent desync
             newEntity.minecartYaw = yaw.toDouble()
             newEntity.minecartPitch = pitch.toDouble()
             newEntity.turnProgress = 3 // and sudden jumps
         }
         if (newEntity is AbstractClientPlayer && entity is AbstractClientPlayer) {
-            newEntity.ticksElytraFlying = entity.ticksElytraFlying
+            (newEntity as AccAbstractClientPlayer).ticksElytraFlying = (entity as AccAbstractClientPlayer).ticksElytraFlying
             newEntity.rotateElytraX = entity.rotateElytraX
             newEntity.rotateElytraY = entity.rotateElytraY
             newEntity.rotateElytraZ = entity.rotateElytraZ

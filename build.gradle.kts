@@ -75,13 +75,11 @@ val integrationTest by sourceSets.registering {
 if (fg3) {
     configure<UserDevExtension> {
         mappings("snapshot", "20191009-1.14.3")
-        // TODO get rid of ATs
-        accessTransformer(File(project.rootDir, "src/main/resources/META-INF/accesstransformer.cfg"))
         val client by runs.creating
         val server by runs.creating
         configure(listOf(client, server)) {
             workingDirectory(project.file("run"))
-            args(listOf("", ".view", ".transition").flatMap { listOf("--mixin", "mixins.betterportals$it.json") })
+            args(listOf("", ".view", ".transition", ".portal").flatMap { listOf("--mixin", "mixins.betterportals$it.json") })
             property("forge.logging.markers", "SCAN,REGISTRIES,REGISTRYDUMP")
             property("forge.logging.console.level", "debug")
             mods {
@@ -109,9 +107,10 @@ if (fg3) {
 val mixinBaseSrgFile = project.file("build/mcp-srg.srg")
 val mixinExtraSrgFile = File(project.rootDir, "extra.srg")
 val mixinRefMaps = mapOf(
+        "api" to File(project.buildDir, "tmp/mixins/mixins.betterportals.refmap.json"),
         "view" to File(project.buildDir, "tmp/mixins/mixins.betterportals.view.refmap.json"),
         "transition" to File(project.buildDir, "tmp/mixins/mixins.betterportals.transition.refmap.json"),
-        "portal" to File(project.buildDir, "tmp/mixins/mixins.betterportals.refmap.json"),
+        "portal" to File(project.buildDir, "tmp/mixins/mixins.betterportals.portal.refmap.json"),
         "integrationTest" to File(project.buildDir, "tmp/mixins/mixins.betterportals.test.refmap.json")
 )
 mixinRefMaps.forEach { (name, refMap) ->
@@ -249,9 +248,9 @@ tasks.named<Jar>("jar") {
                 "MixinConfigs" to listOf(
                         "mixins.betterportals.json",
                         "mixins.betterportals.view.json",
-                        "mixins.betterportals.transition.json"
-                ).joinToString(","),
-                "FMLAT" to "betterportals_at.cfg"
+                        "mixins.betterportals.transition.json",
+                        "mixins.betterportals.portal.json"
+                ).joinToString(",")
         )
     }
 }

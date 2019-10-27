@@ -4,6 +4,8 @@ import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.ListenableFutureTask
+import de.johni0702.minecraft.betterportals.impl.accessors.AccLazyLoadBase
+import de.johni0702.minecraft.betterportals.impl.accessors.AccMinecraft
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.client.ViewDemuxingTaskQueue
@@ -83,9 +85,9 @@ internal fun EntityPlayer.swapPosRotWith(e2: EntityPlayer) {
 
 internal val <T> LazyLoadBase<T>.maybeValue get() =
     //#if MC>=11400
-    //$$ if (supplier == null) value else null
+    //$$ if ((this as AccLazyLoadBase).supplier == null) value else null
     //#else
-    if (isLoaded) value else null
+    if ((this as AccLazyLoadBase).isLoaded) value else null
     //#endif
 
 internal fun clientSyncIgnoringView(task: () -> Unit) {
@@ -93,6 +95,7 @@ internal fun clientSyncIgnoringView(task: () -> Unit) {
     //#if MC>=11400
     //$$ mc.enqueue(ViewDemuxingTaskQueue.ViewWrappedFutureTask({ null }, Runnable { task() }))
     //#else
+    mc as AccMinecraft
     synchronized(mc.scheduledTasks) {
         mc.scheduledTasks.offer(ViewDemuxingTaskQueue.ViewWrappedFutureTask({
             null

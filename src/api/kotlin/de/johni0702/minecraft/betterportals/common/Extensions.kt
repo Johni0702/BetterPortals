@@ -1,11 +1,14 @@
 package de.johni0702.minecraft.betterportals.common
 
+import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityMinecart
+import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityOtherPlayerMP
 import de.johni0702.minecraft.betterportals.impl.theImpl
 import io.github.opencubicchunks.cubicchunks.api.util.CubePos
 import io.github.opencubicchunks.cubicchunks.api.world.ICubeProviderServer
 import io.github.opencubicchunks.cubicchunks.api.world.ICubicWorld
 import io.github.opencubicchunks.cubicchunks.core.server.CubeProviderServer
 import io.github.opencubicchunks.cubicchunks.core.server.ICubicPlayerList
+import io.netty.buffer.Unpooled
 import net.minecraft.block.state.IBlockState
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
@@ -15,15 +18,12 @@ import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.network.PacketBuffer
 import net.minecraft.server.management.PlayerList
-import net.minecraft.util.BitArray
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.ResourceLocation
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.*
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
-import net.minecraft.world.chunk.BlockStatePaletteHashMap
-import net.minecraft.world.chunk.BlockStatePaletteLinear
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.Event
 import net.minecraftforge.fml.common.eventhandler.EventBus
@@ -46,8 +46,10 @@ import org.lwjgl.util.vector.Matrix3f as LwjglMatrix3f
 import org.lwjgl.util.vector.Matrix4f as LwjglMatrix4f
 
 //#if MC>=11400
+//$$ import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityLivingBase
 //$$ import de.johni0702.minecraft.betterportals.impl.theImpl
 //$$ import net.minecraft.world.chunk.Chunk
+//$$ import net.minecraft.world.chunk.ChunkSection
 //$$ import net.minecraft.world.chunk.ChunkStatus
 //$$
 //$$ typealias BlockStateContainer = net.minecraft.world.chunk.BlockStateContainer<BlockState>
@@ -295,11 +297,11 @@ inline fun <reified T : Enum<T>> PacketBuffer.writeEnum(value: T): PacketBuffer 
 
 val Entity.eyeOffset get() = Vec3d(0.0, eyeHeight.toDouble(), 0.0)
 val Entity.syncPos get() = when {
-    this is EntityMinecart && turnProgress > 0 -> minecartPos
+    this is AccEntityMinecart && turnProgress > 0 -> minecartPos
     //#if MC>=11400
-    //$$ this is LivingEntity && newPosRotationIncrements > 0 -> interpTarget
+    //$$ this is AccEntityLivingBase && newPosRotationIncrements > 0 -> interpTarget
     //#else
-    this is EntityOtherPlayerMP && otherPlayerMPPosRotationIncrements > 0 -> otherPlayerMPPos
+    this is AccEntityOtherPlayerMP && otherPlayerMPPosRotationIncrements > 0 -> otherPlayerMPPos
     //#endif
     else -> pos
 }
@@ -314,14 +316,23 @@ var Entity.prevPos
     set(value) = with(value) { prevPosX = x; prevPosY = y; prevPosZ = z }
 //#if MC>=11400
 //$$ var LivingEntity.interpTarget
+//$$     get() = (this as AccEntityLivingBase).interpTarget
+//$$     set(value) { (this as AccEntityLivingBase).interpTarget = value }
+//$$ var AccEntityLivingBase.interpTarget
 //$$     get() = Vec3d(interpTargetX, interpTargetY, interpTargetZ)
 //$$     set(value) = with(value) { interpTargetX = x; interpTargetY = y; interpTargetZ = z }
 //#else
 var EntityOtherPlayerMP.otherPlayerMPPos
+    get() = (this as AccEntityOtherPlayerMP).otherPlayerMPPos
+    set(value) { (this as AccEntityOtherPlayerMP).otherPlayerMPPos = value }
+var AccEntityOtherPlayerMP.otherPlayerMPPos
     get() = Vec3d(otherPlayerMPX, otherPlayerMPY, otherPlayerMPZ)
     set(value) = with(value) { otherPlayerMPX = x; otherPlayerMPY = y; otherPlayerMPZ = z }
 //#endif
 var EntityMinecart.minecartPos
+    get() = (this as AccEntityMinecart).minecartPos
+    set(value) { (this as AccEntityMinecart).minecartPos = value }
+var AccEntityMinecart.minecartPos
     get() = Vec3d(minecartX, minecartY, minecartZ)
     set(value) = with(value) { minecartX = x; minecartY = y; minecartZ = z }
 
@@ -415,7 +426,7 @@ private fun World.makeCubewiseBlockCache(): BlockCache =
                     //#if MC>=11400
                     //$$ null // TODO
                     //#else
-                    (this as ICubicWorld).cubeCache.getCube(cubePos).storage?.data?.copy()
+                    (this as ICubicWorld).cubeCache.getCube(cubePos).storage?.data?.clone()
                     //#endif
                 }
                 storage?.get(pos.x and 15, pos.y and 15, pos.z and 15)
@@ -430,10 +441,10 @@ private fun World.makeChunkwiseBlockCacheInternal(forceLoad: Boolean = true): Bl
                 val storageLists = cache.getOrPut(chunkPos) {
                     //#if MC>=11400
                     //$$ val chunk = getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, forceLoad)
-                    //$$ (chunk as? Chunk)?.sections?.map { it?.data?.copy() } ?: emptyList()
+                    //$$ (chunk as? Chunk)?.sections?.map { it?.clone()?.data } ?: emptyList()
                     //#else
                     if (forceLoad || isChunkGeneratedAt(chunkPos.x, chunkPos.z)) {
-                        getChunkFromChunkCoords(chunkPos.x, chunkPos.z).blockStorageArray.map { it?.data?.copy() }
+                        getChunkFromChunkCoords(chunkPos.x, chunkPos.z).blockStorageArray.map { it?.data?.clone() }
                     } else {
                         emptyList()
                     }
@@ -447,46 +458,25 @@ private fun World.makeChunkwiseBlockCacheInternal(forceLoad: Boolean = true): Bl
 @Deprecated("incompatible with CubicChunks")
 fun World.makeChunkwiseBlockCache(forceLoad: Boolean = true): BlockCache = makeChunkwiseBlockCacheInternal(forceLoad)
 
-fun BlockStateContainer.copy(): BlockStateContainer {
-    val copy = BlockStateContainer(
-            //#if MC>=11400
-            //$$ field_205521_b, registry, deserializer, serializer, defaultState
-            //#endif
-    )
-    copy.bits = bits
-    copy.palette = when {
-        bits <= 4 -> BlockStatePaletteLinear(
-                //#if MC>=11400
-                //$$ registry, bits, copy, deserializer
-                //#else
-                bits, copy
-                //#endif
-        ).apply {
-            val oldPalette = palette as BlockStatePaletteLinear
-            System.arraycopy(oldPalette.states, 0, states, 0, states.size)
-            arraySize = oldPalette.arraySize
-        }
-        bits <= 8 -> BlockStatePaletteHashMap(
-                //#if MC>=11400
-                //$$ registry, bits, copy, deserializer, serializer
-                //#else
-                bits, copy
-                //#endif
-        ).apply {
-            val org = (palette as BlockStatePaletteHashMap).statePaletteMap
-            org.forEach { statePaletteMap.put(it, org.getId(it)) }
-        }
-        else ->
-            //#if MC>=11400
-            //$$ field_205521_b
-            //#else
-            BlockStateContainer.REGISTRY_BASED_PALETTE
-            //#endif
-    }
-    copy.storage = BitArray(bits, 4096)
-    System.arraycopy(storage.backingLongArray, 0, copy.storage.backingLongArray, 0, storage.backingLongArray.size)
-    return copy
+private val byteBuf = Unpooled.buffer()
+private val packetBuffer = PacketBuffer(byteBuf)
+//#if MC>=11400
+//$$ private fun ChunkSection.clone(): ChunkSection {
+//$$     byteBuf.writerIndex(0)
+//$$     write(packetBuffer)
+//$$     byteBuf.readerIndex(0)
+//$$     return ChunkSection(yLocation).apply { read(packetBuffer) }
+//$$ }
+//#else
+@Deprecated("implementation detail and gone in 1.14")
+fun BlockStateContainer.copy(): BlockStateContainer = clone()
+fun BlockStateContainer.clone(): BlockStateContainer {
+    byteBuf.writerIndex(0)
+    write(packetBuffer)
+    byteBuf.readerIndex(0)
+    return BlockStateContainer().apply { read(packetBuffer) }
 }
+//#endif
 
 class ObjectHolder<in R, T: U, U: IForgeRegistryEntry<U>>(
         private val registry: IForgeRegistry<U>,

@@ -3,6 +3,12 @@ package de.johni0702.minecraft.view.impl.client
 import de.johni0702.minecraft.betterportals.common.DimensionId
 import de.johni0702.minecraft.betterportals.common.forceAddEntity
 import de.johni0702.minecraft.betterportals.common.forceRemoveEntity
+import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityRenderer
+import de.johni0702.minecraft.betterportals.impl.accessors.AccGuiIngame
+import de.johni0702.minecraft.betterportals.impl.accessors.AccItemRenderer
+import de.johni0702.minecraft.betterportals.impl.accessors.AccMinecraft
+import de.johni0702.minecraft.betterportals.impl.accessors.AccNetHandlerPlayClient
+import de.johni0702.minecraft.betterportals.impl.accessors.AccRenderGlobal
 import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.net.CreateWorld
 import io.netty.channel.embedded.EmbeddedChannel
@@ -135,7 +141,7 @@ internal class ClientState(
     private var objectMouseOver: RayTraceResult? = null
     private var guiBossOverlay: GuiBossOverlay? = null
 
-    override fun toString(): String = "ClientState for world ${world.provider.dimension}"
+    override fun toString(): String = "ClientState for world ${world.provider.dimensionType}"
 
     internal fun captureState(mc: Minecraft) {
         itemRenderer = mc.itemRenderer
@@ -145,14 +151,14 @@ internal class ClientState(
         _world = mc.world
         thePlayer = mc.player
         renderViewEntity = mc.renderViewEntity
-        netManager = mc.connection?.netManager
+        netManager = (mc.connection as? AccNetHandlerPlayClient)?.netManager
         pointedEntity = mc.pointedEntity
         objectMouseOver = mc.objectMouseOver
         guiBossOverlay = mc.ingameGUI?.bossOverlay
     }
 
     internal fun restoreState(mc: Minecraft) {
-        mc.itemRenderer = itemRenderer
+        (mc as AccMinecraft).itemRenderer = itemRenderer
         mc.effectRenderer = particleManager
         mc.renderGlobal = renderGlobal
         mc.entityRenderer = entityRenderer
@@ -160,15 +166,15 @@ internal class ClientState(
         mc.world = _world
         val connection = mc.connection
         if (connection != null) {
-            connection.netManager = netManager?.apply { netHandler = connection }
-            connection.clientWorldController = mc.world
+            (connection as AccNetHandlerPlayClient).netManager = netManager?.apply { netHandler = connection }
+            (connection as AccNetHandlerPlayClient).world = mc.world
         }
         TileEntityRendererDispatcher.instance.setWorld(mc.world)
 
         mc.pointedEntity = pointedEntity
         mc.objectMouseOver = objectMouseOver
         if (mc.ingameGUI != null && guiBossOverlay != null) {
-            mc.ingameGUI.overlayBoss = guiBossOverlay
+            (mc.ingameGUI as AccGuiIngame).overlayBoss = guiBossOverlay
         }
 
         if (mc.entityRenderer != null) {
@@ -177,14 +183,18 @@ internal class ClientState(
     }
 
     internal fun copyRenderState(from: ClientState) {
-        entityRenderer!!.fovModifierHand = from.entityRenderer!!.fovModifierHand
-        entityRenderer!!.fovModifierHandPrev = from.entityRenderer!!.fovModifierHandPrev
-        itemRenderer!!.itemStackMainHand = from.itemRenderer!!.itemStackMainHand
-        itemRenderer!!.itemStackOffHand = from.itemRenderer!!.itemStackOffHand
-        itemRenderer!!.equippedProgressMainHand = from.itemRenderer!!.equippedProgressMainHand
-        itemRenderer!!.prevEquippedProgressMainHand = from.itemRenderer!!.prevEquippedProgressMainHand
-        itemRenderer!!.equippedProgressOffHand = from.itemRenderer!!.equippedProgressOffHand
-        itemRenderer!!.prevEquippedProgressOffHand = from.itemRenderer!!.prevEquippedProgressOffHand
+        val toER = this.entityRenderer as AccEntityRenderer
+        val fromER = from.entityRenderer as AccEntityRenderer
+        toER.fovModifierHand = fromER.fovModifierHand
+        toER.fovModifierHandPrev = fromER.fovModifierHandPrev
+        val toIR = this.itemRenderer as AccItemRenderer
+        val fromIR = from.itemRenderer as AccItemRenderer
+        toIR.itemStackMainHand = fromIR.itemStackMainHand
+        toIR.itemStackOffHand = fromIR.itemStackOffHand
+        toIR.equippedProgressMainHand = fromIR.equippedProgressMainHand
+        toIR.prevEquippedProgressMainHand = fromIR.prevEquippedProgressMainHand
+        toIR.equippedProgressOffHand = fromIR.equippedProgressOffHand
+        toIR.prevEquippedProgressOffHand = fromIR.prevEquippedProgressOffHand
     }
 
     companion object {
@@ -236,7 +246,7 @@ internal class ClientState(
                     // Need to initialize the newly create view state while it's active since several of the components
                     // get their own dependencies implicitly via the Minecraft instance
                     view.itemRenderer = ItemRenderer(mc)
-                    mc.itemRenderer = view.itemRenderer // Implicitly passed to EntityRenderer via mc
+                    (mc as AccMinecraft).itemRenderer = view.itemRenderer // Implicitly passed to EntityRenderer via mc
                     view.renderGlobal = RenderGlobal(mc)
                     mc.renderGlobal = view.renderGlobal
                     view.entityRenderer = EntityRenderer(mc, mc.resourceManager)
@@ -276,14 +286,15 @@ internal class ClientState(
 
             manager.withView(view) {
                 with (mc.renderGlobal) {
+                    this as AccRenderGlobal
                     if (renderDispatcher != null) {
                         renderDispatcher.stopWorkerThreads()
                     }
-                    renderDispatcher = manager.mainView.renderGlobal!!.renderDispatcher
+                    renderDispatcher = (manager.mainView.renderGlobal as AccRenderGlobal).renderDispatcher
                     setWorldAndLoadRenderers(world)
                 }
                 mc.effectRenderer.clearEffects(world)
-                mc.ingameGUI.overlayBoss = GuiBossOverlay(mc)
+                (mc.ingameGUI as AccGuiIngame).overlayBoss = GuiBossOverlay(mc)
             }
 
             return view

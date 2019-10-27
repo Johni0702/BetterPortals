@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.view.impl.net
 
+import de.johni0702.minecraft.betterportals.impl.accessors.AccMinecraft
 import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.client.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.view.impl.common.clientSyncIgnoringView
@@ -24,6 +25,7 @@ internal object Transaction {
             check(!inTransaction) { "Already in transaction!" }
             inTransaction = true
             val mc = Minecraft.getMinecraft()
+            mc as AccMinecraft
 
             //#if MC>=11400
             //$$ // Install the blocking queue which will cause MC to continuously

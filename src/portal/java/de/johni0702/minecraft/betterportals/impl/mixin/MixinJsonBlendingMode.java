@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.betterportals.impl.mixin;
 
+import de.johni0702.minecraft.betterportals.impl.accessors.AccShaderManager;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.shader.ShaderManager;
 import net.minecraft.client.util.JsonBlendingMode;
@@ -46,8 +47,8 @@ public abstract class MixinJsonBlendingMode {
     private void apply(CallbackInfo ci) {
         ci.cancel();
 
-        ShaderManager shaderManager = ShaderManager.staticShaderManager;
-        if (shaderManager != null && "entity_outline".equals(shaderManager.programFilename)) {
+        ShaderManager shaderManager = AccShaderManager.getStaticShaderManager();
+        if (shaderManager != null && "entity_outline".equals(((AccShaderManager) shaderManager).getProgramFilename())) {
             GlStateManager.disableBlend();
             return;
         }

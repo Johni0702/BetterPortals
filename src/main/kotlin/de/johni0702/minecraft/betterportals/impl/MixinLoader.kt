@@ -17,7 +17,7 @@ open class MixinLoader(val root: File) : IFMLLoadingPlugin {
 
     init {
         // Forge appears to not support custom source sets
-        listOf("portal", "view", "transition").forEach {
+        listOf("api", "view", "transition", "portal").forEach {
             Launch.classLoader.addURL(File(root, "src/$it/resources").toURI().toURL())
         }
 
@@ -25,6 +25,7 @@ open class MixinLoader(val root: File) : IFMLLoadingPlugin {
         Mixins.addConfiguration("mixins.betterportals.json")
         Mixins.addConfiguration("mixins.betterportals.view.json")
         Mixins.addConfiguration("mixins.betterportals.transition.json")
+        Mixins.addConfiguration("mixins.betterportals.portal.json")
 
         val codeSource = javaClass.protectionDomain.codeSource
         if (codeSource != null) {

@@ -2,6 +2,7 @@ package de.johni0702.minecraft.view.impl.server
 
 import com.mojang.authlib.GameProfile
 import de.johni0702.minecraft.betterportals.common.*
+import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityPlayerMP
 import de.johni0702.minecraft.view.impl.client.TransactionNettyHandler
 import de.johni0702.minecraft.view.impl.net.*
 import de.johni0702.minecraft.view.server.CubeSelector
@@ -322,6 +323,7 @@ internal class ServerWorldsManagerImpl(
         // For some reason MC queues up removed entity ids instead of sending them directly (maybe to save packets?).
         // Anyhow, we need them sent out right now.
         val flushEntityPackets = { player: EntityPlayerMP ->
+            player as AccEntityPlayerMP
             if (player.entityRemoveQueue.isNotEmpty()) {
                 player.connection.sendPacket(SPacketDestroyEntities(*(player.entityRemoveQueue.toIntArray())))
                 player.entityRemoveQueue.clear()

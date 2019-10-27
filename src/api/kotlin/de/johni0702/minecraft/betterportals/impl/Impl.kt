@@ -26,7 +26,6 @@ interface Impl {
     //#if MC>=11400
     //$$ fun ServerWorld.getTracking(entity: Entity): Set<ServerPlayerEntity>
     //$$ fun ServerWorld.updateTrackingState(entity: Entity)
-    //$$ fun Entity.forcePartialUnmount()
     //$$ fun RayTraceContext.withImpl(start: Vec3d, end: Vec3d): RayTraceContext
     //#endif
 }

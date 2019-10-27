@@ -14,7 +14,7 @@ com.mojang.blaze3d.platform.GlStateManager.ClearState net.minecraft.client.rende
 com.mojang.blaze3d.platform.GlStateManager.Color net.minecraft.client.renderer.GlStateManager.Color
 com.mojang.datafixers.DataFixer net.minecraft.util.datafix.DataFixer
 net.minecraft.client.renderer.texture.AtlasTexture net.minecraft.client.renderer.texture.TextureMap
-net.minecraft.entity.item.minecart.MinecartEntity net.minecraft.entity.item.EntityMinecart
+net.minecraft.entity.item.minecart.AbstractMinecartEntity net.minecraft.entity.item.EntityMinecart
 net.minecraft.client.entity.player.RemoteClientPlayerEntity net.minecraft.client.entity.EntityOtherPlayerMP
 net.minecraft.nbt.CompoundNBT net.minecraft.nbt.NBTTagCompound
 net.minecraftforge.eventbus.api.Cancelable net.minecraftforge.fml.common.eventhandler.Cancelable
@@ -52,6 +52,7 @@ net.minecraft.world.Difficulty net.minecraft.world.EnumDifficulty
 net.minecraft.client.renderer.FirstPersonRenderer net.minecraft.client.renderer.ItemRenderer
 net.minecraft.client.renderer.WorldRenderer net.minecraft.client.renderer.RenderGlobal
 net.minecraft.client.gui.overlay.BossOverlayGui net.minecraft.client.gui.GuiBossOverlay
+net.minecraft.client.gui.IngameGui net.minecraft.client.gui.GuiIngame
 net.minecraft.client.network.play.ClientPlayNetHandler net.minecraft.client.network.NetHandlerPlayClient
 net.minecraft.client.network.play.IClientPlayNetHandler net.minecraft.network.play.INetHandlerPlayClient
 net.minecraft.client.network.login.ClientLoginNetHandler net.minecraft.client.network.NetHandlerLoginClient
@@ -89,6 +90,7 @@ net.minecraft.network.play.server.SAnimateBlockBreakPacket net.minecraft.network
 net.minecraft.client.renderer.chunk.IChunkRendererFactory net.minecraft.client.renderer.chunk.IRenderChunkFactory
 net.minecraft.resources.FolderPack net.minecraft.client.resources.FolderResourcePack
 
+net.minecraft.client.Minecraft framebuffer framebufferMC
 net.minecraft.client.shader.ShaderInstance field_216547_c staticShaderManager
 net.minecraft.client.shader.ShaderInstance field_216556_l programFilename
 net.minecraft.client.shader.ShaderInstance func_216537_a() addSamplerTexture()

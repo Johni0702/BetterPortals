@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.view.impl
 
+import de.johni0702.minecraft.betterportals.impl.accessors.AccMinecraft
 import de.johni0702.minecraft.view.client.ClientViewAPI
 import de.johni0702.minecraft.view.client.ClientWorldsManager
 import de.johni0702.minecraft.view.client.render.RenderPassManager
@@ -42,6 +43,7 @@ internal object ClientViewAPIImpl : ClientViewAPI {
         //$$ // Handled by MixinThreadTaskExecutor
         //#else
         val mc = Minecraft.getMinecraft()
+        mc as AccMinecraft
         synchronized(mc.scheduledTasks) {
             mc.scheduledTasks = ViewDemuxingTaskQueue(mc, mc.scheduledTasks)
         }
