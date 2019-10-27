@@ -175,7 +175,7 @@ dependencies {
 
     "compile"("net.shadowfacts:Forgelin:1.8.3")
 
-    val mixinDep = "org.spongepowered:mixin:0.8-preview-SNAPSHOT"
+    val mixinDep = "org.spongepowered:mixin:" + (if (mcVersion >= 11400) { "0.8-preview-SNAPSHOT" } else { "0.7.11-SNAPSHOT" })
     val withoutOldMixinDeps: ModuleDependency.() -> Unit = {
         exclude(group = "com.google.guava") // 17.0
         exclude(group = "com.google.code.gson") // 2.2.4
