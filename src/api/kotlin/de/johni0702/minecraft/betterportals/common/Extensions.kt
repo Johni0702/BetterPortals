@@ -654,7 +654,9 @@ fun World.rayTraceBlocksWithPortals(
         returnLastUncollidableBlock: Boolean = false
         //#endif
 ): RayTraceResult? {
+    //#if MC>=11400
     //$$ val (start, end) = context
+    //#endif
     val result = findPortal(start, end)
     val agent = result.third
             //#if MC>=11400
