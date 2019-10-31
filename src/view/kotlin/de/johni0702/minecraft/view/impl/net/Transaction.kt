@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 //$$ import de.johni0702.minecraft.betterportals.impl.IThreadTaskExecutor
 //#endif
 
-internal object Transaction {
+object Transaction {
     fun lock() {
         if (disableTransactions) return
         // We need to block the network thread until MC's queue has been replaced.

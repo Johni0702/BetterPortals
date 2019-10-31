@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.provideDelegate
+import de.johni0702.minecraft.betterportals.impl.accessors.AccMinecraft
 import de.johni0702.minecraft.view.client.render.RenderPassEvent
 import io.kotlintest.matchers.collections.shouldBeEmpty
 import io.kotlintest.matchers.types.shouldNotBeNull
@@ -62,7 +63,7 @@ fun launchServer() {
     }
 
     updateClient()
-    mc.scheduledTasks.shouldBeEmpty()
+    (mc as AccMinecraft).scheduledTasks.shouldBeEmpty()
     mc.world.shouldNotBeNull()
     mc.player.shouldNotBeNull()
 
@@ -75,7 +76,7 @@ fun closeServer() {
     mc.loadWorld(null)
 
     // MC just catches all exceptions but that still breaks our tests (starting 1.14 (or 13?) MC also clears the queue)
-    mc.scheduledTasks.clear()
+    (mc as AccMinecraft).scheduledTasks.clear()
 }
 
 fun deleteWorld() {
@@ -98,9 +99,9 @@ fun updateClient(skipSync: Boolean = false) {
             clientSyncCond.await()
         }
     }
-    synchronized(mc.scheduledTasks) {
-        while (!mc.scheduledTasks.isEmpty()) {
-            Util.runTask(mc.scheduledTasks.poll(), LOGGER)
+    synchronized((mc as AccMinecraft).scheduledTasks) {
+        while (!(mc as AccMinecraft).scheduledTasks.isEmpty()) {
+            Util.runTask((mc as AccMinecraft).scheduledTasks.poll(), LOGGER)
         }
     }
     mc.entityRenderer.getMouseOver(mc.renderPartialTicks)
@@ -130,18 +131,18 @@ fun fastRender() {
 }
 
 fun render(partialTicks: Float = mc.renderPartialTicks) {
-    mc.framebufferMc.bindFramebuffer(true)
+    (mc as AccMinecraft).framebuffer.bindFramebuffer(true)
     GlStateManager.enableTexture2D()
 
     FMLCommonHandler.instance().onRenderTickStart(partialTicks)
     mc.entityRenderer.updateCameraAndRender(partialTicks, 0)
     FMLCommonHandler.instance().onRenderTickEnd(partialTicks)
 
-    mc.framebufferMc.unbindFramebuffer()
+    (mc as AccMinecraft).framebuffer.unbindFramebuffer()
 }
 
 fun screenshot(name: String? = null): String =
-        ScreenShotHelper.saveScreenshot(mc.mcDataDir, name, mc.displayWidth, mc.displayHeight, mc.framebufferMc).unformattedText
+        ScreenShotHelper.saveScreenshot(mc.mcDataDir, name, mc.displayWidth, mc.displayHeight, (mc as AccMinecraft).framebuffer).unformattedText
 
 fun renderToScreenshot(name: String? = null): String {
     render()
