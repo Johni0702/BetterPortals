@@ -10,6 +10,7 @@ import io.github.opencubicchunks.cubicchunks.core.server.CubeProviderServer
 import io.github.opencubicchunks.cubicchunks.core.server.ICubicPlayerList
 import io.netty.buffer.Unpooled
 import net.minecraft.block.state.IBlockState
+import net.minecraft.client.Minecraft
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.item.EntityMinecart
@@ -338,7 +339,19 @@ var AccEntityMinecart.minecartPos
 
 fun ChunkPos.add(x: Int, z: Int) = ChunkPos(this.x + x, this.z + z)
 
-val WorldServer.server get() = minecraftServer!!
+val Minecraft.theProfiler get() =
+    //#if MC>=11400
+    //$$ profiler
+    //#else
+    mcProfiler
+    //#endif
+
+val WorldServer.theServer get() =
+    //#if MC>=11400
+    //$$ server
+    //#else
+    minecraftServer!!
+    //#endif
 
 //#if MC<11400
 @Deprecated("Not on 1.14", ReplaceWith("this.forceAddEntity(entity)"))

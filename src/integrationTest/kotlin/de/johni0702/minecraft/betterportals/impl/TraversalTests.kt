@@ -1,7 +1,9 @@
 package de.johni0702.minecraft.betterportals.impl
 
+import de.johni0702.minecraft.betterportals.common.dimensionId
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.to3dMid
+import de.johni0702.minecraft.betterportals.common.toDimensionId
 import de.johni0702.minecraft.betterportals.impl.worlds.DoubleNetherPortalSetup
 import de.johni0702.minecraft.betterportals.impl.worlds.SingleNetherPortalSetup
 import io.kotlintest.extensions.TestListener
@@ -22,7 +24,7 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
     override fun listeners(): List<TestListener> = listOf(SingleNetherPortalSetup())
 
     private fun moveUpThroughPortal() {
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
         mc.player.updateMovement { jump = true }
         repeat(10) {
             tickClient()
@@ -30,11 +32,11 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
         }
         mc.player.updateMovement { jump = false }
         tickClient()
-        mc.world.provider.dimension shouldBe -1
+        mc.world.dimensionId shouldBe (-1).toDimensionId()
     }
 
     private fun moveDownThroughPortal() {
-        mc.world.provider.dimension shouldBe -1
+        mc.world.dimensionId shouldBe (-1).toDimensionId()
         mc.player.updateMovement { sneak = true }
         repeat(10) {
             tickClient()
@@ -42,7 +44,7 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
         }
         mc.player.updateMovement { sneak = false }
         tickClient()
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
     }
 
     /**
@@ -55,14 +57,14 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
 
         if (!skipServerUpdate) {
             updateClient()
-            mc.world.provider.dimension shouldBe -1
+            mc.world.dimensionId shouldBe (-1).toDimensionId()
         }
 
         // Move back down through portal
         moveDownThroughPortal()
 
         updateClient()
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
     }
 
     @BeforeEach
@@ -99,7 +101,7 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
         sendTpCommand(mc.player.pos)
 
         updateClient()
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
     }
 
     /**
@@ -113,13 +115,13 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
         sendTpCommand(tpPos)
         moveDownThroughPortal()
 
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
         updateClient()
-        mc.world.provider.dimension shouldBe -1
+        mc.world.dimensionId shouldBe (-1).toDimensionId()
         mc.player.pos shouldBe tpPos
 
         moveDownThroughPortal()
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
     }
 
     /**
@@ -132,9 +134,9 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
         sendTpCommand(tpPos)
         moveUpThroughPortal()
 
-        mc.world.provider.dimension shouldBe -1
+        mc.world.dimensionId shouldBe (-1).toDimensionId()
         updateClient()
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
         mc.player.pos shouldBe tpPos
 
         // Make sure it's not horribly broken in some way
@@ -151,9 +153,9 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
         moveUpThroughPortal()
         moveDownThroughPortal()
 
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
         updateClient()
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
 
         // Make sure it's not horribly broken in some way
         testSimpleTraversal()
@@ -183,32 +185,32 @@ open class DoublePortalTraversalTests : AnnotationSpec() {
      * @see testSimpleTraversalWithLag
      */
     private fun testSimpleTraversal(skipServerUpdateInNether: Boolean = false, skipServerUpdateInOverworld: Boolean = false) {
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
         holdForTwentyTicks { jump = it }
-        mc.world.provider.dimension shouldBe -1
+        mc.world.dimensionId shouldBe (-1).toDimensionId()
         if (!skipServerUpdateInNether) {
             updateClient()
         }
 
-        mc.world.provider.dimension shouldBe -1
+        mc.world.dimensionId shouldBe (-1).toDimensionId()
         holdForTwentyTicks { jump = it }
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
         if (!skipServerUpdateInOverworld) {
             updateClient()
         }
 
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
         holdForTwentyTicks { sneak = it }
-        mc.world.provider.dimension shouldBe -1
+        mc.world.dimensionId shouldBe (-1).toDimensionId()
         if (!skipServerUpdateInNether) {
             updateClient()
         }
 
-        mc.world.provider.dimension shouldBe -1
+        mc.world.dimensionId shouldBe (-1).toDimensionId()
         holdForTwentyTicks { sneak = it }
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
         updateClient()
-        mc.world.provider.dimension shouldBe 0
+        mc.world.dimensionId shouldBe 0.toDimensionId()
     }
 
     @BeforeEach

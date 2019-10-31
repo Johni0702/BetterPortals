@@ -609,7 +609,7 @@ open class PortalAgent<P: Portal>(
 
     val remoteClientWorld: WorldClient?
         @SideOnly(Side.CLIENT)
-        get() = Minecraft.getMinecraft().worldsManager?.worlds?.find { it.provider.dimension == portal.remoteDimension }
+        get() = Minecraft.getMinecraft().worldsManager?.worlds?.find { it.dimensionId == portal.remoteDimension }
 
     // FIXME remap fails @SideOnly(Side.CLIENT)
     private var portalUser: Entity? = null

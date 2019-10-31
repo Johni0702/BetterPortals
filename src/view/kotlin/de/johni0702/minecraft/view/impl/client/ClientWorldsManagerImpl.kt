@@ -1,9 +1,11 @@
 package de.johni0702.minecraft.view.impl.client
 
 import de.johni0702.minecraft.betterportals.common.DimensionId
+import de.johni0702.minecraft.betterportals.common.dimensionId
 import de.johni0702.minecraft.betterportals.common.popOrNull
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.removeAtOrNull
+import de.johni0702.minecraft.betterportals.common.theProfiler
 import de.johni0702.minecraft.view.client.ClientWorldsManager
 import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.net.CreateWorld
@@ -122,7 +124,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
 
     fun createState(message: CreateWorld): ClientState {
         val dim = message.dimensionID
-        check(views.find { it.world.provider.dimension == dim } == null) { "World with dimension $dim already exists" }
+        check(views.find { it.world.dimensionId == dim } == null) { "World with dimension $dim already exists" }
         return ClientState.reuseOrCreate(this, message, unusedViews.popOrNull()).also { views.add(it) }
     }
 
@@ -323,7 +325,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
 
         (mc.integratedServer as? IIntegratedServer)?.updateClientState(mc)
 
-        mc.mcProfiler.startSection("tickViews")
+        mc.theProfiler.startSection("tickViews")
 
         views.filter { it != mainView }.forEach { view ->
             withView(view) {
@@ -331,25 +333,25 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
             }
         }
 
-        mc.mcProfiler.endSection()
+        mc.theProfiler.endSection()
     }
 
     private fun tickView() {
         if (mc.entityRenderer == null) return
 
-        mc.mcProfiler.startSection(activeView.dimension.toString())
+        mc.theProfiler.startSection(activeView.dimension.toString())
 
         mc.entityRenderer.getMouseOver(1.0F)
 
-        mc.mcProfiler.startSection("gameRenderer")
+        mc.theProfiler.startSection("gameRenderer")
 
         mc.entityRenderer.updateRenderer()
 
-        mc.mcProfiler.endStartSection("levelRenderer")
+        mc.theProfiler.endStartSection("levelRenderer")
 
         mc.renderGlobal.updateClouds()
 
-        mc.mcProfiler.endStartSection("level")
+        mc.theProfiler.endStartSection("level")
 
         if (mc.world.lastLightningBolt > 0) {
             mc.world.lastLightningBolt = mc.world.lastLightningBolt - 1
@@ -375,16 +377,16 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
             throw ReportedException(crash)
         }
 
-        mc.mcProfiler.endStartSection("animateTick")
+        mc.theProfiler.endStartSection("animateTick")
 
         mc.world.doVoidFogParticles(MathHelper.floor(mc.player.posX), MathHelper.floor(mc.player.posY), MathHelper.floor(mc.player.posZ))
 
-        mc.mcProfiler.endStartSection("particles")
+        mc.theProfiler.endStartSection("particles")
 
         mc.effectRenderer.updateEffects()
 
-        mc.mcProfiler.endSection()
-        mc.mcProfiler.endSection()
+        mc.theProfiler.endSection()
+        mc.theProfiler.endSection()
     }
 
     private fun preRender() {
@@ -432,7 +434,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
                 if (idx == -1) return@let
                 list.removeAt(idx)
                 views.forEach {
-                    list.add(idx, "Dim: ${it.world.provider.dimension}, ${it.renderGlobal?.debugInfoEntities}")
+                    list.add(idx, "Dim: ${it.world.dimensionId}, ${it.renderGlobal?.debugInfoEntities}")
                 }
             }
             list.indexOfFirst {
@@ -445,7 +447,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
                 if (idx == -1) return@let
                 list.removeAt(idx)
                 worlds.forEach {
-                    list.add(idx, "Dim: ${it.provider.dimension}, ${it.providerName}")
+                    list.add(idx, "Dim: ${it.dimensionId}, ${it.providerName}")
                 }
             }
         }

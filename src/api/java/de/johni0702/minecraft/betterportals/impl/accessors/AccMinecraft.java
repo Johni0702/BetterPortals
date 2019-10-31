@@ -11,9 +11,9 @@ import java.util.concurrent.FutureTask;
 
 @Mixin(Minecraft.class)
 public interface AccMinecraft {
-    @Accessor("framebufferMC")
+    @Accessor("framebufferMc")
     Framebuffer getFramebuffer();
-    @Accessor("framebufferMC")
+    @Accessor("framebufferMc")
     void setFramebuffer(Framebuffer value);
 
     @Accessor

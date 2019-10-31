@@ -33,10 +33,12 @@ import net.minecraftforge.fml.relauncher.Side
 //$$ typealias DimensionId = DimensionType
 //$$ fun DimensionId.toIntId(): Int = id
 //$$ fun Int.toDimensionId(): DimensionId? = DimensionType.getById(this)
+//$$ val World.dimensionId: DimensionId get() = dimension.type
 //#else
 typealias DimensionId = Int
 fun DimensionId.toIntId(): Int = this
 fun Int.toDimensionId(): DimensionId? = this
+val World.dimensionId: DimensionId get() = provider.dimension
 //#endif
 
 //#if MC>=11400

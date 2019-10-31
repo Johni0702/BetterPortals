@@ -7,7 +7,7 @@ import com.shinoow.abyssalcraft.common.blocks.BlockAbyssPortal
 import com.shinoow.abyssalcraft.lib.ACLib
 import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.block.PortalBlock
-import de.johni0702.minecraft.betterportals.common.server
+import de.johni0702.minecraft.betterportals.common.theServer
 import de.johni0702.minecraft.betterportals.impl.abyssalcraft.common.ABYSSALCRAFT_MOD_ID
 import de.johni0702.minecraft.betterportals.impl.abyssalcraft.common.EMPTY_AABB
 import de.johni0702.minecraft.betterportals.impl.abyssalcraft.common.entity.AbyssPortalEntity
@@ -41,7 +41,7 @@ class BlockBetterAbyssPortal(override val mod: Any) : BlockAbyssPortal(), Portal
             AbyssPortalEntity(world, portal)
 
     override fun getRemoteWorldFor(localWorld: WorldServer, pos: BlockPos): WorldServer? {
-        val server = localWorld.server
+        val server = localWorld.theServer
         val abyssDim = ACLib.abyssal_wasteland_id
         val remoteDim = if (localWorld.provider.dimensionType.id == abyssDim) 0 else abyssDim
         return server.getWorld(remoteDim)

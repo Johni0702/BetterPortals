@@ -50,7 +50,7 @@ class BlockBetterTFPortal(override val mod: Any) : BlockTFPortal(), PortalBlock<
 
     override fun getRemoteWorldFor(localWorld: WorldServer, pos: BlockPos): WorldServer {
         val tfDimId = TFConfig.dimension.dimensionID
-        return localWorld.server.getWorld(if (localWorld.provider.dimension == tfDimId) 0 else tfDimId)
+        return localWorld.theServer.getWorld(if (localWorld.provider.dimension == tfDimId) 0 else tfDimId)
     }
 
     override fun createPortalEntity(localEnd: Boolean, world: World, portal: FinitePortal): TFPortalEntity =
@@ -76,11 +76,11 @@ class BlockBetterTFPortal(override val mod: Any) : BlockTFPortal(), PortalBlock<
         val remoteDim = remoteWorld.provider.dimension
 
         // Let TF determine the optimal target position (and spawn a return portal if necessary)
-        val teleporter = TFTeleporter.getTeleporterForDim(remoteWorld.server, remoteWorld.provider.dimension)
+        val teleporter = TFTeleporter.getTeleporterForDim(remoteWorld.theServer, remoteWorld.provider.dimension)
         val fakePlayer = FakePlayerFactory.getMinecraft(localWorld)
         fakePlayer.pos = localPos.to3d()
         fakePlayer.connection = fakePlayer.connection.also {
-            fakePlayer.connection = NetHandlerPlayServer(localWorld.server, NetworkManager(EnumPacketDirection.CLIENTBOUND), fakePlayer)
+            fakePlayer.connection = NetHandlerPlayServer(localWorld.theServer, NetworkManager(EnumPacketDirection.CLIENTBOUND), fakePlayer)
             teleporter.placeInPortal(fakePlayer, 0f)
         }
         // TF places us somewhere randomly close to the exit portal (one block above the portal)

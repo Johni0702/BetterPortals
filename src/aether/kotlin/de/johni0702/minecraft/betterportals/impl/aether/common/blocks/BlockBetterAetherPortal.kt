@@ -7,7 +7,7 @@ import com.legacy.aether.blocks.portal.BlockAetherPortal
 import de.johni0702.minecraft.betterportals.common.BlockCache
 import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.block.PortalBlock
-import de.johni0702.minecraft.betterportals.common.server
+import de.johni0702.minecraft.betterportals.common.theServer
 import de.johni0702.minecraft.betterportals.impl.aether.common.EMPTY_AABB
 import de.johni0702.minecraft.betterportals.impl.aether.common.entity.AetherPortalEntity
 import net.minecraft.block.Block
@@ -43,7 +43,7 @@ class BlockBetterAetherPortal(override val mod: Any) : BlockAetherPortal(), Port
             AetherPortalEntity(world, portal)
 
     override fun getRemoteWorldFor(localWorld: WorldServer, pos: BlockPos): WorldServer? {
-        val server = localWorld.server
+        val server = localWorld.theServer
         if (AetherConfig.gameplay_changes.disable_portal) return null
         val aetherDim = AetherConfig.dimension.aether_dimension_id
         val remoteDim = if (localWorld.provider.dimensionType.id == aetherDim) 0 else aetherDim

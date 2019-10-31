@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.view.impl.client
 
 import de.johni0702.minecraft.betterportals.common.DimensionId
+import de.johni0702.minecraft.betterportals.common.dimensionId
 import de.johni0702.minecraft.betterportals.common.forceAddEntity
 import de.johni0702.minecraft.betterportals.common.forceRemoveEntity
 import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityRenderer
@@ -39,7 +40,7 @@ internal class ClientState(
         var netManager: NetworkManager?
 ) {
     val isMainView: Boolean get() = manager.mainView == this
-    val dimension: DimensionId get() = world.provider.dimension
+    val dimension: DimensionId get() = world.dimensionId
     var isValid = true
     val player: EntityPlayerSP get() = manager.getServerPlayer(this)
     val clientPlayer: EntityPlayerSP get() = manager.getClientPlayer(this)
@@ -127,7 +128,7 @@ internal class ClientState(
 
             val world = _world ?: return
             it.setWorld(world)
-            it.dimension = world.provider.dimension
+            it.dimension = world.dimensionId
             world.forceAddEntity(it)
         }
     }

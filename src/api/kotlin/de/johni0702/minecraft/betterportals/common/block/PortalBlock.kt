@@ -101,13 +101,13 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
         val (localBlocks, localAxis) = findPortalFrame(localWorld.makeBlockCache(), pos, false)
         if (localBlocks.isEmpty()) return false
 
-        val localDim = localWorld.provider.dimension
+        val localDim = localWorld.dimensionId
         val localPos = localBlocks.minByAnyCoord()!!
         val localRot = localAxis.toFacing(EnumFacing.AxisDirection.POSITIVE).toRotation()
         val portalBlocks = localBlocks.mapTo(mutableSetOf()) { it.subtract(localPos).rotate(localRot.reverse) }
 
         val remoteWorld = getRemoteWorldFor(localWorld, pos) ?: return false
-        val remoteDim = remoteWorld.provider.dimension
+        val remoteDim = remoteWorld.dimensionId
         val future = findOrCreateRemotePortal(localWorld, localPos, localAxis.perpendicularPlane, portalBlocks, remoteWorld)
 
         val localPortal = createPortalEntity(true, localWorld,
@@ -129,7 +129,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             remoteWorld.forceAddEntity(remotePortal)
 
             localPortal.link(remotePortal)
-        }, localWorld.server.executor::execute).exceptionally {
+        }, localWorld.theServer.executor::execute).exceptionally {
             localPortal.setDead()
             val report = CrashReport.makeCrashReport(it, "Finding remote portal")
             throw ReportedException(report)
@@ -273,7 +273,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             }
             placePortalFrame(remoteWorld, portalRotation.axis(plane.opposite), blocks)
             return@thenApplyAsync Pair(remotePosition, portalRotation)
-        }, remoteWorld.server.executor::execute).whenCompleteAsync({ _, _ ->
+        }, remoteWorld.theServer.executor::execute).whenCompleteAsync({ _, _ ->
             //#if MC>=11400
             //$$ DimensionManager.keepLoaded(remoteWorld.dimension.type, wasLoaded)
             //#else
@@ -290,7 +290,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
                 }
             }
             //#endif
-        }, remoteWorld.server.executor::execute)
+        }, remoteWorld.theServer.executor::execute)
     }
 
     /**

@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.view.impl.server
 
+import de.johni0702.minecraft.betterportals.common.dimensionId
 import de.johni0702.minecraft.betterportals.common.forceAddEntity
 import de.johni0702.minecraft.betterportals.common.forceRemoveEntity
 import de.johni0702.minecraft.betterportals.common.haveCubicChunks
@@ -223,7 +224,7 @@ internal class ServerWorldManager(
 
         this.player = main.player.also { main.player = this.player }
 
-        ChangeServerMainWorld(world.provider.dimension).sendTo(player)
+        ChangeServerMainWorld(world.dimensionId).sendTo(player)
 
         manager.server.playerList.updatePermissionLevel(player)
 

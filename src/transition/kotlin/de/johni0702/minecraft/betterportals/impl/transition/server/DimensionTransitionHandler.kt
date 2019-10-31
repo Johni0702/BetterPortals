@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl.transition.server
 
 import de.johni0702.minecraft.betterportals.common.DimensionId
+import de.johni0702.minecraft.betterportals.common.dimensionId
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.to3d
 import de.johni0702.minecraft.betterportals.common.toDimensionId
@@ -45,7 +46,7 @@ internal object DimensionTransitionHandler {
         //#endif
 
         val oldWorld = player.serverWorld
-        val newWorld = player.server!!.getWorld(dimension)
+        val newWorld = player.mcServer!!.getWorld(dimension)
         val worldsManager = player.worldsManager
         val id = nextId++
 
@@ -63,8 +64,8 @@ internal object DimensionTransitionHandler {
         worldsManager.changeDimension(newWorld) {
             // Let the teleporter position the view entity
             // Based on PlayerList.transferEntityToWorld
-            val newDim = newWorld.provider.dimension
-            val oldDim = oldWorld.provider.dimension
+            val newDim = newWorld.dimensionId
+            val oldDim = oldWorld.dimensionId
 
             val moveFactor = oldWorld.provider.movementFactor / newWorld.provider.movementFactor
             val yaw = rotationYaw

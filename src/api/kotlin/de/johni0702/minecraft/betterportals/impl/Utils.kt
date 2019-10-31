@@ -14,7 +14,7 @@ import net.minecraft.network.Packet
 import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
-import de.johni0702.minecraft.betterportals.common.server
+import de.johni0702.minecraft.betterportals.common.theServer
 import net.minecraft.client.Minecraft
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper
@@ -86,7 +86,7 @@ fun MessageContext.sync(task: () -> Unit) = when(side!!) {
 }
 // Note: must be in separate method so we can access client-only methods/classes
 private fun syncOnClient(task: () -> Unit) = Minecraft.getMinecraft().addScheduledTask(task).logFailure()
-private fun MessageContext.syncOnServer(task: () -> Unit) = serverHandler.player.serverWorld.server.addScheduledTask(task).logFailure()
+private fun MessageContext.syncOnServer(task: () -> Unit) = serverHandler.player.serverWorld.theServer.addScheduledTask(task).logFailure()
 private fun <L : ListenableFuture<T>, T> L.logFailure(): L {
     Futures.addCallback(this, object : FutureCallback<T> {
         override fun onSuccess(result: T?) = Unit

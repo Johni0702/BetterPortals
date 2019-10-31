@@ -41,7 +41,7 @@ public abstract class MixinPlayerList {
     @Inject(method = "sendPacketToAllPlayers", at = @At("HEAD"))
     private void sendPacketToAllViews(Packet<?> packetIn, CallbackInfo ci) {
         //#if MC>=11400
-        //$$ for (ServerWorld world : server.getWorlds()) {
+        //$$ for (ServerWorld world : this.server.getWorlds()) {
         //$$     for (PlayerEntity entity : world.getPlayers()) {
         //$$         if (entity instanceof ViewEntity) {
         //$$             ((ViewEntity) entity).connection.sendPacket(packetIn);

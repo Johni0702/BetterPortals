@@ -95,7 +95,7 @@ open class SimpleView(
     }
 
     // TODO somehow update when render distance changes
-    override val cubeSelector: CubeSelector = manager.player.server!!.playerList.let { playerList ->
+    override val cubeSelector: CubeSelector = manager.player.mcServer!!.playerList.let { playerList ->
         CuboidCubeSelector(
                 center.toBlockPos().toCubePos(),
                 playerList.viewDistance,

@@ -1,5 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl.vanilla.common.blocks
 
+import de.johni0702.minecraft.betterportals.common.dimensionId
+import de.johni0702.minecraft.betterportals.common.theServer
 import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.block.PortalBlock
 import de.johni0702.minecraft.betterportals.common.toDimensionId
@@ -25,7 +27,6 @@ import net.minecraft.world.WorldServer
 //$$ import net.minecraft.world.IWorld
 //#else
 import de.johni0702.minecraft.betterportals.common.EMPTY_AABB
-import de.johni0702.minecraft.betterportals.common.server
 import net.minecraft.block.Block
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.world.IBlockAccess
@@ -65,11 +66,11 @@ class BlockBetterNetherPortal(override val mod: Any) : BlockPortal(
             NetherPortalEntity(world = world, portal = portal)
 
     override fun getRemoteWorldFor(localWorld: WorldServer, pos: BlockPos): WorldServer? {
-        val server = localWorld.server
+        val server = localWorld.theServer
         if (!server.allowNether) return null
         val overworldDim = 0.toDimensionId()!!
         val netherDim = (-1).toDimensionId()!!
-        val remoteDim = if (localWorld.provider.dimension == netherDim) overworldDim else netherDim
+        val remoteDim = if (localWorld.dimensionId == netherDim) overworldDim else netherDim
         return server.getWorld(remoteDim)
     }
 

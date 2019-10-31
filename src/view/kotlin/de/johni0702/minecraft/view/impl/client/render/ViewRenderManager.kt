@@ -104,7 +104,7 @@ internal class ViewRenderManager : RenderPassManager {
             mc.renderViewEntity = mc.player
         }
 
-        mc.mcProfiler.startSection("captureMainViewCamera")
+        mc.theProfiler.startSection("captureMainViewCamera")
         val viewEntity = mc.renderViewEntity!!
         val interpEntityPos = viewEntity.getPositionEyes(if (hasVivecraft) {
             1f // Vivecraft moves the room, not the entity
@@ -174,7 +174,7 @@ internal class ViewRenderManager : RenderPassManager {
         GlStateManager.popMatrix()
 
 
-        mc.mcProfiler.endStartSection("pollOcclusionQueries")
+        mc.theProfiler.endStartSection("pollOcclusionQueries")
 
         // Update occlusion queries
         val activeOcclusionDetails = mutableSetOf<OcclusionDetail>()
@@ -191,21 +191,21 @@ internal class ViewRenderManager : RenderPassManager {
         }
         ViewRenderPlan.PREVIOUS_FRAME?.let { updateOcclusionQueries(it) }
 
-        mc.mcProfiler.endStartSection("determineRootRenderPass")
+        mc.theProfiler.endStartSection("determineRootRenderPass")
 
         // Build render plan
         var plan = with(DetermineRootPassEvent(this, partialTicks, view.world, camera).post()) {
             ViewRenderPlan(this@ViewRenderManager, null, this.world, this.camera)
         }
 
-        mc.mcProfiler.endStartSection("populateRenderPassTree")
+        mc.theProfiler.endStartSection("populateRenderPassTree")
 
         do {
             val event = PopulateTreeEvent(partialTicks, plan, false).post()
             plan = event.root as ViewRenderPlan
         } while (event.changed)
 
-        mc.mcProfiler.endStartSection("cleanupOcclusionQueries")
+        mc.theProfiler.endStartSection("cleanupOcclusionQueries")
 
         // Cleanup occlusion queries for portals which are no longer visible
         fun cleanupOcclusionQueries(plan: ViewRenderPlan) {
@@ -217,7 +217,7 @@ internal class ViewRenderManager : RenderPassManager {
         ViewRenderPlan.PREVIOUS_FRAME?.let(::cleanupOcclusionQueries)
         disposedOcclusionQueries.removeIf { it.update() }
 
-        mc.mcProfiler.endSection()
+        mc.theProfiler.endSection()
 
         // execute
         mc.framebuffer.unbindFramebuffer()
@@ -227,13 +227,13 @@ internal class ViewRenderManager : RenderPassManager {
         ViewRenderPlan.PREVIOUS_FRAME = plan
         mc.framebuffer.bindFramebuffer(true)
 
-        mc.mcProfiler.startSection("renderFramebuffer")
+        mc.theProfiler.startSection("renderFramebuffer")
         if (debugView()) {
             plan.debugFramebuffer
         } else {
             plan.framebuffer
         }?.framebufferRender(frameWidth, frameHeight)
-        mc.mcProfiler.endSection()
+        mc.theProfiler.endSection()
 
         plan.framebuffer?.let { releaseFramebuffer(it) }
         plan.framebuffer = null
@@ -437,7 +437,7 @@ internal class ViewRenderPlan(
         val framebuffer = manager.allocFramebuffer()
         this.framebuffer = framebuffer
 
-        world.profiler.startSection("renderWorld" + world.provider.dimension)
+        world.profiler.startSection("renderWorld" + world.dimensionId)
 
         // Inject the entity from which the world will be rendered
         // We do not spawn it into the world as we don't need it there (until some third-party mod does)

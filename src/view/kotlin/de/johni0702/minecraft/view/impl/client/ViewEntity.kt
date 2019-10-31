@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.view.impl.client
 
+import de.johni0702.minecraft.betterportals.common.dimensionId
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.multiplayer.WorldClient
@@ -27,7 +28,7 @@ internal class ViewEntity constructor(world: WorldClient, connection: NetHandler
 
         // Entity doesn't set this by itself for some reason
         // (it's usually set in the JoinGame packet handler but views are created by their own packet)
-        dimension = world.provider.dimension
+        dimension = world.dimensionId
     }
 
     override fun onUpdate() {}

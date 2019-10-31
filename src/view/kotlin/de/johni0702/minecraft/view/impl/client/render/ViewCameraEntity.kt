@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.view.impl.client.render
 
 import com.mojang.authlib.GameProfile
+import de.johni0702.minecraft.betterportals.common.dimensionId
 import de.johni0702.minecraft.view.client.ClientViewAPI
 import net.minecraft.block.material.Material
 import net.minecraft.client.Minecraft
@@ -44,7 +45,7 @@ internal class ViewCameraEntity constructor(world: WorldClient)
 
         // Entity doesn't set this by itself for some reason
         // (it's usually set in the JoinGame packet handler but views are created by their own packet)
-        dimension = world.provider.dimension
+        dimension = world.dimensionId
     }
 
     //#if MC>=11400

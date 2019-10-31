@@ -2,7 +2,7 @@ package de.johni0702.minecraft.view.impl.server
 
 import com.mojang.authlib.GameProfile
 import de.johni0702.minecraft.betterportals.common.DimensionId
-import de.johni0702.minecraft.betterportals.common.server
+import de.johni0702.minecraft.betterportals.common.theServer
 import de.johni0702.minecraft.view.impl.IWorldsManagerHolder
 import de.johni0702.minecraft.view.impl.worldsManagerImpl
 import io.netty.channel.embedded.EmbeddedChannel
@@ -41,10 +41,10 @@ internal class ViewEntity(
         profile: GameProfile,
         val parentConnection: NetHandlerPlayServer,
         val channel: EmbeddedChannel
-) : EntityPlayerMP(world.server, world, profile, PlayerInteractionManager(world)) {
+) : EntityPlayerMP(world.theServer, world, profile, PlayerInteractionManager(world)) {
     init {
         interactionManager.gameType = GameType.SPECTATOR
-        connection = object : NetHandlerPlayServer(world.server, NetworkManager(EnumPacketDirection.SERVERBOUND), this), IWorldsManagerHolder {
+        connection = object : NetHandlerPlayServer(world.theServer, NetworkManager(EnumPacketDirection.SERVERBOUND), this), IWorldsManagerHolder {
             override val worldsManager: ServerWorldsManagerImpl
                 get() = parentConnection.worldsManagerImpl
         }

@@ -259,7 +259,7 @@ internal class ServerWorldsManagerImpl(
         // otherwise entities referencing the world (e.g. portals) might not yet have been removed on the client
         flushPackets()
 
-        DestroyWorld(manager.world.provider.dimension).sendTo(connection.player)
+        DestroyWorld(manager.world.dimensionId).sendTo(connection.player)
 
         val player = manager.player
         val world = manager.world
@@ -335,7 +335,7 @@ internal class ServerWorldsManagerImpl(
         // Flush view packets via main connection
         worldManagers.values.forEach { manager ->
             (manager.player as? ViewEntity)?.channel?.outboundMessages()?.onEach {
-                WorldData(manager.world.provider.dimension, it as ByteBuf).sendTo(connection.player)
+                WorldData(manager.world.dimensionId, it as ByteBuf).sendTo(connection.player)
             }?.clear()
         }
     }
@@ -404,7 +404,7 @@ class VanillaView(
     override val isValid: Boolean = true
     override val world: WorldServer = player.serverWorld
     override val center: Vec3d get() = player.pos
-    override val cubeSelector: CubeSelector = player.server!!.playerList.let { playerList ->
+    override val cubeSelector: CubeSelector = player.mcServer!!.playerList.let { playerList ->
         CuboidCubeSelector(
                 center.toBlockPos().toCubePos(),
                 playerList.viewDistance,

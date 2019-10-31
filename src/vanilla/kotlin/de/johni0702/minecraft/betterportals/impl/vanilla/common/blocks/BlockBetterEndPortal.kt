@@ -1,7 +1,8 @@
 package de.johni0702.minecraft.betterportals.impl.vanilla.common.blocks
 
 import de.johni0702.minecraft.betterportals.common.add
-import de.johni0702.minecraft.betterportals.common.server
+import de.johni0702.minecraft.betterportals.common.dimensionId
+import de.johni0702.minecraft.betterportals.common.theServer
 import de.johni0702.minecraft.betterportals.common.toDimensionId
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndEntryPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndExitPortalEntity
@@ -124,10 +125,10 @@ class BlockBetterEndPortal : BlockEndPortal(
 
     private fun makePortal(localWorld: World, pos: BlockPos) {
         if (localWorld !is WorldServer) return
-        val server = localWorld.server
+        val server = localWorld.theServer
 
         BlockEndPortalFrame.getOrCreatePortalShape().match(localWorld, pos)?.let { pattern ->
-            val localDim = localWorld.provider.dimension
+            val localDim = localWorld.dimensionId
             val localPos = pattern.frontTopLeft.add(-1, 0, -1)
             val localRot = Rotation.NONE
 
@@ -160,7 +161,7 @@ class BlockBetterEndPortal : BlockEndPortal(
             return
         }
         exitPattern.match(localWorld, pos)?.let { pattern ->
-            val localDim = localWorld.provider.dimension
+            val localDim = localWorld.dimensionId
             val localPos = pattern.frontTopLeft.add(-1, -3, -1)
             val localRot = Rotation.NONE
 
