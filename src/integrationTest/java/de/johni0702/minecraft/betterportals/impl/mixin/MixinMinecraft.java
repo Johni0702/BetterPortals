@@ -4,7 +4,6 @@ import de.johni0702.minecraft.betterportals.impl.IHasMainThread;
 import de.johni0702.minecraft.betterportals.impl.MainKt;
 import net.minecraft.client.Minecraft;
 import net.minecraft.crash.CrashReport;
-import net.minecraft.init.Bootstrap;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,7 +34,7 @@ public abstract class MixinMinecraft implements IHasMainThread {
             }
         } catch (Throwable throwable) {
             CrashReport crashReport = CrashReport.makeCrashReport(throwable, "Running tests");
-            Bootstrap.printToSYSOUT(crashReport.getCompleteReport());
+            System.out.println(crashReport.getCompleteReport());
         }
         exitWithFMLSecurityManagerWorkaround(success);
     }

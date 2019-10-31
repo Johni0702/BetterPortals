@@ -4,16 +4,21 @@ import de.johni0702.minecraft.view.impl.net.Transaction
 import io.kotlintest.*
 import io.kotlintest.extensions.TestListener
 import net.minecraft.client.Minecraft
-import net.minecraft.util.ResourceLocation
 import net.minecraftforge.fml.client.registry.RenderingRegistry
-import net.minecraftforge.fml.common.registry.EntityRegistry
 import org.junit.platform.engine.discovery.DiscoverySelectors.selectClass
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder
 import org.junit.platform.launcher.core.LauncherFactory
 import org.junit.platform.launcher.listeners.SummaryGeneratingListener
-import org.lwjgl.opengl.Display
 import java.io.PrintWriter
 import java.time.Duration
+
+//#if MC>=11400
+//$$ import org.lwjgl.glfw.GLFW
+//#else
+import org.lwjgl.opengl.Display
+import net.minecraft.util.ResourceLocation
+import net.minecraftforge.fml.common.registry.EntityRegistry
+//#endif
 
 lateinit var mc: Minecraft
 
@@ -22,6 +27,7 @@ fun preInitTests(mcIn: Minecraft) {
 }
 
 fun initTests() {
+    //#if MC<11400
     EntityRegistry.registerModEntity(
             ResourceLocation(MOD_ID, "test_entity"),
             TestEntity::class.java,
@@ -32,6 +38,7 @@ fun initTests() {
             1,
             false
     )
+    //#endif
 }
 
 fun runTests(): Boolean {
@@ -43,7 +50,7 @@ fun runTests(): Boolean {
     mc.renderManager.entityRenderMap[TestEntity::class.java] = RenderTestEntity(mc.renderManager)
     RenderingRegistry.registerEntityRenderingHandler(TestEntity::class.java) { RenderTestEntity(it) }
 
-    Display.getDrawable().releaseContext()
+    releaseMainThread()
     System.setProperty("kotlintest.project.config", ProjectConfig::class.java.name)
 
     val request = LauncherDiscoveryRequestBuilder.request()
@@ -52,7 +59,10 @@ fun runTests(): Boolean {
             .selectors(selectClass(SinglePortalTraversalTests::class.java))
             .selectors(selectClass(SinglePortalWithSecondNearbyTraversalTest::class.java))
             .selectors(selectClass(DoublePortalTraversalTests::class.java))
+            // Requires Mekanism
+            //#if MC<11400
             .selectors(selectClass(NearTeleporterTraversalTests::class.java))
+            //#endif
             .build()
     val launcher = LauncherFactory.create()
     val testPlan = launcher.discover(request)
@@ -76,13 +86,21 @@ object ProjectConfig : AbstractProjectConfig() {
 }
 
 fun acquireMainThread() {
+    //#if MC>=11400
+    //$$ GLFW.glfwMakeContextCurrent(mc.mainWindow.handle)
+    //#else
     Display.getDrawable().makeCurrent()
+    //#endif
     (mc as IHasMainThread).setMainThread()
     (mc.integratedServer as IHasMainThread?)?.setMainThread()
 }
 
 fun releaseMainThread() {
+    //#if MC>=11400
+    //$$ GLFW.glfwMakeContextCurrent(0)
+    //#else
     Display.getDrawable().releaseContext()
+    //#endif
 }
 
 private var inAsMainThread = false

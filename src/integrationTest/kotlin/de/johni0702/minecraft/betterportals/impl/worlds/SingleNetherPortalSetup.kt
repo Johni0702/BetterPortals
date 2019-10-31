@@ -15,6 +15,10 @@ import net.minecraft.init.Items
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.WorldServer
 
+//#if MC>=11400
+//$$ import net.minecraft.util.math.BlockRayTraceResult
+//#endif
+
 open class SingleNetherPortalSetup : EmptyWorldSetup() {
     override fun beforeSpec(spec: Spec) {
         asMainThread {
@@ -63,7 +67,11 @@ open class SingleNetherPortalSetup : EmptyWorldSetup() {
         val targetPos = BlockPos(1, 20, 0)
         lookAt(targetPos.to3dMid().addVector(0.5, 0.0, 0.0))
         tickClient()
+        //#if MC>=11400
+        //$$ (mc.objectMouseOver as BlockRayTraceResult).pos shouldBe targetPos.east()
+        //#else
         mc.objectMouseOver.blockPos shouldBe targetPos.east()
+        //#endif
 
         mc.world.getBlockState(targetPos).block shouldBe Blocks.AIR
         mc.gameSettings.keyBindUseItem.trigger()

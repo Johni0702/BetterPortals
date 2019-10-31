@@ -8,10 +8,10 @@ import io.kotlintest.extensions.TestListener
 import io.kotlintest.minutes
 import io.kotlintest.shouldBe
 import io.kotlintest.specs.AnnotationSpec
+import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.entity.MoverType
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import net.minecraft.world.World
 
 class EntityCullingTests : AnnotationSpec() {
     private val localPortal = BlockPos(0, 20, 0).to3dMid()
@@ -41,11 +41,11 @@ class EntityCullingTests : AnnotationSpec() {
 
         tickClient()
 
-        val local = mc.world as World
+        val local = mc.world as WorldClient
         val remote = mc.worldsManager!!.worlds.find { it != local }!!
 
-        local.provider.dimension shouldBe 0
-        remote.provider.dimension shouldBe -1
+        local.provider.dimensionType shouldBe 0.toDimensionId()
+        remote.provider.dimensionType shouldBe (-1).toDimensionId()
 
         // Local world, inside portal, bottom/near side
         TestEntity.shouldBeVisible(local, localPortal + slightlyBelow)
@@ -82,7 +82,7 @@ class EntityCullingTests : AnnotationSpec() {
 
         tickClient()
 
-        val local = mc.world as World
+        val local = mc.world as WorldClient
         val remote = mc.worldsManager!!.worlds.find { it != local }!!
 
         // Local world, inside portal, bottom/far side
@@ -130,7 +130,7 @@ class EntityCullingTests : AnnotationSpec() {
 
         tickClient()
 
-        val local = mc.world as World
+        val local = mc.world as WorldClient
         val remote = mc.worldsManager!!.worlds.find { it != local }!!
 
         // Local world, inside portal, bottom side
@@ -179,10 +179,10 @@ class EntityTraversalRenderTests : AnnotationSpec() {
     @AfterEach
     fun removeTestEntities() {
         serverOverworld.loadedEntityList.filterIsInstance<TestEntity>().forEach {
-            serverOverworld.removeEntityDangerously(it)
+            serverOverworld.forceRemoveEntity(it)
         }
         serverNether.loadedEntityList.filterIsInstance<TestEntity>().forEach {
-            serverNether.removeEntityDangerously(it)
+            serverNether.forceRemoveEntity(it)
         }
     }
 
@@ -192,16 +192,16 @@ class EntityTraversalRenderTests : AnnotationSpec() {
 
         tickClient()
 
-        val local = mc.world as World
+        val local = mc.world as WorldClient
         val remote = mc.worldsManager!!.worlds.find { it != local }!!
 
-        local.provider.dimension shouldBe 0
-        remote.provider.dimension shouldBe -1
+        local.provider.dimensionType shouldBe 0.toDimensionId()
+        remote.provider.dimensionType shouldBe (-1).toDimensionId()
 
         val overworldEntity = TestEntity(serverOverworld).apply {
             with(startPos - eyeOffset) { setPosition(x, y, z) }
         }
-        serverOverworld.spawnEntity(overworldEntity)
+        serverOverworld.forceAddEntity(overworldEntity)
         tickServer()
         updateClient()
         tickClient()

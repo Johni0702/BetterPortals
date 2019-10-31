@@ -1,11 +1,13 @@
 package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.eyeOffset
-import de.johni0702.minecraft.betterportals.common.forceSpawnEntity
+import de.johni0702.minecraft.betterportals.common.forceAddEntity
+import de.johni0702.minecraft.betterportals.common.forceRemoveEntity
 import de.johni0702.minecraft.betterportals.common.minus
 import de.johni0702.minecraft.view.client.render.OcclusionQuery
 import io.kotlintest.matchers.boolean.shouldBeFalse
 import io.kotlintest.shouldBe
+import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.client.renderer.entity.Render
 import net.minecraft.client.renderer.entity.RenderManager
@@ -15,17 +17,42 @@ import net.minecraft.util.ResourceLocation
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 
-open class TestEntity(world: World) : Entity(world) {
+//#if MC>=11400
+//$$ import net.minecraft.entity.EntityClassification
+//$$ import net.minecraft.entity.EntityType
+//$$ import net.minecraft.entity.MoverType
+//$$ import net.minecraft.network.IPacket
+//#endif
+
+//#if MC>=11400
+//$$ val TYPE = EntityType.Builder.create<TestEntity>(EntityClassification.MISC).build("betterportals:test")
+//#endif
+
+open class TestEntity(world: World) : Entity(
+        //#if MC>=11400
+        //$$ TYPE,
+        //#endif
+        world
+) {
     var onUpdate: TestEntity.(() -> Unit) -> Unit = { it() }
     var shouldBeVisible = true
     var wasVisible = false
     var wasRendered = false
 
+    //#if MC<11400
     init {
         setSize(1f, 3f)
     }
+    //#endif
 
+    //#if MC>=11400
+    //$$ override fun createSpawnPacket(): IPacket<*> = throw UnsupportedOperationException()
+    //$$ fun move(type: MoverType, x: Double, y: Double, z: Double) {
+    //$$     move(type, Vec3d(x, y, z))
+    //$$ }
+    //#else
     override fun getEyeHeight(): Float = 1.5f
+    //#endif
 
     override fun writeEntityToNBT(compound: NBTTagCompound) = Unit
     override fun readEntityFromNBT(compound: NBTTagCompound) = Unit
@@ -36,13 +63,13 @@ open class TestEntity(world: World) : Entity(world) {
     }
 
     companion object {
-        fun shouldBeVisible(world: World, pos: Vec3d) = shouldBe(world, pos, true)
-        fun shouldNotBeVisible(world: World, pos: Vec3d) = shouldBe(world, pos, false)
+        fun shouldBeVisible(world: WorldClient, pos: Vec3d) = shouldBe(world, pos, true)
+        fun shouldNotBeVisible(world: WorldClient, pos: Vec3d) = shouldBe(world, pos, false)
 
-        private fun shouldBe(world: World, eyePos: Vec3d, visible: Boolean) {
+        private fun shouldBe(world: WorldClient, eyePos: Vec3d, visible: Boolean) {
             val entity = TestEntity(world)
             with(eyePos - entity.eyeOffset) { entity.setPosition(x, y, z) }
-            world.forceSpawnEntity(entity)
+            world.forceAddEntity(entity)
 
             entity.shouldBeVisible = visible
             render() // TODO we shouldn't have to render three times before it starts showing up..
@@ -50,12 +77,12 @@ open class TestEntity(world: World) : Entity(world) {
             render()
             world.verifyTestEntityRenderResults() shouldBe 1
 
-            world.removeEntityDangerously(entity)
+            world.forceRemoveEntity(entity)
         }
     }
 }
 
-fun World.verifyTestEntityRenderResults(): Int {
+fun WorldClient.verifyTestEntityRenderResults(): Int {
     var entities = 0
     loadedEntityList.forEach {
         if (it !is TestEntity) return@forEach

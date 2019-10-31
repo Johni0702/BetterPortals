@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl.worlds
 
 import de.johni0702.minecraft.betterportals.common.portalManager
@@ -91,3 +92,4 @@ open class NearTeleporterSetup(
         mc.worldsManager!!.worlds shouldHaveSize 1 // same world
     }
 }
+//#endif

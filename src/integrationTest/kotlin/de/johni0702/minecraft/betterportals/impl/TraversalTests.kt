@@ -3,7 +3,6 @@ package de.johni0702.minecraft.betterportals.impl
 import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.to3dMid
 import de.johni0702.minecraft.betterportals.impl.worlds.DoubleNetherPortalSetup
-import de.johni0702.minecraft.betterportals.impl.worlds.NearTeleporterSetup
 import de.johni0702.minecraft.betterportals.impl.worlds.SingleNetherPortalSetup
 import io.kotlintest.extensions.TestListener
 import io.kotlintest.matchers.doubles.shouldBeBetween
@@ -13,6 +12,11 @@ import io.kotlintest.shouldNotBe
 import io.kotlintest.specs.AnnotationSpec
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
+
+//#if MC>=11400
+//#else
+import de.johni0702.minecraft.betterportals.impl.worlds.NearTeleporterSetup
+//#endif
 
 open class SinglePortalTraversalTests : AnnotationSpec() {
     override fun listeners(): List<TestListener> = listOf(SingleNetherPortalSetup())
@@ -240,6 +244,7 @@ open class DoublePortalTraversalTests : AnnotationSpec() {
     }
 }
 
+//#if MC<11400
 open class NearTeleporterTraversalTests : AnnotationSpec() {
     override fun listeners(): List<TestListener> = listOf(NearTeleporterSetup(negativePowered = false))
 
@@ -301,3 +306,4 @@ open class NearTeleporterTraversalTests : AnnotationSpec() {
         mc.player.pos shouldBe prevPos
     }
 }
+//#endif

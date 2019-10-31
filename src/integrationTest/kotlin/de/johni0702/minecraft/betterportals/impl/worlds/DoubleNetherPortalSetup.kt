@@ -9,6 +9,7 @@ import io.kotlintest.seconds
 import io.kotlintest.shouldBe
 import io.kotlintest.until.until
 import net.minecraft.init.Blocks
+import net.minecraft.block.BlockPortal
 import net.minecraft.util.math.BlockPos
 
 open class DoubleNetherPortalSetup : SingleNetherPortalSetup() {
@@ -28,7 +29,7 @@ open class DoubleNetherPortalSetup : SingleNetherPortalSetup() {
         updateClient()
 
         serverOverworld.getBlockState(overworldPos).block shouldBe Blocks.AIR
-        Blocks.PORTAL.trySpawnPortal(serverOverworld, overworldPos)
+        (Blocks.PORTAL as BlockPortal).trySpawnPortal(serverOverworld, overworldPos)
         serverOverworld.getBlockState(overworldPos).block shouldBe Blocks.PORTAL
         serverOverworld.portalManager.loadedPortals.count() shouldBeExactly 2
 

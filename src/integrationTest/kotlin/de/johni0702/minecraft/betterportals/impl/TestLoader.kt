@@ -1,3 +1,4 @@
+//#if MC<11400
 package de.johni0702.minecraft.betterportals.impl
 
 import net.minecraft.launchwrapper.Launch
@@ -18,3 +19,4 @@ internal class TestLoader : MixinLoader(File("../../")) {
         }
     }
 }
+//#endif
