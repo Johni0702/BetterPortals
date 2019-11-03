@@ -53,10 +53,12 @@ public abstract class MixinJsonBlendingMode {
         // The following call throws a NoSuchMethodError on fabric, appears to be somewhat similar (except the other way
         // around) to https://github.com/SpongePowered/Mixin/issues/342 (and indeed, I can reproduce the exact issue in
         // there as well. but that also means that neither works for me atm). I'm assuming this is fixed in Mixin 0.8,
-        // so once fabric upgrades, the special case can probably be removed. For now I'm going with the slow (and
-        // dev-env-only) option, just to get it running so I can continue working on it.
+        // so once fabric upgrades, the special case can probably be removed. For now I'm going with the slow
+        // option, just to get it running so I can continue working on it.
         //#if FABRIC>=1
-        //$$ Field field = JsonGlProgram.class.getDeclaredField("activeProgram");
+        //$$ Field field;
+        //$$ try { field = JsonGlProgram.class.getDeclaredField("activeProgram"); }
+        //$$ catch(NoSuchFieldException ignored) { field = JsonGlProgram.class.getDeclaredField("field_1512"); }
         //$$ field.setAccessible(true);
         //$$ JsonGlProgram shaderManager = (JsonGlProgram) field.get(null);
         //#else

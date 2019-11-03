@@ -31,8 +31,7 @@ public abstract class MixinPlayerList_NoSponge {
     //
     //#if MC>=11400
     //$$ @Inject(method = "changeDimension",
-    //$$         at = @At(value = "INVOKE", target = "Lnet/minecraft/network/play/server/SRespawnPacket;<init>(Lnet/minecraft/world/dimension/DimensionType;Lnet/minecraft/world/WorldType;Lnet/minecraft/world/GameType;)V"),
-    //$$         remap = false)
+    //$$         at = @At(value = "INVOKE", target = "Lnet/minecraft/network/play/server/SRespawnPacket;<init>(Lnet/minecraft/world/dimension/DimensionType;Lnet/minecraft/world/WorldType;Lnet/minecraft/world/GameType;)V"))
     //$$ private void tearDownViewsBeforeRespawnPacket(DimensionType dimensionType, CallbackInfoReturnable<Entity> ci) {
     //$$     getWorldsManagerImpl((ServerPlayerEntity) (Object) this).beforeTransferToDimension();
     //$$ }

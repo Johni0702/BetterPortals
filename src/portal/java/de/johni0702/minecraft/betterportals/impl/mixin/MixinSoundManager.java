@@ -20,7 +20,7 @@ import net.minecraft.util.math.Vec3d;
 @Mixin(SoundManager.class)
 public abstract class MixinSoundManager {
     //#if MC>=11400
-    //$$ @Inject(method = "updateListener", at = @At("HEAD"), remap = false)
+    //$$ @Inject(method = "updateListener", at = @At("HEAD"))
     //$$ private void setListener(ActiveRenderInfo listener, CallbackInfo ci) {
     //$$     if (listener.isValid()) {
     //$$         PortalAwareSoundManager.INSTANCE.setListenerPos(listener.getProjectedView());

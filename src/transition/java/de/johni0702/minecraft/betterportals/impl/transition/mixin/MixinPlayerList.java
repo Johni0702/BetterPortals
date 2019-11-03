@@ -24,7 +24,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class MixinPlayerList {
     //#if MC>=11400
     //$$ @Inject(method = "changeDimension",
-    //$$         remap = false,
     //$$         at = @At("HEAD"), // FIXME should probably go somewhere later (at least after the event)
     //$$         cancellable = true)
     //$$ private void betterPortalPlayerToDimension(DimensionType dimensionIn, CallbackInfoReturnable<Entity> ci) {

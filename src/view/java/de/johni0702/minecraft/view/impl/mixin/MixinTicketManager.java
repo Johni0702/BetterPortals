@@ -49,7 +49,7 @@
                             //$$ "playerChunkTracker"
                             //#endif
 //$$                     );
-//$$                 } catch (NoSuchFieldError ignored) {
+//$$                 } catch (NoSuchFieldException ignored) {
 //$$                     field = TicketManager.class.getDeclaredField(
                             //#if FABRIC>=1
                             //$$ "field_17454"
@@ -77,7 +77,7 @@
                             //$$ "playerTicketTracker"
                             //#endif
 //$$                     );
-//$$                 } catch (NoSuchFieldError ignored) {
+//$$                 } catch (NoSuchFieldException ignored) {
 //$$                     field = TicketManager.class.getDeclaredField(
                             //#if FABRIC>=1
                             //$$ "field_17455"
