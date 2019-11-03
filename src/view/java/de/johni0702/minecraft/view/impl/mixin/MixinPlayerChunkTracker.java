@@ -8,7 +8,12 @@
 //$$ import org.spongepowered.asm.mixin.Overwrite;
 //$$ import org.spongepowered.asm.mixin.Shadow;
 //$$
+//$$ // FIXME preprocessor should also be able to handle package.Outer.Inner format (bug in fabric's AP requires it)
+//#if FABRIC>=1
+//$$ @Mixin(targets = "net.minecraft.server.world.ChunkTicketManager.DistanceFromNearestPlayerTracker")
+//#else
 //$$ @Mixin(targets = "net.minecraft.world.server.TicketManager$PlayerChunkTracker")
+//#endif
 //$$ public abstract class MixinPlayerChunkTracker {
 //$$     // FIXME preprocessor might be technically able to remap these aliases
 //$$     @Shadow(aliases = {"field_215500_c", "field_17462"}) @Final private TicketManager this$0;

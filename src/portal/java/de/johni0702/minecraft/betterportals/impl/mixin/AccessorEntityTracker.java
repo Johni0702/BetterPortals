@@ -9,7 +9,12 @@
 //$$
 //$$ import java.util.Set;
 //$$
+//$$ // FIXME preprocessor should also be able to handle package.Outer.Inner format (bug in fabric's AP requires it)
+//#if FABRIC>=1
+//$$ @Mixin(targets = "net.minecraft.server.world.ThreadedAnvilChunkStorage.EntityTracker")
+//#else
 //$$ @Mixin(targets = "net.minecraft.world.server.ChunkManager$EntityTracker")
+//#endif
 //$$ public interface AccessorEntityTracker {
 //$$     @Accessor
 //$$     Set<ServerPlayerEntity> getTrackingPlayers();
