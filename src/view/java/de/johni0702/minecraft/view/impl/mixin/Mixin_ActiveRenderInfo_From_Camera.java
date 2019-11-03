@@ -1,7 +1,6 @@
 //#if MC>=11400
 //$$ package de.johni0702.minecraft.view.impl.mixin;
 //$$
-//$$ import de.johni0702.minecraft.view.client.render.Camera;
 //$$ import de.johni0702.minecraft.view.impl.client.render.IActiveRenderInfo;
 //$$ import net.minecraft.client.renderer.ActiveRenderInfo;
 //$$ import net.minecraft.entity.Entity;
@@ -20,7 +19,7 @@
 //$$     @Shadow protected abstract void setDirection(float yaw, float pitch);
 //$$
 //$$     @Override
-//$$     public void update(@NotNull Entity entity, @NotNull Camera camera) {
+//$$     public void update(@NotNull Entity entity, @NotNull de.johni0702.minecraft.view.client.render.Camera camera) {
 //$$         this.world = entity.world;
 //$$         this.renderViewEntity = entity;
 //$$         this.setPostion(camera.getViewPosition());

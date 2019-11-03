@@ -47,8 +47,11 @@
     "MixinEntityRenderer_NoOF",
     "MixinEntityRenderer_OF",
     "MixinEntityRenderer_VC",
+    //#if FABRIC<=0
     "MixinForgeHooksClient",
+    //#endif
     "MixinIntegratedServer",
+    "MixinMinecraft",
     "MixinNetHandlerLoginClient",
     "MixinNetHandlerPlayerClient",
     "MixinRenderChunk",

@@ -2,7 +2,8 @@ package de.johni0702.minecraft.betterportals.impl.transition.server
 
 import de.johni0702.minecraft.betterportals.common.DimensionId
 import de.johni0702.minecraft.betterportals.common.dimensionId
-import de.johni0702.minecraft.betterportals.common.pos
+import de.johni0702.minecraft.betterportals.common.theMovementFactor
+import de.johni0702.minecraft.betterportals.common.tickPos
 import de.johni0702.minecraft.betterportals.common.to3d
 import de.johni0702.minecraft.betterportals.common.toDimensionId
 import de.johni0702.minecraft.betterportals.impl.transition.common.LOGGER
@@ -52,7 +53,7 @@ internal object DimensionTransitionHandler {
 
         // Hold on to the old world until the client has finished the transition
         // (released in TransferToDimensionDone#Handler)
-        views.getOrPut(worldsManager, ::mutableMapOf)[id] = worldsManager.createView(oldWorld, player.pos, null)
+        views.getOrPut(worldsManager, ::mutableMapOf)[id] = worldsManager.createView(oldWorld, player.tickPos, null)
 
         // Start transaction to allow the handler of TransferToDimension to update the camera in the target dimension before switching to it
         worldsManager.beginTransaction()
@@ -67,7 +68,7 @@ internal object DimensionTransitionHandler {
             val newDim = newWorld.dimensionId
             val oldDim = oldWorld.dimensionId
 
-            val moveFactor = oldWorld.provider.movementFactor / newWorld.provider.movementFactor
+            val moveFactor = oldWorld.theMovementFactor / newWorld.theMovementFactor
             val yaw = rotationYaw
 
             var posX = (posX * moveFactor).coerceIn(newWorld.worldBorder.minX() + 16.0, newWorld.worldBorder.maxX() - 16).toInt()

@@ -294,7 +294,7 @@ abstract class OneWayPortalEntity(
     // This seems fairly difficult to implement well. good suggestions (and implementations) welcome.
     // Could probably do with some caching of collision boxes and better fallbacks.
     open fun findBestUnobstructedSpace(): BlockPos {
-        val maxY = if (world.isCubicWorld) Int.MAX_VALUE else world.provider.actualHeight - 3
+        val maxY = if (world.isCubicWorld) Int.MAX_VALUE else world.theActualHeight - 3
         val minY = if (world.isCubicWorld) Int.MIN_VALUE else 3
         val growVec = portal.localFacing.directionVec.to3d() * 2.0
         val orgPos = originalTailPos

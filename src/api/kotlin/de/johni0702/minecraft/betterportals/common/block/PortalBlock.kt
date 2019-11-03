@@ -1,9 +1,14 @@
 package de.johni0702.minecraft.betterportals.common.block
 
+//#if FABRIC>=1
+//$$ import net.minecraft.world.dimension.TheNetherDimension
+//$$ // TODO looks like fabric doesn't unload worlds at all (or does vanilla do that by now?)
+//#else
 //#if MC>=11400
 //$$ import net.minecraftforge.common.DimensionManager
 //#else
 import net.minecraftforge.common.ForgeChunkManager
+//#endif
 //#endif
 
 import de.johni0702.minecraft.betterportals.common.*
@@ -157,9 +162,9 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             remoteWorld: WorldServer
     ): CompletableFuture<Pair<BlockPos, Rotation>> {
         // Calculate target position
-        val movementFactor = localWorld.provider.movementFactor / remoteWorld.provider.movementFactor
+        val movementFactor = localWorld.theMovementFactor / remoteWorld.theMovementFactor
         val isCubicWorld = remoteWorld.isCubicWorld
-        val maxY = if (isCubicWorld) Int.MAX_VALUE else remoteWorld.provider.actualHeight - 1
+        val maxY = if (isCubicWorld) Int.MAX_VALUE else remoteWorld.theActualHeight - 1
         val minY = if (isCubicWorld) Int.MIN_VALUE else 0
         val remotePosition = BlockPos(
                 (localPos.x * movementFactor).roundToInt()
@@ -193,6 +198,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
         val cacheFuture = remoteWorld.asyncLoadBulkBlockCache(asyncBlockCache, cacheMin, cacheMax)
 
         // Make sure the world isn't unloaded while we're searching (that would invalidate our remoteWorld reference)
+        //#if FABRIC<=0
         //#if MC>=11400
         //$$ // TODO this isn't optimal because it's not really compatible with other mods
         //$$ val wasLoaded = DimensionManager.keepLoaded(remoteWorld.dimension.type)
@@ -200,6 +206,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
         //#else
         val ticket = ForgeChunkManager.requestTicket(mod, remoteWorld, ForgeChunkManager.Type.NORMAL)
         ForgeChunkManager.forceChunk(ticket, remoteChunkPos)
+        //#endif
         //#endif
 
         return cacheFuture.thenApplyAsync {
@@ -274,6 +281,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             placePortalFrame(remoteWorld, portalRotation.axis(plane.opposite), blocks)
             return@thenApplyAsync Pair(remotePosition, portalRotation)
         }, remoteWorld.theServer.executor::execute).whenCompleteAsync({ _, _ ->
+            //#if FABRIC<=0
             //#if MC>=11400
             //$$ DimensionManager.keepLoaded(remoteWorld.dimension.type, wasLoaded)
             //#else
@@ -289,6 +297,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
                     }
                 }
             }
+            //#endif
             //#endif
         }, remoteWorld.theServer.executor::execute)
     }

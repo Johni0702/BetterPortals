@@ -3,6 +3,7 @@ package de.johni0702.minecraft.view.impl.server
 import com.mojang.authlib.GameProfile
 import de.johni0702.minecraft.betterportals.common.*
 import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityPlayerMP
+import de.johni0702.minecraft.betterportals.impl.accessors.AccNetworkManager
 import de.johni0702.minecraft.view.impl.client.TransactionNettyHandler
 import de.johni0702.minecraft.view.impl.net.*
 import de.johni0702.minecraft.view.server.CubeSelector
@@ -27,20 +28,25 @@ import net.minecraft.util.math.ChunkPos
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import net.minecraft.world.WorldServer
-import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.event.entity.player.PlayerEvent
-import net.minecraftforge.event.world.WorldEvent
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
-import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import java.util.*
 import kotlin.Comparator
 import kotlin.math.ceil
 import kotlin.math.sqrt
 
+//#if FABRIC>=1
+//$$ import net.fabricmc.fabric.api.event.server.ServerTickCallback
+//$$ import java.util.concurrent.CopyOnWriteArraySet
+//#else
+import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+import net.minecraftforge.fml.common.gameevent.TickEvent
+//#endif
+
 //#if MC>=11400
 //$$ import io.netty.util.AttributeKey
+//#if FABRIC<=0
 //$$ import net.minecraftforge.fml.network.NetworkHooks
+//#endif
 //#else
 import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher
 import net.minecraftforge.fml.relauncher.Side
@@ -183,6 +189,21 @@ internal class ServerWorldsManagerImpl(
         }
     }
 
+    fun recreatePlayerEntity(newPlayer: EntityPlayerMP) {
+        val newWorld = newPlayer.serverWorld
+
+        worldManagers.values.toList().forEach {
+            if (it.player is ViewEntity) {
+                destroyWorldManager(it)
+            } else {
+                worldManagers.remove(it.world)
+            }
+        }
+
+        worldManagers[newWorld] = ServerWorldManager(this@ServerWorldsManagerImpl, newWorld, newPlayer)
+        player = newPlayer
+    }
+
     override var player: EntityPlayerMP = connection.player
 
     private val eventHandler = EventHandler()
@@ -209,7 +230,7 @@ internal class ServerWorldsManagerImpl(
 
         //#if MC>=11400
         //$$ val marker = AttributeKey.valueOf<String>("fml:netversion")!!
-        //$$ channel.attr(marker).set(connection.networkManager.channel().attr(marker).get())
+        //$$ channel.attr(marker).set((connection.networkManager as AccNetworkManager).nettyChannel.attr(marker).get())
         //#else
         val networkDispatcher = NetworkDispatcher.allocAndSet(camera.connection.networkManager, server.playerList)
         channel.pipeline().addBefore("packet_handler", "fml:packet_handler", networkDispatcher)
@@ -224,6 +245,9 @@ internal class ServerWorldsManagerImpl(
         worldManagers[world] = worldManager
 
         // Make sure the world type is registered on the client (important for e.g. hot-loaded sponge worlds)
+        //#if FABRIC>=1
+        //$$ // AFAIK fabric doesn't support this
+        //#else
         //#if MC>=11400
         //$$ // sendDimensionDataPacket uses dimension of `player` but we want to send dimension of `camera` to `player`
         //$$ player.dimension = player.dimension.also {
@@ -236,6 +260,7 @@ internal class ServerWorldsManagerImpl(
         forgeChannel.attr(FMLOutboundHandler.FML_MESSAGETARGET).set(FMLOutboundHandler.OutboundTarget.PLAYER)
         forgeChannel.attr(FMLOutboundHandler.FML_MESSAGETARGETARGS).set(player)
         forgeChannel.writeOutbound(ForgeMessage.DimensionRegisterMessage(camera.dimension, world.provider.dimensionType.name))
+        //#endif
         //#endif
 
         CreateWorld(camera.dimension, world.difficulty,
@@ -271,7 +296,7 @@ internal class ServerWorldsManagerImpl(
         check(worldManagers.remove(manager.world, manager)) { "unknown manager $manager" }
     }
 
-    private fun destroy() {
+    fun destroy() {
         eventHandler.registered = false
 
         worldManagers.toList().forEach { (world, manager) ->
@@ -350,15 +375,31 @@ internal class ServerWorldsManagerImpl(
         connection.sendPacket(SPacketCustomPayload(TransactionNettyHandler.CHANNEL_END, PacketBuffer(Unpooled.EMPTY_BUFFER)))
     }
 
+    //#if FABRIC>=1
+    //$$ private inner class EventHandler {
+    //$$     var registered: Boolean = false
+    //$$         set(value) {
+    //$$             Callbacks.init()
+    //$$             if (value) {
+    //$$                 Callbacks.handlers.add(this@ServerWorldsManagerImpl)
+    //$$             } else {
+    //$$                 Callbacks.handlers.remove(this@ServerWorldsManagerImpl)
+    //$$             }
+    //$$             field = value
+    //$$         }
+    //$$ }
+    //$$ private object Callbacks {
+    //$$     val handlers = CopyOnWriteArraySet<ServerWorldsManagerImpl>()
+    //$$     fun init() = Unit // called to ensure our callbacks are registered
+    //$$     init {
+    //$$         ServerTickCallback.EVENT.register(ServerTickCallback {
+    //$$             handlers.forEach { it.tick() }
+    //$$         })
+    //$$     }
+    //$$ }
+    //#else
     private inner class EventHandler {
         var registered by MinecraftForge.EVENT_BUS
-
-        @SubscribeEvent
-        fun onPlayerLeft(event: PlayerLoggedOutEvent) {
-            if ((event.player as? EntityPlayerMP)?.connection === connection) {
-                destroy()
-            }
-        }
 
         @SubscribeEvent
         fun postTick(event: TickEvent.ServerTickEvent) {
@@ -366,34 +407,8 @@ internal class ServerWorldsManagerImpl(
 
             tick()
         }
-
-        @SubscribeEvent
-        fun onWorldUnload(event: WorldEvent.Unload) {
-            val manager = worldManagers[event.world] ?: return
-            if (manager.player is ViewEntity) {
-                destroyWorldManager(manager)
-            }
-        }
-
-        @SubscribeEvent
-        fun onPlayerRespawn(event: PlayerEvent.Clone) {
-            val player = event.entityPlayer
-            if (player is EntityPlayerMP && player.connection === connection) {
-                val newWorld = player.serverWorld
-
-                worldManagers.values.toList().forEach {
-                    if (it.player is ViewEntity) {
-                        destroyWorldManager(it)
-                    } else {
-                        worldManagers.remove(it.world)
-                    }
-                }
-
-                worldManagers[newWorld] = ServerWorldManager(this@ServerWorldsManagerImpl, newWorld, player)
-                this@ServerWorldsManagerImpl.player = player
-            }
-        }
     }
+    //#endif
 }
 
 class VanillaView(
@@ -403,7 +418,7 @@ class VanillaView(
     override fun dispose(): Unit = throw UnsupportedOperationException("Cannot dispose of vanilla player view.")
     override val isValid: Boolean = true
     override val world: WorldServer = player.serverWorld
-    override val center: Vec3d get() = player.pos
+    override val center: Vec3d get() = player.tickPos
     override val cubeSelector: CubeSelector = player.mcServer!!.playerList.let { playerList ->
         CuboidCubeSelector(
                 center.toBlockPos().toCubePos(),

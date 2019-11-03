@@ -3,9 +3,9 @@ package de.johni0702.minecraft.view.impl.client
 import de.johni0702.minecraft.betterportals.common.DimensionId
 import de.johni0702.minecraft.betterportals.common.dimensionId
 import de.johni0702.minecraft.betterportals.common.popOrNull
-import de.johni0702.minecraft.betterportals.common.pos
 import de.johni0702.minecraft.betterportals.common.removeAtOrNull
 import de.johni0702.minecraft.betterportals.common.theProfiler
+import de.johni0702.minecraft.betterportals.common.tickPos
 import de.johni0702.minecraft.view.client.ClientWorldsManager
 import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.net.CreateWorld
@@ -19,6 +19,16 @@ import net.minecraft.util.ReportedException
 import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.EnumDifficulty
+
+//#if MC>=11400
+//$$ import net.minecraft.util.ResourceLocation
+//$$ import net.minecraft.world.dimension.DimensionType
+//#endif
+
+//#if FABRIC>=1
+//$$ import net.fabricmc.fabric.api.event.client.ClientTickCallback
+//#else
+import de.johni0702.minecraft.betterportals.common.provideDelegate
 import net.minecraftforge.client.event.RenderGameOverlayEvent
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
@@ -26,10 +36,10 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
 
 //#if MC>=11400
-//$$ import net.minecraft.util.ResourceLocation
 //$$ import net.minecraftforge.event.entity.player.PlayerEvent
 //#else
 import net.minecraftforge.fml.common.network.FMLNetworkEvent
+//#endif
 //#endif
 
 internal class ClientWorldsManagerImpl : ClientWorldsManager {
@@ -105,7 +115,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         }
     }
 
-    private fun reset() {
+    fun reset() {
         unconfirmedChanges.clear()
 
         views.remove(mainView)
@@ -119,7 +129,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
     }
 
     fun init() {
-        MinecraftForge.EVENT_BUS.register(EventHandler())
+        EventHandler().registered = true
     }
 
     fun createState(message: CreateWorld): ClientState {
@@ -224,7 +234,12 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         }
 
         with(player) {
+            // FIXME this used to work before the preprocessor inner class fixes
+            //#if MC>=11400
+            //$$ connection.sendPacket(CPlayerPacket.PositionRotationPacket(
+            //#else
             connection.sendPacket(CPacketPlayer.PositionRotation(
+            //#endif
                     posX, entityBoundingBox.minY, posZ, rotationYaw, rotationPitch, onGround))
         }
 
@@ -235,7 +250,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
     }
 
     private fun makeMainView(newMainView: ClientState) {
-        unconfirmedChanges.add(MainViewChange(mainView, newMainView, mainView.clientPlayer.pos))
+        unconfirmedChanges.add(MainViewChange(mainView, newMainView, mainView.clientPlayer.tickPos))
 
         activeView.captureState(mc)
         newMainView.swapThePlayer(activeView, false)
@@ -279,7 +294,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         //#if MC>=11400
         //$$ val badDims = listOf<ResourceLocation>(
         //$$ )
-        //$$ if (mc.world.dimension.type.registryName in badDims) {
+        //$$ if (DimensionType.getKey(mc.world.dimension.type) in badDims) {
         //$$     mc.soundHandler.stop()
         //$$ }
         //#else
@@ -401,6 +416,15 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
     }
 
     private inner class EventHandler {
+        //#if FABRIC>=1
+        //$$ var registered = false
+        //$$
+        //$$ init {
+        //$$     ClientTickCallback.EVENT.register(ClientTickCallback { tickViews() })
+        //$$ }
+        //$$
+        //#else
+        var registered by MinecraftForge.EVENT_BUS
 
         @SubscribeEvent(priority = EventPriority.LOWEST)
         fun postClientTick(event: TickEvent.ClientTickEvent) {
@@ -416,16 +440,12 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
             preRender()
         }
 
+        //#if MC<11400
         @SubscribeEvent(priority = EventPriority.LOW)
-        fun onDisconnect(
-                //#if MC>=11400
-                //$$ event: PlayerEvent.PlayerLoggedOutEvent
-                //#else
-                event: FMLNetworkEvent.ClientDisconnectionFromServerEvent
-                //#endif
-        ) {
+        fun onDisconnect(event: FMLNetworkEvent.ClientDisconnectionFromServerEvent) {
             reset()
         }
+        //#endif
 
         @SubscribeEvent
         fun addWorldsDebugInfo(event: RenderGameOverlayEvent.Text) {
@@ -451,6 +471,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
                 }
             }
         }
+        //#endif
     }
 
     interface IIntegratedServer {

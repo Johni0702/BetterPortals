@@ -48,6 +48,6 @@ public abstract class MixinEntityRenderer {
         if (renderPass == null) return;
         Double distance = renderPass.get(RenderDistanceDetail.class).getRenderDistance();
         if (distance == null) return;
-        farPlaneDistance = distance.floatValue();
+        this.farPlaneDistance = distance.floatValue();
     }
 }

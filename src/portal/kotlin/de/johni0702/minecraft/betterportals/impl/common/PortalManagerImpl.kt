@@ -12,12 +12,18 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
+import org.apache.logging.log4j.Logger
+
+//#if FABRIC>=1
+//$$ import net.fabricmc.fabric.api.event.client.ClientTickCallback
+//$$ import net.fabricmc.fabric.api.event.world.WorldTickCallback
+//#else
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.event.world.GetCollisionBoxesEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.apache.logging.log4j.Logger
+//#endif
 
 //#if MC>=11400
 //$$ import net.minecraft.util.math.shapes.VoxelShape
@@ -61,9 +67,9 @@ internal class PortalManagerImpl(override val world: World) : PortalManager {
 
     override fun registerPortals(accessor: PortalAccessor) {
         if (accessor.onChange { activeAccessorPortalsDirty = true }) {
+            activeAccessorPortalsDirty = true
             activeAccessors
         } else {
-            activeAccessorPortalsDirty = true
             passiveAccessors
         }.add(accessor)
     }
@@ -90,20 +96,37 @@ internal class PortalManagerImpl(override val world: World) : PortalManager {
     }
 
     internal object EventHandler {
+        //#if FABRIC>=1
+        //$$ var registered = false
+        //#else
         var registered by MinecraftForge.EVENT_BUS
+        //#endif
         var collisionBoxesEntity by ThreadLocal<Entity>()
 
+        //#if FABRIC>=1
+        //$$ init { WorldTickCallback.EVENT.register(WorldTickCallback {
+        //$$     if (it is ServerWorld) {
+        //$$         tickWorld(it)
+        //$$     }
+        //$$ }) }
+        //#else
         @SubscribeEvent
         fun onWorldTick(event: TickEvent.WorldTickEvent) {
             if (event.phase != TickEvent.Phase.END) return
             if (event.side != LogicalSide.SERVER) return
             tickWorld(event.world)
         }
+        //#endif
 
+        //#if FABRIC>=1
+        //$$ init { ClientTickCallback.EVENT.register(ClientTickCallback { onClientTick(it) }) }
+        //$$ private fun onClientTick(mc: MinecraftClient) {
+        //#else
         @SubscribeEvent
         fun onClientTick(event: TickEvent.ClientTickEvent) {
             if (event.phase != TickEvent.Phase.END) return
             val mc = Minecraft.getMinecraft()
+        //#endif
             val worldsManager = mc.worldsManager ?: return
             // We need to tick all views to properly update the lastTickPos map.
             // However, actual teleportation will only happen in the main view, since it's

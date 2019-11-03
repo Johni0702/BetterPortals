@@ -36,28 +36,45 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class MixinEntityTrackerEntry {
     @Shadow @Final private int range;
     //#if MC>=11400
-    //$$ @Shadow(aliases = "field_219401_a") @Final private ChunkManager this$0;
+    //$$ // FIXME preprocessor might be technically able to remap these aliases
+    //$$ @Shadow(aliases = {"field_219401_a", "field_18245"}) @Final private ChunkManager this$0;
     //$$ @Shadow @Final private Entity entity;
     //$$ @Shadow @Final private TrackedEntity entry;
     //$$ @Shadow @Final private Set<ServerPlayerEntity> trackingPlayers;
     //$$
+    //$$ // FIXME preprocessor should handle this
+    //#if FABRIC>=1
+    //$$ @Redirect(method = "updateCameraPosition(Lnet/minecraft/server/network/ServerPlayerEntity;)V",
+    //#else
     //$$ @Redirect(method = "updateTrackingState(Lnet/minecraft/entity/player/ServerPlayerEntity;)V",
+    //#endif
     //$$         at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/Vec3d;subtract(Lnet/minecraft/util/math/Vec3d;)Lnet/minecraft/util/math/Vec3d;"))
     //$$ private Vec3d alwaysReturnZeroDistance(Vec3d a, Vec3d b) {
     //$$     // Returning zero effectively nullifies MC's range check
     //$$     return Vec3d.ZERO;
     //$$ }
     //$$
+    //$$ // FIXME preprocessor should handle the method target, don't think it can handle the access$500 target
+    //$$ // FIXME add srg-named (and intermediary) target
+    //#if FABRIC>=1
+    //$$ @Redirect(method = "updateCameraPosition(Lnet/minecraft/server/network/ServerPlayerEntity;)V",
+    //$$         at = @At(value = "INVOKE", target = "Lnet/minecraft/server/world/ThreadedAnvilChunkStorage;method_18706(Lnet/minecraft/util/math/ChunkPos;Lnet/minecraft/server/network/ServerPlayerEntity;Z)I"))
+    //#else
     //$$ @Redirect(method = "updateTrackingState(Lnet/minecraft/entity/player/ServerPlayerEntity;)V",
-    //$$         // FIXME add srg-named target
     //$$         at = @At(value = "INVOKE", target = "Lnet/minecraft/world/server/ChunkManager;access$500(Lnet/minecraft/util/math/ChunkPos;Lnet/minecraft/entity/player/ServerPlayerEntity;Z)I"))
+    //#endif
     //$$ private int getShortestChunkDistToAnyView(ChunkPos chunkPos, ServerPlayerEntity player, boolean useManagedPos) {
     //$$     // not entirely sure why MC has this extra check, afaict we've already checked the distance in
     //$$     // isVisibleToAnyView, so we just force this condition to always be true.
     //$$     return 0;
     //$$ }
     //$$
+    //$$ // FIXME preprocessor should handle this
+    //#if FABRIC>=1
+    //$$ @Redirect(method = "updateCameraPosition(Lnet/minecraft/server/network/ServerPlayerEntity;)V",
+    //#else
     //$$ @Redirect(method = "updateTrackingState(Lnet/minecraft/entity/player/ServerPlayerEntity;)V",
+    //#endif
     //$$         at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;isSpectatedByPlayer(Lnet/minecraft/entity/player/ServerPlayerEntity;)Z"))
     //$$ private boolean isVisibleToAnyView(Entity entity, ServerPlayerEntity player) {
     //$$     ServerWorldsManagerImpl worldsManager = getWorldsManagerImpl(player);

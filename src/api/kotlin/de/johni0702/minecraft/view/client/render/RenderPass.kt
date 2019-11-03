@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.view.client.render
 
+import de.johni0702.minecraft.view.common.fabricEvent
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.shader.Framebuffer
 import net.minecraftforge.fml.common.eventhandler.Cancelable
@@ -85,12 +86,14 @@ abstract class RenderPassEvent(
      */
     @Cancelable
     class Prepare(partialTicks: Float, renderPass: RenderPass) : RenderPassEvent(partialTicks, renderPass)
+    { companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<Prepare>() } }
 
     /**
      * Emitted before a [RenderPass] is run, after all children have been run but still early enough to cancel it.
      */
     @Cancelable
     class Before(partialTicks: Float, renderPass: RenderPass) : RenderPassEvent(partialTicks, renderPass)
+    { companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<Before>() } }
 
     /**
      * Emitted right before the view of a [RenderPass] is drawn.
@@ -98,12 +101,14 @@ abstract class RenderPassEvent(
      * The framebuffer has been set up and bound but rendering has not yet begun.
      */
     class Start(partialTicks: Float, renderPass: RenderPass) : RenderPassEvent(partialTicks, renderPass)
+    { companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<Start>() } }
 
     /**
      * Emitted right after the view of a [RenderPass] has been drawn.
      * The framebuffer has been set up, bound (and still is) and drawn onto.
      */
     class End(partialTicks: Float, renderPass: RenderPass) : RenderPassEvent(partialTicks, renderPass)
+    { companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<End>() } }
 
     /**
      * Emitted after the view of a [RenderPass] has been drawn.
@@ -111,4 +116,5 @@ abstract class RenderPassEvent(
      * If any post processing of the framebuffer or general cleanup needs to happen, now is the time for that.
      */
     class After(partialTicks: Float, renderPass: RenderPass) : RenderPassEvent(partialTicks, renderPass)
+    { companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<After>() } }
 }

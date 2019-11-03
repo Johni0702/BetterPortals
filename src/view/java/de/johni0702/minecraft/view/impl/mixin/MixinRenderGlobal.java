@@ -78,7 +78,7 @@ public abstract class MixinRenderGlobal {
     //$$     } else {
     //$$         // View entity isn't a player (so not one of our camera entities), let whoever set it deal with this issue
     //$$         // (chances are we're close to the real player anyway).
-    //$$         return mc.player;
+    //$$         return this.mc.player;
     //$$     }
     //$$ }
     //#endif
@@ -193,7 +193,7 @@ public abstract class MixinRenderGlobal {
             at = @At(value = "FIELD", target = "Lnet/minecraft/client/renderer/RenderGlobal;renderDistanceChunks:I", opcode = Opcodes.GETFIELD)
     )
     private int getFakeRenderDistance(RenderGlobal renderGlobal) {
-        return mc.gameSettings.renderDistanceChunks;
+        return this.mc.gameSettings.renderDistanceChunks;
     }
 
     //
@@ -218,7 +218,7 @@ public abstract class MixinRenderGlobal {
     private boolean isMainView() {
         RenderPass pass = ViewRenderManager.Companion.getINSTANCE().getCurrent();
         if (pass != null) {
-            Vec3d playerEyePos = mc.player.getPositionEyes(mc.getRenderPartialTicks());
+            Vec3d playerEyePos = this.mc.player.getPositionEyes(this.mc.getRenderPartialTicks());
             Vec3d cameraEyePos = pass.getCamera().getEyePosition();
             return approxEquals(cameraEyePos, playerEyePos, 1e-4);
         }
@@ -231,7 +231,7 @@ public abstract class MixinRenderGlobal {
     //$$         at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/ActiveRenderInfo;getProjectedView()Lnet/minecraft/util/math/Vec3d;")
     //$$ )
     //$$ private Vec3d getPosForTransparencySort(ActiveRenderInfo activeRenderInfo) {
-    //$$     return isMainView() ? activeRenderInfo.getProjectedView() : new Vec3d(prevRenderSortX, prevRenderSortY, prevRenderSortZ);
+    //$$     return isMainView() ? activeRenderInfo.getProjectedView() : new Vec3d(this.prevRenderSortX, this.prevRenderSortY, this.prevRenderSortZ);
     //$$ }
     //#else
     @Redirect(

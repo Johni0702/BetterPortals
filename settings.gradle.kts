@@ -6,6 +6,7 @@ pluginManagement {
         mavenCentral()
         google()
         maven("https://jitpack.io")
+        maven("https://maven.fabricmc.net")
     }
     resolutionStrategy {
         eachPlugin {
@@ -22,7 +23,8 @@ rootProject.buildFileName = "root.gradle.kts"
 
 listOf(
         "1.12.2",
-        "1.14.4"
+        "1.14.4",
+        "1.14.4-fabric"
 ).forEach { version ->
     include(":$version")
     project(":$version").apply {

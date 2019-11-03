@@ -38,21 +38,32 @@ public abstract class MixinSoundManager {
     }
     //#endif
 
-    @Inject(method = "playDelayedSound", at = @At("HEAD"), cancellable = true)
+    // FIXME preprocessor could handle these
+    //#if FABRIC>=1
+    //$$ private static final String METHOD_PLAY_DELAYED = "play(Lnet/minecraft/client/sound/SoundInstance;I)V";
+    //$$ private static final String METHOD_PLAY = "play(Lnet/minecraft/client/sound/SoundInstance;)V";
+    //$$ private static final String METHOD_TICK = "tick()V";
+    //#else
+    private static final String METHOD_PLAY_DELAYED = "playDelayed";
+    private static final String METHOD_PLAY = "play";
+    private static final String METHOD_TICK = "tickNonPaused";
+    //#endif
+
+    @Inject(method = METHOD_PLAY_DELAYED, at = @At("HEAD"), cancellable = true)
     private void recordViewOnPlayDelayedSound(ISound sound, int delay, CallbackInfo ci) {
         if (!PortalAwareSoundManager.INSTANCE.recordView(sound)) {
             ci.cancel();
         }
     }
 
-    @Inject(method = "playSound", at = @At("HEAD"), cancellable = true)
+    @Inject(method = METHOD_PLAY, at = @At("HEAD"), cancellable = true)
     private void recordViewOnPlaySound(ISound sound, CallbackInfo ci) {
         if (!PortalAwareSoundManager.INSTANCE.recordView(sound)) {
             ci.cancel();
         }
     }
 
-    @Inject(method = "playSound", at = @At(
+    @Inject(method = METHOD_PLAY, at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/audio/ISound;getVolume()F"
     ))
@@ -60,23 +71,23 @@ public abstract class MixinSoundManager {
         PortalAwareSoundManager.INSTANCE.beforePlay(sound);
     }
 
-    @Redirect(method = "playSound", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ISound;getXPosF()F"))
+    @Redirect(method = METHOD_PLAY, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ISound;getXPosF()F"))
     private float getXPosFConsideringPortals$0(ISound sound) {
         return (float) PortalAwareSoundManager.INSTANCE.getApparentPos(sound).x;
     }
 
-    @Redirect(method = "playSound", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ISound;getYPosF()F"))
+    @Redirect(method = METHOD_PLAY, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ISound;getYPosF()F"))
     private float getYPosFConsideringPortals$0(ISound sound) {
         return (float) PortalAwareSoundManager.INSTANCE.getApparentPos(sound).y;
     }
 
-    @Redirect(method = "playSound", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ISound;getZPosF()F"))
+    @Redirect(method = METHOD_PLAY, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ISound;getZPosF()F"))
     private float getZPosFConsideringPortals$0(ISound sound) {
         return (float) PortalAwareSoundManager.INSTANCE.getApparentPos(sound).z;
     }
 
     //#if MC>=11400
-    //$$ @Redirect(method = "tickNonPaused", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ITickableSound;getX()F"))
+    //$$ @Redirect(method = METHOD_TICK, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ITickableSound;getX()F"))
     //#else
     @Redirect(method = "updateAllSounds", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ITickableSound;getXPosF()F"))
     //#endif
@@ -85,7 +96,7 @@ public abstract class MixinSoundManager {
     }
 
     //#if MC>=11400
-    //$$ @Redirect(method = "tickNonPaused", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ITickableSound;getY()F"))
+    //$$ @Redirect(method = METHOD_TICK, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ITickableSound;getY()F"))
     //#else
     @Redirect(method = "updateAllSounds", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ITickableSound;getYPosF()F"))
     //#endif
@@ -94,7 +105,7 @@ public abstract class MixinSoundManager {
     }
 
     //#if MC>=11400
-    //$$ @Redirect(method = "tickNonPaused", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ITickableSound;getZ()F"))
+    //$$ @Redirect(method = METHOD_TICK, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ITickableSound;getZ()F"))
     //#else
     @Redirect(method = "updateAllSounds", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/audio/ITickableSound;getZPosF()F"))
     //#endif

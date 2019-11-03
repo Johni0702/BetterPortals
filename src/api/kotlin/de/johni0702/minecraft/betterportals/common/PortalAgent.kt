@@ -6,6 +6,7 @@ import de.johni0702.minecraft.betterportals.impl.accessors.AccEntity
 import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityMinecart
 import de.johni0702.minecraft.betterportals.impl.accessors.AccNetHandlerPlayServer
 import de.johni0702.minecraft.view.client.worldsManager
+import de.johni0702.minecraft.view.common.fabricEvent
 import de.johni0702.minecraft.view.server.*
 import net.minecraft.block.material.Material
 import net.minecraft.client.Minecraft
@@ -24,12 +25,16 @@ import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.Vec3d
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
-import net.minecraftforge.common.DimensionManager
-import net.minecraftforge.common.ForgeHooks
 import net.minecraftforge.fml.relauncher.Side
 import net.minecraftforge.fml.relauncher.SideOnly
 import org.apache.logging.log4j.Logger
 import java.lang.IllegalArgumentException
+
+//#if FABRIC>=1
+//#else
+import net.minecraftforge.common.DimensionManager
+import net.minecraftforge.common.ForgeHooks
+//#endif
 
 //#if MC>=11400
 //$$ import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityLivingBase
@@ -69,6 +74,10 @@ interface PortalAccessor {
 }
 
 interface PortalManager {
+    companion object {
+        @JvmField
+        val REGISTER_ACCESSORS_EVENT = fabricEvent<PortalManager>()
+    }
     val logger: Logger
     val world: World
 
@@ -81,6 +90,7 @@ interface PortalManager {
 
     /**
      * Registers a new source for [loadedPortals].
+     * Usually called during the World.Load event on Forge or during [REGISTER_ACCESSORS_EVENT] on Fabric.
      */
     fun registerPortals(accessor: PortalAccessor)
 
@@ -166,10 +176,14 @@ open class PortalAgent<P: Portal>(
             remoteClientWorld
         } else {
             portal.remoteDimension?.let {
+                //#if FABRIC>=1
+                //$$ world.server!!.getWorld(it)
+                //#else
                 //#if MC>=11400
                 //$$ DimensionManager.getWorld(world.server, it, false, false)
                 //#else
                 DimensionManager.getWorld(it)
+                //#endif
                 //#endif
             }
         }
@@ -440,7 +454,9 @@ open class PortalAgent<P: Portal>(
         val localWorld = world as WorldServer
         val remoteWorld = remotePortal.world as WorldServer
 
+        //#if FABRIC<=0
         if (!ForgeHooks.onTravelToDimension(entity, remotePortal.portal.localDimension)) return
+        //#endif
 
         val remoteEntity = entity.newEntity(remoteWorld) ?: return
         val remoteEntities = mutableMapOf(entity to remoteEntity)

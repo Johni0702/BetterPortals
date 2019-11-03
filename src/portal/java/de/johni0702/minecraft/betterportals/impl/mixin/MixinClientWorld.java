@@ -26,13 +26,22 @@
 //$$         this.onEntityRemoved.add(onEntityRemoved);
 //$$     }
 //$$
-//$$     @Inject(method = "addEntityImpl", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;onAddedToWorld()V"))
+//$$     @Inject(method = "addEntityImpl",
+            //#if FABRIC>=1
+            //$$ at = @At("RETURN"))
+            //#else
+            //$$ at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;onAddedToWorld()V"))
+            //#endif
 //$$     private void onEntityAdded(int id, Entity entity, CallbackInfo ci) {
 //$$         onEntityAdded.forEach(it -> it.invoke(entity));
 //$$     }
 //$$
-//$$     @Inject(method = "removeEntit" +
-//$$             "y", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;onRemovedFromWorld()V"))
+//$$     @Inject(method = "removeEntity",
+            //#if FABRIC>=1
+            //$$ at = @At("RETURN"))
+            //#else
+            //$$ at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;onRemovedFromWorld()V"))
+            //#endif
 //$$     private void onEntityRemoved(Entity entity, CallbackInfo ci) {
 //$$         onEntityRemoved.forEach(it -> it.invoke(entity));
 //$$     }

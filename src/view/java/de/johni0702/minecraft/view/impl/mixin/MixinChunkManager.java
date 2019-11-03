@@ -40,7 +40,12 @@
 //$$     @Shadow @Final private ServerWorld world;
 //$$     @Shadow private int viewDistance;
 //$$     @Shadow @Final private Long2ObjectLinkedOpenHashMap<ChunkHolder> field_219251_e;
-//$$     @Shadow public abstract Stream<ServerPlayerEntity> getTrackingPlayers(ChunkPos pos, boolean boundaryOnly);
+//$$     // FIXME preprocessor should handle this
+    //#if FABRIC>=1
+    //$$ @Shadow public abstract Stream<ServerPlayerEntity> getPlayersWatchingChunk(ChunkPos pos, boolean boundaryOnly);
+    //#else
+    //$$ @Shadow public abstract Stream<ServerPlayerEntity> getTrackingPlayers(ChunkPos pos, boolean boundaryOnly);
+    //#endif
 //$$     @Shadow protected abstract void setChunkLoadedAtClient(ServerPlayerEntity player, ChunkPos chunkPosIn, IPacket<?>[] packetCache, boolean wasLoaded, boolean load);
 //$$     @Shadow @Final private PlayerGenerationTracker playerGenerationTracker;
 //$$     // Workaround for https://github.com/SpongePowered/Mixin/issues/284
@@ -54,7 +59,13 @@
 //$$                 try {
 //$$                     getTicketManagerMethod = ChunkManager.class.getDeclaredMethod("getTicketManager");
 //$$                 } catch (NoSuchMethodException ignored) {
-//$$                     getTicketManagerMethod = ChunkManager.class.getDeclaredMethod("func_219246_e");
+//$$                     getTicketManagerMethod = ChunkManager.class.getDeclaredMethod(
+                            //#if FABRIC>=1
+                            //$$ "method_17263"
+                            //#else
+                            //$$ "func_219246_e"
+                            //#endif
+//$$                     );
 //$$                 }
 //$$                 MethodHandle handle = lookup.unreflect(getTicketManagerMethod);
 //$$                 //noinspection unchecked
@@ -137,7 +148,12 @@
 //$$         }
 //$$     }
 //$$
-//$$     @Inject(method = "getTrackingPlayers", at = @At("HEAD"), cancellable = true)
+//$$     // FIXME why does the preprocessor not handle these
+    //#if FABRIC>=1
+    //$$ @Inject(method = "getPlayersWatchingChunk", at = @At("HEAD"), cancellable = true)
+    //#else
+    //$$ @Inject(method = "getTrackingPlayers", at = @At("HEAD"), cancellable = true)
+    //#endif
 //$$     private void getTrackingViews(ChunkPos pos, boolean boundaryOnly, CallbackInfoReturnable<Stream<ServerPlayerEntity>> cir) {
 //$$         cir.setReturnValue(players.stream().filter(player -> {
 //$$             ServerWorldsManagerImpl worldsManager = getWorldsManagerImpl(player);

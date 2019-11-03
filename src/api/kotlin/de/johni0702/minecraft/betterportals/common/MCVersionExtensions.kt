@@ -19,8 +19,13 @@ import java.util.concurrent.Executor
 //$$ import net.minecraft.client.entity.player.AbstractClientPlayerEntity
 //$$ import net.minecraft.client.world.ClientWorld
 //$$ import net.minecraft.world.dimension.DimensionType
+//#if FABRIC>=1
+//$$ import net.fabricmc.loader.api.FabricLoader
+//$$ import net.minecraft.world.dimension.TheNetherDimension
+//#else
 //$$ import net.minecraftforge.fml.LogicalSide
 //$$ import net.minecraftforge.fml.ModList
+//#endif
 //#else
 import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityTracker
 import net.minecraft.entity.EntityList
@@ -41,10 +46,16 @@ fun Int.toDimensionId(): DimensionId? = this
 val World.dimensionId: DimensionId get() = provider.dimension
 //#endif
 
+//#if FABRIC>=1
+//$$ enum class LogicalSide {
+//$$     CLIENT, SERVER
+//$$ }
+//#else
 //#if MC>=11400
 //$$ typealias LogicalSide = LogicalSide
 //#else
 typealias LogicalSide = Side
+//#endif
 //#endif
 
 fun hasClass(name: String): Boolean =
@@ -63,10 +74,15 @@ val MinecraftServer.executor: Executor get() =
 //#endif
 
 val Minecraft.currentlyOnMainThread: Boolean get() =
+        // TODO why does the preprocessor not remap this?
+        //#if FABRIC>=1
+        //$$ isOnThread
+        //#else
         //#if MC>=11400
         //$$ isOnExecutionThread
         //#else
         isCallingFromMinecraftThread
+        //#endif
         //#endif
 
 val RayTraceResult.hitType: RayTraceResult.Type get() =
@@ -110,7 +126,11 @@ fun World.forceAddEntity(entity: Entity) {
 fun World.forceRemoveEntity(entity: Entity) {
     //#if MC>=11400
     //$$ when (this) {
-    //$$     is ServerWorld -> if (entity is ServerPlayerEntity) removePlayer(entity, true) else removeEntity(entity, true)
+        //#if FABRIC>=1
+        //$$ is ServerWorld -> if (entity is ServerPlayerEntity) removePlayer(entity) else removeEntity(entity)
+        //#else
+        //$$ is ServerWorld -> if (entity is ServerPlayerEntity) removePlayer(entity, true) else removeEntity(entity, true)
+        //#endif
     //$$     is ClientWorld -> {
     //$$         val entityId = entity.entityId
     //$$         if (getEntityByID(entityId) == entity) {
@@ -148,10 +168,14 @@ fun WorldServer.add(entity: Entity) {
 }
 
 fun isModLoaded(id: String) =
+//#if FABRIC>=1
+//$$         FabricLoader.getInstance().isModLoaded(id)
+//#else
 //#if MC>=11400
 //$$         ModList.get().isLoaded(id)
 //#else
         Loader.isModLoaded(id)
+//#endif
 //#endif
 
 fun WorldServer.sendToTrackingAndSelf(entity: Entity, packet: Packet<*>) {
@@ -174,4 +198,12 @@ fun WorldServer.updateTrackingState(entity: Entity) =
 //$$         with(theImpl) { updateTrackingState(entity) }
 //#else
         (entityTracker as AccEntityTracker).entries.find { it.trackedEntity == entity }?.updatePlayerList(playerEntities)
+//#endif
+
+//#if FABRIC>=1
+//$$ val World.theActualHeight: Int get() = if (dimension is TheNetherDimension) 128 else 256
+//$$ val World.theMovementFactor: Double get() = if (dimension is TheNetherDimension) 8.0 else 0.0
+//#else
+val World.theActualHeight: Int get() = provider.actualHeight
+val World.theMovementFactor: Double get() = provider.movementFactor
 //#endif

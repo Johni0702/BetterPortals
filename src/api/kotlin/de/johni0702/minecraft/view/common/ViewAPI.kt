@@ -8,6 +8,9 @@ import de.johni0702.minecraft.view.server.ServerViewAPI
 import de.johni0702.minecraft.view.server.ServerWorldsManager
 import net.minecraft.client.Minecraft
 import net.minecraft.network.NetHandlerPlayServer
+
+//#if FABRIC>=1
+//#else
 import net.minecraftforge.fml.relauncher.Side
 //#if MC>=11300
 //$$ import net.minecraftforge.fml.ModList
@@ -18,6 +21,11 @@ import net.minecraftforge.fml.client.FMLClientHandler
 import net.minecraftforge.fml.common.FMLCommonHandler
 import net.minecraftforge.fml.common.Loader
 //#endif
+//#endif
+
+//#if FABRIC>=1
+//$$ var viewApiImpl: ViewAPI? = null
+//#endif
 
 /**
  * Entry point into the view API. See [ClientViewAPI] and [ServerViewAPI]
@@ -26,6 +34,9 @@ interface ViewAPI {
     companion object {
         @JvmStatic
         val instance by lazy {
+            //#if FABRIC>=1
+            //$$ viewApiImpl ?: FailureFallbackViewAPI
+            //#else
             //#if MC>=11400
             //$$ val mod = ModList.get().getModObjectById<ViewAPI>("betterportals").orElse(null)
             //$$ if (mod == null && FMLEnvironment.dist == Dist.CLIENT && Minecraft.getInstance().currentScreen is LoadingErrorScreen) {
@@ -39,6 +50,7 @@ interface ViewAPI {
             } else {
                 mod as ViewAPI
             }
+            //#endif
         }
     }
 

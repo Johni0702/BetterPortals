@@ -1,3 +1,4 @@
+//#if FABRIC<=0
 package de.johni0702.minecraft.view.impl.mixin;
 
 import kotlin.Triple;
@@ -40,3 +41,4 @@ public abstract class MixinForgeHooksClient {
         skyColorCache.put(world, new Triple<>(skyX, skyZ, skyRGBMultiplier));
     }
 }
+//#endif

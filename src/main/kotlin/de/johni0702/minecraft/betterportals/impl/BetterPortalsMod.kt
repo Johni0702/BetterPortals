@@ -8,20 +8,29 @@ import de.johni0702.minecraft.betterportals.impl.vanilla.common.initVanilla
 import de.johni0702.minecraft.view.common.ViewAPI
 import de.johni0702.minecraft.view.impl.ViewAPIImpl
 import de.johni0702.minecraft.view.impl.common.initView
+import org.apache.logging.log4j.Logger
+
+//#if FABRIC>=1
+//$$ import de.johni0702.minecraft.view.common.viewApiImpl
+//$$ import net.minecraft.util.registry.Registry
+//$$ import org.apache.logging.log4j.LogManager
+//#else
 import net.minecraft.block.Block
 import net.minecraftforge.event.RegistryEvent
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
-import net.minecraftforge.registries.IForgeRegistry
-import org.apache.logging.log4j.Logger
+//#endif
 
 //#if MC>=11400
+//#if FABRIC>=1
+//#else
 //$$ import net.minecraft.entity.EntityType
 //$$ import net.minecraft.tileentity.TileEntityType
 //$$ import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent
 //$$ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
 //$$ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext
+//#endif
 //#else
 import de.johni0702.minecraft.betterportals.impl.abyssalcraft.common.initAbyssalcraft
 import de.johni0702.minecraft.betterportals.impl.aether.common.initAether
@@ -43,22 +52,33 @@ const val MOD_ID = "betterportals"
 
 lateinit var LOGGER: Logger
 
+//#if FABRIC>=1
+//$$ object
+//#else
 //#if MC>=11400
 //$$ @Mod(MOD_ID)
 //#else
 @Mod(modid = MOD_ID, useMetadata = true)
 //#endif
-internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by BetterPortalsAPIImpl {
+internal class
+//#endif
+BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by BetterPortalsAPIImpl {
 
     internal val clientPreInitCallbacks = mutableListOf<() -> Unit>()
     internal val commonInitCallbacks = mutableListOf<() -> Unit>()
     internal val clientInitCallbacks = mutableListOf<() -> Unit>()
     internal val commonPostInitCallbacks = mutableListOf<() -> Unit>()
     internal val clientPostInitCallbacks = mutableListOf<() -> Unit>()
-    private val registerBlockCallbacks = mutableListOf<IForgeRegistry<Block>.() -> Unit>()
+    private val registerBlockCallbacks = mutableListOf<BlockRegistry.() -> Unit>()
     private val registerTileEntitiesCallbacks = mutableListOf<TileEntityTypeRegistry.() -> Unit>()
     private val registerEntitiesCallbacks = mutableListOf<EntityTypeRegistry.() -> Unit>()
 
+    //#if FABRIC>=1
+    //$$ init {
+    //$$     LOGGER = LogManager.getLogger("betterportals")
+    //$$     BPConfig.load()
+    //$$ }
+    //#else
     //#if MC>=11400
     //$$ init { FMLJavaModLoadingContext.get().modEventBus.register(this) }
     //$$
@@ -70,9 +90,14 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
     //$$     //      server startup?).
     //$$ }
     //#endif
+    //#endif
 
     init {
+        //#if FABRIC>=1
+        //$$ viewApiImpl = this
+        //#else
         INSTANCE = this
+        //#endif
 
         fun PortalConfig.toConfiguration() = PortalConfiguration(
                 { opacity },
@@ -161,6 +186,19 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
         //#endif
     }
 
+    //#if FABRIC>=1
+    //$$ fun init() {
+    //$$     with(Registry.BLOCK) { registerBlockCallbacks.forEach { it() }}
+    //$$     with(Registry.BLOCK_ENTITY) { registerTileEntitiesCallbacks.forEach { it() }}
+    //$$     with(Registry.ENTITY_TYPE) { registerEntitiesCallbacks.forEach { it() }}
+    //$$     commonInitCallbacks.forEach { it() }
+    //$$ }
+    //$$
+    //$$ fun clientInit() {
+    //$$     clientPreInitCallbacks.forEach { it() }
+    //$$     clientInitCallbacks.forEach { it() }
+    //$$ }
+    //#else
     @SubscribeEvent(priority = EventPriority.LOW)
     fun registerBlocks(event: RegistryEvent.Register<Block>) {
         with(event.registry) {
@@ -288,4 +326,5 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
         //#endif
         lateinit var INSTANCE: BetterPortalsMod
     }
+    //#endif
 }

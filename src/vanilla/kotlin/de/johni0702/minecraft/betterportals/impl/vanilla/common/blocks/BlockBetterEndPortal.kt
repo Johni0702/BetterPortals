@@ -7,7 +7,6 @@ import de.johni0702.minecraft.betterportals.common.toDimensionId
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndEntryPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndExitPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndPortalEntity
-import net.minecraft.block.Block
 import net.minecraft.block.BlockEndPortal
 import net.minecraft.block.BlockEndPortalFrame
 import net.minecraft.block.material.Material
@@ -30,6 +29,7 @@ import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 
 //#if MC>=11400
+//$$ import de.johni0702.minecraft.betterportals.impl.makeBlockSettings
 //$$ import net.minecraft.block.material.MaterialColor
 //$$ import net.minecraft.util.math.shapes.ISelectionContext
 //$$ import net.minecraft.util.math.shapes.VoxelShape
@@ -39,16 +39,18 @@ import net.minecraft.world.WorldServer
 //$$ import net.minecraft.world.gen.Heightmap
 //#else
 import de.johni0702.minecraft.betterportals.common.EMPTY_AABB
+import net.minecraft.block.Block
 import net.minecraft.world.IBlockAccess
 //#endif
 
 class BlockBetterEndPortal : BlockEndPortal(
         //#if MC>=11400
-        //$$ Block.Properties.create(Material.PORTAL, MaterialColor.BLACK)
-        //$$         .doesNotBlockMovement()
-        //$$         .lightValue(15)
-        //$$         .hardnessAndResistance(-1.0f, 3600000.0f)
-        //$$         .noDrops()
+        //$$ makeBlockSettings(Material.PORTAL, MaterialColor.BLACK) {
+        //$$     doesNotBlockMovement()
+        //$$     lightValue(15)
+        //$$     hardnessAndResistance(-1.0f, 3600000.0f)
+        //$$     noDrops()
+        //$$ }
         //#else
         Material.PORTAL
         //#endif
@@ -66,6 +68,7 @@ class BlockBetterEndPortal : BlockEndPortal(
                 .build()
     }
 
+    //#if FABRIC<=0
     init {
         setRegistryName("minecraft", "end_portal")
         //#if MC<11400
@@ -75,6 +78,7 @@ class BlockBetterEndPortal : BlockEndPortal(
         setResistance(6000000f)
         //#endif
     }
+    //#endif
 
     override fun getRenderType(state: IBlockState): EnumBlockRenderType = EnumBlockRenderType.INVISIBLE
 

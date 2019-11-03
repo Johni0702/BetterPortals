@@ -1,20 +1,24 @@
 package de.johni0702.minecraft.view.impl.common
 
-import com.google.common.util.concurrent.FutureCallback
-import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.ListenableFutureTask
 import de.johni0702.minecraft.betterportals.impl.accessors.AccLazyLoadBase
-import de.johni0702.minecraft.betterportals.impl.accessors.AccMinecraft
 import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
-import de.johni0702.minecraft.view.impl.LOGGER
 import de.johni0702.minecraft.view.impl.client.ViewDemuxingTaskQueue
 import de.johni0702.minecraft.view.impl.client.render.ViewRenderManager
 import de.johni0702.minecraft.view.impl.net.Net
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.LazyLoadBase
+
+//#if MC>=11400
+//#else
+import com.google.common.util.concurrent.FutureCallback
+import com.google.common.util.concurrent.Futures
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.ListenableFutureTask
+import de.johni0702.minecraft.betterportals.impl.accessors.AccMinecraft
+import de.johni0702.minecraft.view.impl.LOGGER
 import java.util.concurrent.Executors
+//#endif
 
 fun initView(
         init: (() -> Unit) -> Unit,
@@ -93,7 +97,12 @@ internal val <T> LazyLoadBase<T>.maybeValue get() =
 internal fun clientSyncIgnoringView(task: () -> Unit) {
     val mc = Minecraft.getMinecraft()
     //#if MC>=11400
+    //$$ // FIXME preprocessor should remap this one (it's merely missing yarn-mappings)
+    //#if FABRIC>=1
+    //$$ mc.method_18858(ViewDemuxingTaskQueue.ViewWrappedFutureTask({ null }, Runnable { task() }))
+    //#else
     //$$ mc.enqueue(ViewDemuxingTaskQueue.ViewWrappedFutureTask({ null }, Runnable { task() }))
+    //#endif
     //#else
     mc as AccMinecraft
     synchronized(mc.scheduledTasks) {
@@ -103,6 +112,7 @@ internal fun clientSyncIgnoringView(task: () -> Unit) {
     }
     //#endif
 }
+//#if MC<11400
 internal fun <L : ListenableFuture<T>, T> L.logFailure(): L {
     Futures.addCallback(this, object : FutureCallback<T> {
         override fun onSuccess(result: T?) = Unit
@@ -112,3 +122,4 @@ internal fun <L : ListenableFuture<T>, T> L.logFailure(): L {
     })
     return this
 }
+//#endif

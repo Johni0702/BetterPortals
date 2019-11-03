@@ -20,6 +20,11 @@
 //$$
 //$$ import java.util.Map;
 //$$
+//#if FABRIC>=1
+//$$ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+//#else
+//#endif
+//$$
 //$$ /**
 //$$  * We want to share atlas, sprites and factories between multiple instances so we only need to load them once.
 //$$  */
@@ -27,7 +32,11 @@
 //$$ public abstract class Mixin_ParticleManager_SharedAtlas implements ClientState.IParticleManager {
 //$$     private static ParticleManager overwrite;
 //$$
-//$$     @Shadow @Final @Mutable private Map<ResourceLocation, IParticleFactory<?>> factories;
+    //#if FABRIC>=1
+    //$$ @Shadow @Final @Mutable private Int2ObjectMap<ParticleFactory<?>> factories;
+    //#else
+    //$$ @Shadow @Final @Mutable private Map<ResourceLocation, IParticleFactory<?>> factories;
+    //#endif
 //$$     @Shadow @Final @Mutable private Map sprites;
 //$$     @Shadow @Final @Mutable private AtlasTexture atlas;
 //$$     @Shadow @Final private TextureManager renderer;
@@ -57,7 +66,7 @@
 //$$     public ParticleManager createWithSharedAtlas() {
 //$$         overwrite = (ParticleManager) (Object) this;
 //$$         try {
-//$$             return new ParticleManager(null, renderer);
+//$$             return new ParticleManager(null, this.renderer);
 //$$         } finally {
 //$$             overwrite = null;
 //$$         }

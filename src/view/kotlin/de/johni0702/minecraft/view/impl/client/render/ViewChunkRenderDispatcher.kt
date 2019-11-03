@@ -232,7 +232,12 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
         fun updateChunkLater(chunkRenderer: RenderChunk): Boolean {
             chunkRenderer.lockCompileTask.withLock {
                 val task = chunkRenderer.makeCompileTaskChunk()
+                // FIXME preprocessor should be able to remap this
+                //#if FABRIC>=1
+                //$$ task.addCompletionAction { queuedUpdates.remove(task) }
+                //#else
                 task.addFinishRunnable { queuedUpdates.remove(task) }
+                //#endif
                 return queuedUpdates.offer(task).also { added ->
                     if (added) {
                         nextChunkUpdateLock.withLock {
@@ -247,7 +252,12 @@ internal class ViewChunkRenderDispatcher : ChunkRenderDispatcher() {
         fun updateTransparencyLater(chunkRenderer: RenderChunk): Boolean {
             chunkRenderer.lockCompileTask.withLock {
                 val task = chunkRenderer.makeCompileTaskTransparency() ?: return true
+                // FIXME preprocessor should be able to remap this
+                //#if FABRIC>=1
+                //$$ task.addCompletionAction { queuedUpdates.remove(task) }
+                //#else
                 task.addFinishRunnable { queuedUpdates.remove(task) }
+                //#endif
                 return queuedUpdates.offer(task).also {
                     nextChunkUpdateLock.withLock {
                         nextChunkUpdateCondition.signal()

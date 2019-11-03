@@ -8,13 +8,19 @@ import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.client.shader.ShaderManager
+import org.lwjgl.opengl.GL11
+import java.time.Duration
+
+//#if FABRIC>=1
+//$$ import de.johni0702.minecraft.view.common.BPCallback
+//$$ import net.fabricmc.fabric.api.event.client.ClientTickCallback
+//#else
 import net.minecraftforge.client.event.RenderWorldLastEvent
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
-import org.lwjgl.opengl.GL11
-import java.time.Duration
+//#endif
 
 internal class TransferToDimensionRenderer(
         private val whenDone: () -> Unit,
@@ -31,7 +37,7 @@ internal class TransferToDimensionRenderer(
     private val fromWorld = mc.world
     private val fromInitialPitch = mc.player.rotationPitch
     private val fromInitialYaw = mc.player.rotationYaw
-    private val fromInitialPos = mc.player.pos
+    private val fromInitialPos = mc.player.tickPos
     private var toInitialized = false
     private var toWorld: WorldClient = fromWorld
     private var toInitialYaw = fromInitialYaw
@@ -65,7 +71,7 @@ internal class TransferToDimensionRenderer(
                 // Initialize to-values
                 toWorld = mc.world
                 toInitialYaw = rotationYaw
-                toInitialPos = pos
+                toInitialPos = tickPos
                 toInitialized = true
             }
         }
@@ -99,12 +105,53 @@ internal class TransferToDimensionRenderer(
         shader.endShader()
     }
 
+    //#if FABRIC>=1
+    //$$ private object CallbackDispatcher {
+    //$$     val handlers = mutableListOf<EventHandler>()
+    //$$
+    //$$     init {
+    //$$         ClientTickCallback.EVENT.register(ClientTickCallback {
+    //$$             handlers.forEach { it.clientTick() }
+    //$$         })
+    //$$         PopulateTreeEvent.EVENT.register(BPCallback {  event ->
+    //$$             handlers.forEach { it.populateTree(event) }
+    //$$         })
+    //$$         // TODO render
+    //$$     }
+    //$$ }
+    //$$ private inner class EventHandler {
+    //$$     var registered = false
+    //$$         set(value) {
+    //$$             if (field == value) return
+    //$$             if (value) {
+    //$$                 CallbackDispatcher.handlers.add(this)
+    //$$             } else {
+    //$$                 CallbackDispatcher.handlers.remove(this)
+    //$$             }
+    //$$             field = value
+    //$$         }
+    //#else
     private inner class EventHandler {
         var registered by MinecraftForge.EVENT_BUS
 
         @SubscribeEvent
         fun preClientTick(event: TickEvent.ClientTickEvent) {
             if (event.phase != TickEvent.Phase.START) return
+            clientTick()
+        }
+
+        @SubscribeEvent
+        fun onPopulateTreeEvent(event: PopulateTreeEvent) {
+            populateTree(event)
+        }
+
+        @SubscribeEvent(priority = EventPriority.LOW)
+        fun onRenderWorldLast(event: RenderWorldLastEvent) {
+            render(event.partialTicks)
+        }
+    //#endif
+
+        fun clientTick() {
             ticksPassed++
 
             val manager = Minecraft.getMinecraft().worldsManager ?: return
@@ -115,19 +162,17 @@ internal class TransferToDimensionRenderer(
             }
         }
 
-        @SubscribeEvent
-        fun onPopulateTreeEvent(event: PopulateTreeEvent) {
+        fun populateTree(event: PopulateTreeEvent) {
             val manager = Minecraft.getMinecraft().worldsManager ?: return
             if (fromWorld !in manager.worlds || toWorld !in manager.worlds) return
             addOldViewToTree(event)
         }
 
-        @SubscribeEvent(priority = EventPriority.LOW)
-        fun onRenderWorldLast(event: RenderWorldLastEvent) {
+        fun render(partialTicks: Float) {
             val manager = Minecraft.getMinecraft().renderPassManager
             val rootPass = manager.root ?: return
             if (manager.current == rootPass) {
-                renderTransition(rootPass, event.partialTicks)
+                renderTransition(rootPass, partialTicks)
             }
         }
     }

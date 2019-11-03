@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.view.impl.mixin;
 
+import de.johni0702.minecraft.betterportals.impl.accessors.AccNetworkManager;
 import de.johni0702.minecraft.view.impl.client.TransactionNettyHandler;
 import net.minecraft.client.network.NetHandlerLoginClient;
 import net.minecraft.network.NetworkManager;
@@ -15,8 +16,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class MixinNetHandlerLoginClient {
     @Shadow @Final private NetworkManager networkManager;
 
+    // FIXME preprocessor should handle this
+    //#if FABRIC>=1
+    //$$ @Inject(method = "onLoginSuccess", at = @At("HEAD"))
+    //#else
     @Inject(method = "handleLoginSuccess", at = @At("HEAD"))
+    //#endif
     private void onLoginSuccess(SPacketLoginSuccess packetIn, CallbackInfo ci) {
-        TransactionNettyHandler.inject(networkManager.channel());
+        TransactionNettyHandler.inject(((AccNetworkManager) this.networkManager).getNettyChannel());
     }
 }

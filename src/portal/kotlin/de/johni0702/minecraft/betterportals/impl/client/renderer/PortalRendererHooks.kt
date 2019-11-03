@@ -19,7 +19,11 @@ internal object PortalRendererHooks {
 
     fun beforeRender(entity: Entity): Boolean {
         if (entity is Portal) return true
+        //#if FABRIC>=1
+        //$$ // FIXME figure out how to best determien this on fabric
+        //#else
         if (!entity.isAddedToWorld) return true // e.g. mobs rendered as part of tile entities (e.g. spawner)
+        //#endif
         val lowestEntity = entity.lowestRidingEntity
         val entityAABB = generateSequence(entity) { it.ridingEntity }
                 .map { it.renderBoundingBox }
@@ -94,7 +98,11 @@ internal object PortalRendererHooks {
 
     fun afterRender(entity: Entity) {
         if (entity is Portal) return
+        //#if FABRIC>=1
+        //$$ // FIXME figure out how to best determien this on fabric
+        //#else
         if (!entity.isAddedToWorld) return // e.g. mobs rendered as part of tile entities (e.g. spawner)
+        //#endif
         if (disableParentClippingStack.removeAt(disableParentClippingStack.size - 1)) {
             GL11.glEnable(GL11.GL_CLIP_PLANE5)
         }

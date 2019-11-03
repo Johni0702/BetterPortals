@@ -7,7 +7,6 @@ import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Vec3d
-import net.minecraftforge.common.util.Constants
 import javax.vecmath.Matrix4d
 
 /**
@@ -169,7 +168,7 @@ class FinitePortal : Portal {
 
     constructor(nbt: NBTTagCompound) : this(
             nbt,
-            nbt.getTagList("Blocks", Constants.NBT.TAG_COMPOUND).map {
+            nbt.getTagList("Blocks", NBTTagCompound().id.toInt()).map {
                 (it as NBTTagCompound).getXYZ()
             }.toSet()
     )

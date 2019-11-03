@@ -10,14 +10,20 @@
 //$$
 //$$ @Mixin(targets = "net.minecraft.world.server.TicketManager$PlayerChunkTracker")
 //$$ public abstract class MixinPlayerChunkTracker {
-//$$     @Shadow(aliases = "field_215500_c") @Final private TicketManager this$0;
+//$$     // FIXME preprocessor might be technically able to remap these aliases
+//$$     @Shadow(aliases = {"field_215500_c", "field_17462"}) @Final private TicketManager this$0;
 //$$
 //$$     /**
 //$$      * @reason consider views when determining source level
 //$$      * @author johni0702
 //$$      */
 //$$     @Overwrite
-//$$     protected int getSourceLevel(long coord) {
+//$$     // FIXME preprocessor should handle this (wait, why is the fabric method public at runtime?)
+    //#if FABRIC>=1
+    //$$ public int getInitialLevel(long coord) {
+    //#else
+    //$$ protected int getSourceLevel(long coord) {
+    //#endif
 //$$         return ((ServerWorldManager.ITicketManager) this$0).getSourceLevelForChunk(coord);
 //$$     }
 //$$ }

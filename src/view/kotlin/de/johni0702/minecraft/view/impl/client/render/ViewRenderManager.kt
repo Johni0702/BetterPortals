@@ -12,22 +12,30 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.renderer.GLAllocation
 import net.minecraft.client.renderer.GlStateManager
+import de.johni0702.minecraft.view.common.post
 import net.minecraft.client.renderer.Tessellator
 import net.minecraft.client.renderer.culling.ClippingHelperImpl
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats
 import net.minecraft.client.shader.Framebuffer
 import net.minecraft.util.math.Vec3d
-import net.minecraftforge.client.event.DrawBlockHighlightEvent
-import net.minecraftforge.client.event.EntityViewRenderEvent
-import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.fml.common.eventhandler.EventPriority
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import org.lwjgl.opengl.GL11
 import org.lwjgl.util.vector.Matrix4f
 import org.lwjgl.util.vector.Quaternion
 import kotlin.math.ceil
 import kotlin.math.sqrt
+
+//#if FABRIC>=1
+//$$ import de.johni0702.minecraft.view.common.fabricEvent
+//$$ import de.johni0702.minecraft.view.common.Event
+//$$ import de.johni0702.minecraft.view.common.register
+//#else
+import net.minecraftforge.client.event.DrawBlockHighlightEvent
+import net.minecraftforge.client.event.EntityViewRenderEvent
+import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.fml.common.eventhandler.EventPriority
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+//#endif
 
 //#if MC>=11400
 //$$ import net.minecraft.entity.Entity
@@ -194,14 +202,14 @@ internal class ViewRenderManager : RenderPassManager {
         mc.theProfiler.endStartSection("determineRootRenderPass")
 
         // Build render plan
-        var plan = with(DetermineRootPassEvent(this, partialTicks, view.world, camera).post()) {
+        var plan = with(DetermineRootPassEvent(this, partialTicks, view.world, camera).post(DetermineRootPassEvent.EVENT)) {
             ViewRenderPlan(this@ViewRenderManager, null, this.world, this.camera)
         }
 
         mc.theProfiler.endStartSection("populateRenderPassTree")
 
         do {
-            val event = PopulateTreeEvent(partialTicks, plan, false).post()
+            val event = PopulateTreeEvent(partialTicks, plan, false).post(PopulateTreeEvent.EVENT)
             plan = event.root as ViewRenderPlan
         } while (event.changed)
 
@@ -242,7 +250,11 @@ internal class ViewRenderManager : RenderPassManager {
     }
 
     private inner class EventHandler {
+        //#if FABRIC>=1
+        //$$ var registered = false
+        //#else
         var registered by MinecraftForge.EVENT_BUS
+        //#endif
 
         var capture = false
         var mainCameraYaw = 0.toFloat()
@@ -259,8 +271,12 @@ internal class ViewRenderManager : RenderPassManager {
         private var currentPitch = 0f
         private var currentRoll = 0f
 
+        //#if FABRIC>=1
+        //$$ init { CameraSetupEvent.EVENT.register { onCameraSetup(it) } }
+        //#else
         @SubscribeEvent(priority = EventPriority.LOWEST)
-        fun onCameraSetup(event: EntityViewRenderEvent.CameraSetup) {
+        //#endif
+        fun onCameraSetup(event: CameraSetupEvent) {
             if (capture) {
                 //#if MC>=11400
                 //$$ GL11.glGetFloatv(GL11.GL_PROJECTION_MATRIX, projectionMatrix)
@@ -327,8 +343,12 @@ internal class ViewRenderManager : RenderPassManager {
         //#else
         private var fov: Float = 0.toFloat()
         //#endif
+        //#if FABRIC>=1
+        //$$ init { FOVSetupEvent.EVENT.register { onFOVSetup(it) } }
+        //#else
         @SubscribeEvent(priority = EventPriority.LOWEST)
-        fun onFOVSetup(event: EntityViewRenderEvent.FOVModifier) {
+        //#endif
+        fun onFOVSetup(event: FOVSetupEvent) {
             if (capture) {
                 fov = event.fov
             } else if (Minecraft.getMinecraft().player is ViewEntity) {
@@ -339,8 +359,12 @@ internal class ViewRenderManager : RenderPassManager {
             }
         }
 
+        //#if FABRIC>=1
+        //$$ init { RenderBlockHighlightEvent.EVENT.register { onRenderBlockHighlights(it) } }
+        //#else
         @SubscribeEvent(priority = EventPriority.LOW)
-        fun onRenderBlockHighlights(event: DrawBlockHighlightEvent) {
+        //#endif
+        fun onRenderBlockHighlights(event: RenderBlockHighlightEvent) {
             // Render block outlines only in main view (where the player entity is located)
             if (Minecraft.getMinecraft().player is ViewEntity) {
                 event.isCanceled = true
@@ -449,7 +473,7 @@ internal class ViewRenderPlan(
         if (mc.player is ViewEntity || mc.gameSettings.thirdPersonView > 0 || !interpEntityPos.approxEquals(camera.eyePosition, 1e-4)) {
             val cameraEntity = ViewCameraEntity(mc.world)
             with(camera) {
-                cameraEntity.pos = feetPosition
+                cameraEntity.tickPos = feetPosition
                 cameraEntity.prevPos = feetPosition
                 cameraEntity.lastTickPos = feetPosition
                 cameraEntity.rotationYaw = eyeRotation.y.toFloat()
@@ -499,14 +523,14 @@ internal class ViewRenderPlan(
             renderDistanceDetail.renderDistanceChunks?.let { mc.gameSettings.renderDistanceChunks = it }
         }
 
-        RenderPassEvent.Start(partialTicks, this).post()
+        RenderPassEvent.Start(partialTicks, this).post(RenderPassEvent.Start.EVENT)
 
         // Actually render the world
         if (renderDistanceDetail.renderDistance != 0.0) {
             mc.entityRenderer.renderWorld(partialTicks, finishTimeNano)
         }
 
-        RenderPassEvent.End(partialTicks, this).post()
+        RenderPassEvent.End(partialTicks, this).post(RenderPassEvent.End.EVENT)
 
         mc.renderViewEntity = orgViewEntity
         mc.gameSettings.renderDistanceChunks = manager.realRenderDistanceChunks
@@ -586,11 +610,11 @@ internal class ViewRenderPlan(
             if (occlusionDetail.occluded) {
                 prepareEvent.isCanceled = true
             }
-            if (prepareEvent.post().isCanceled) return
+            if (prepareEvent.post(RenderPassEvent.Prepare.EVENT).isCanceled) return
             renderDeps(partialTicks)
-            if (RenderPassEvent.Before(partialTicks, this).post().isCanceled) return
+            if (RenderPassEvent.Before(partialTicks, this).post(RenderPassEvent.Before.EVENT).isCanceled) return
             renderSelf(partialTicks, finishTimeNano)
-            RenderPassEvent.After(partialTicks, this).post()
+            RenderPassEvent.After(partialTicks, this).post(RenderPassEvent.After.EVENT)
             renderDebug()
         } finally {
             children.forEach {
@@ -604,6 +628,23 @@ internal class ViewRenderPlan(
         }
     }
 }
+
+//#if FABRIC>=1
+//$$ data class CameraSetupEvent(var yaw: Float, var pitch: Float, var roll: Float) : Event()
+//$$ { companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<CameraSetupEvent>() } }
+//$$
+//$$ // TODO actually invoke it from somewhere
+//$$ data class FOVSetupEvent(var fov: Double) : Event()
+//$$ { companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<FOVSetupEvent>() } }
+//$$
+//$$ // TODO actually invoke it from somewhere
+//$$ object RenderBlockHighlightEvent : Event()
+//$$ { @Suppress("unused") @JvmField val EVENT = fabricEvent<RenderBlockHighlightEvent>() }
+//#else
+typealias CameraSetupEvent = EntityViewRenderEvent.CameraSetup
+typealias FOVSetupEvent = EntityViewRenderEvent.FOVModifier
+typealias RenderBlockHighlightEvent = DrawBlockHighlightEvent
+//#endif
 
 //#if MC>=11400
 //$$ interface IActiveRenderInfo {

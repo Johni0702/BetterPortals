@@ -14,12 +14,22 @@ open class RenderOneWayPortalEntity<E, out R: OneWayFramedPortalRenderer> (
     override fun doRender(entity: E, x: Double, y: Double, z: Double, entityYaw: Float, partialTicks: Float) {
         portalRenderer.isTailEnd = entity.isTailEnd
         portalRenderer.isTailEndVisible = entity.isTailEndVisible
+        // FIXME preprocessor doesn't currently remap this one for yet-to-be-determined reason
+        //#if FABRIC>=1
+        //$$ super.render(entity, x, y, z, entityYaw, partialTicks)
+        //#else
         super.doRender(entity, x, y, z, entityYaw, partialTicks)
+        //#endif
     }
 
     override fun renderMultipass(entity: E, x: Double, y: Double, z: Double, entityYaw: Float, partialTicks: Float) {
         portalRenderer.isTailEnd = entity.isTailEnd
         portalRenderer.isTailEndVisible = entity.isTailEndVisible
+        // FIXME preprocessor doesn't currently remap this one for yet-to-be-determined reason
+        //#if FABRIC>=1
+        //$$ super.renderSecondPass(entity, x, y, z, entityYaw, partialTicks)
+        //#else
         super.renderMultipass(entity, x, y, z, entityYaw, partialTicks)
+        //#endif
     }
 }

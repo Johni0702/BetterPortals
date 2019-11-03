@@ -9,8 +9,8 @@ import net.minecraft.util.ResourceLocation
 import net.minecraft.world.World
 
 //#if MC>=11400
+//$$ import de.johni0702.minecraft.betterportals.impl.accessors.AccServerWorld
 //$$ import java.lang.UnsupportedOperationException
-//$$ import kotlin.streams.asSequence
 //$$ import net.minecraft.client.world.ClientWorld
 //$$ import net.minecraft.world.server.ServerWorld
 //#endif
@@ -45,7 +45,7 @@ class PortalEntityAccessor<E>(
     val entities: List<E>
         //#if MC>=11400
         //$$ get() = when (world) {
-        //$$     is ServerWorld -> world.entities.asSequence().filterIsInstanceTo(mutableListOf(), type)
+        //$$     is ServerWorld -> (world as AccServerWorld).entitiesById.values.filterIsInstanceTo(mutableListOf(), type)
         //$$     is ClientWorld -> world.allEntities.filterIsInstanceTo(mutableListOf(), type)
         //$$     else -> throw UnsupportedOperationException()
         //$$ }

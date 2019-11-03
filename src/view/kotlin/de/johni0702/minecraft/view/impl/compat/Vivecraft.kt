@@ -10,11 +10,16 @@ import de.johni0702.minecraft.view.client.render.RenderPassEvent
 import de.johni0702.minecraft.view.impl.LOGGER
 import net.minecraft.client.Minecraft
 import net.minecraft.util.math.Vec3d
+import org.vivecraft.gameplay.OpenVRPlayer
+import org.vivecraft.render.RenderPass
+
+//#if FABRIC>=1
+//$$ import de.johni0702.minecraft.view.common.register
+//#else
 import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
-import org.vivecraft.gameplay.OpenVRPlayer
-import org.vivecraft.render.RenderPass
+//#endif
 
 internal class VivecraftReflection {
     private val Minecraft_currentPass = Minecraft::class.java.getDeclaredField("currentPass")!!
@@ -33,13 +38,22 @@ private object VivecraftRoomRenderManager {
     var orgOrigin: Vec3d = Vec3d.ZERO
     var orgRot: Float = 0f
 
+    //#if FABRIC>=1
+    //$$ init { DetermineRootPassEvent.EVENT.register { captureVanillaCamera(it) } }
+    //#else
     @SubscribeEvent(priority = EventPriority.HIGHEST)
+    //#endif
     fun captureVanillaCamera(event: DetermineRootPassEvent) {
         rootCamera = event.camera
     }
 
+    //#if FABRIC>=1
+    //$$ init { RenderPassEvent.Before.EVENT.register { preRenderView(it) } }
+    //#else
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = false)
+    //#endif
     fun preRenderView(event: RenderPassEvent.Before) {
+        if (event.isCanceled) return
         val camera = event.renderPass.camera
 
         val vrData = OpenVRPlayer.get().vrdata_world_render
@@ -50,7 +64,11 @@ private object VivecraftRoomRenderManager {
         vrData.rotation_radians += dYaw
     }
 
+    //#if FABRIC>=1
+    //$$ init { RenderPassEvent.After.EVENT.register { postRenderView(it) } }
+    //#else
     @SubscribeEvent(priority = EventPriority.HIGHEST)
+    //#endif
     fun postRenderView(event: RenderPassEvent.After) {
         val vrData = OpenVRPlayer.get().vrdata_world_render
         vrData.origin = orgOrigin
@@ -63,5 +81,9 @@ internal fun registerVivecraftCompat() {
 
     LOGGER.info("Vivecraft detected. Enabling VR support. Disabling portals in third-person.")
 
+    //#if FABRIC>=1
+    //$$ VivecraftRoomRenderManager
+    //#else
     MinecraftForge.EVENT_BUS.register(VivecraftRoomRenderManager)
+    //#endif
 }

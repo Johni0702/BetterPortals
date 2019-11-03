@@ -5,26 +5,18 @@ import de.johni0702.minecraft.betterportals.impl.register
 import de.johni0702.minecraft.betterportals.impl.toVanilla
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.network.Packet
-import net.minecraftforge.fml.common.network.NetworkRegistry
 
 //#if MC>=11400
+//$$ import de.johni0702.minecraft.betterportals.impl.createNetworkChannel
 //$$ import net.minecraft.util.ResourceLocation
-//$$ import net.minecraftforge.api.distmarker.Dist
-//$$ import net.minecraftforge.fml.ModList
-//$$ import net.minecraftforge.fml.network.NetworkDirection
 //#else
+import net.minecraftforge.fml.common.network.NetworkRegistry
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper
 //#endif
 
 internal object Net {
     //#if MC>=11400
-    //$$ val MOD_VERSION = ModList.get().getModContainerById("betterportals").get()!!.modInfo.version.toString()
-    //$$ val INSTANCE = NetworkRegistry.newSimpleChannel(
-    //$$         ResourceLocation("betterportals", "portal"),
-    //$$         { MOD_VERSION },
-    //$$         { it == MOD_VERSION },
-    //$$         { it == MOD_VERSION }
-    //$$ )
+    //$$ val INSTANCE = createNetworkChannel(ResourceLocation("betterportals", "portal"))
     //#else
     val INSTANCE: SimpleNetworkWrapper = NetworkRegistry.INSTANCE.newSimpleChannel("BP/portal")
     //#endif
@@ -34,6 +26,9 @@ internal object Net {
         with(INSTANCE) {
             register(UsePortal.Handler(), ++nextId)
             register(EntityUsePortal.Handler(), ++nextId)
+            //#if FABRIC>=1
+            //$$ register(FabricSpawnEntity.Handler(), ++nextId)
+            //#endif
         }
     }
 

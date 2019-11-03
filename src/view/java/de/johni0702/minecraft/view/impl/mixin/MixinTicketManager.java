@@ -42,9 +42,21 @@
 //$$             try {
 //$$                 Field field;
 //$$                 try {
-//$$                     field = TicketManager.class.getDeclaredField("playerChunkTracker");
+//$$                     field = TicketManager.class.getDeclaredField(
+                            //#if FABRIC>=1
+                            //$$ "distanceFromNearestPlayerTracker"
+                            //#else
+                            //$$ "playerChunkTracker"
+                            //#endif
+//$$                     );
 //$$                 } catch (NoSuchFieldError ignored) {
-//$$                     field = TicketManager.class.getDeclaredField("field_219381_i");
+//$$                     field = TicketManager.class.getDeclaredField(
+                            //#if FABRIC>=1
+                            //$$ "field_17454"
+                            //#else
+                            //$$ "field_219381_i"
+                            //#endif
+//$$                     );
 //$$                 }
 //$$                 _playerChunkTracker = (ChunkDistanceGraph) field.get(this);
 //$$             } catch (Throwable e) {
@@ -58,9 +70,21 @@
 //$$             try {
 //$$                 Field field;
 //$$                 try {
-//$$                     field = TicketManager.class.getDeclaredField("playerTicketTracker");
+//$$                     field = TicketManager.class.getDeclaredField(
+                            //#if FABRIC>=1
+                            //$$ "nearbyChunkTicketUpdater"
+                            //#else
+                            //$$ "playerTicketTracker"
+                            //#endif
+//$$                     );
 //$$                 } catch (NoSuchFieldError ignored) {
-//$$                     field = TicketManager.class.getDeclaredField("field_219382_j");
+//$$                     field = TicketManager.class.getDeclaredField(
+                            //#if FABRIC>=1
+                            //$$ "field_17455"
+                            //#else
+                            //$$ "field_219382_j"
+                            //#endif
+//$$                     );
 //$$                 }
 //$$                 _playerTicketTracker = (ChunkDistanceGraph) field.get(this);
 //$$             } catch (Throwable e) {
@@ -127,7 +151,12 @@
 //$$         this.pos = pos;
 //$$     }
 //$$
-//$$     @ModifyConstant(method = "removePlayer", constant = @Constant(intValue = Integer.MAX_VALUE))
+//$$     // FIXME preprocessor should handle @ModifyConstant
+    //#if FABRIC>=1
+    //$$ @ModifyConstant(method = "handleChunkLeave", constant = @Constant(intValue = Integer.MAX_VALUE))
+    //#else
+    //$$ @ModifyConstant(method = "removePlayer", constant = @Constant(intValue = Integer.MAX_VALUE))
+    //#endif
 //$$     private int getSourceLevelWithViews(int invalidLevel) {
 //$$         return getSourceLevelForChunk(pos.asLong());
 //$$     }

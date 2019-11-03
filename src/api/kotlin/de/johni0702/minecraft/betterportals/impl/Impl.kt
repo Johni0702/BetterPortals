@@ -5,6 +5,10 @@ import net.minecraft.entity.Entity
 import net.minecraft.util.ResourceLocation
 import net.minecraft.world.World
 
+//#if FABRIC>=1
+//$$ import net.minecraft.network.Packet
+//#endif
+
 //#if MC>=11400
 //$$ import net.minecraft.client.Minecraft
 //$$ import net.minecraft.entity.player.ServerPlayerEntity
@@ -27,6 +31,11 @@ interface Impl {
     //$$ fun ServerWorld.getTracking(entity: Entity): Set<ServerPlayerEntity>
     //$$ fun ServerWorld.updateTrackingState(entity: Entity)
     //$$ fun RayTraceContext.withImpl(start: Vec3d, end: Vec3d): RayTraceContext
+    //#endif
+
+    //#if FABRIC>=1
+    //$$ // Until https://github.com/FabricMC/fabric/pull/384 or something similar is available
+    //$$ fun createSpawnPacket(entity: Entity): Packet<*>
     //#endif
 }
 

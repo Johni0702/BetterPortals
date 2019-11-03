@@ -15,7 +15,7 @@ buildscript {
         // classpath("net.minecraftforge.gradle:ForgeGradle:3.+") {
         //     exclude(group = "trove", module = "trove") // preprocessor/idea requires more recent one
         // }
-        classpath("com.github.ReplayMod:ForgeGradle:d5c13801") {
+        classpath("com.github.ReplayMod:ForgeGradle:2e95b7fe") {
             exclude(group = "net.sf.trove4j", module = "trove4j") // preprocessor/idea requires more recent one
             exclude(group = "trove", module = "trove") // different name same thing
         }
@@ -24,7 +24,8 @@ buildscript {
 
 plugins {
     kotlin("jvm") version "1.3.40" apply false
-    id("com.replaymod.preprocess") version "4af749d" apply false
+    id("fabric-loom") version "0.2.5-SNAPSHOT" apply false
+    id("com.replaymod.preprocess") version "897066f"
 }
 
 version = determineVersion()
@@ -55,14 +56,15 @@ fun command(vararg cmd: Any): List<String> {
     return stdout.toString().lines()
 }
 
-project("1.12.2") {
-    apply(plugin = "org.jetbrains.kotlin.jvm")
-    apply(plugin = "net.minecraftforge.gradle.forge")
-    apply(plugin = "com.replaymod.preprocess")
-}
+// Loom tries to find the active mixin version by recursing up to the root project and checking each project's
+// compileClasspath and build script classpath (in that order). Since we've loom in our root project's classpath,
+// loom will only find it after checking the root project's compileClasspath (which doesn't exist by default).
+configurations.register("compileClasspath")
 
-project("1.14.4") {
-    apply(plugin = "org.jetbrains.kotlin.jvm")
-    apply(plugin = "net.minecraftforge.gradle")
-    apply(plugin = "com.replaymod.preprocess")
+preprocess {
+    "1.14.4-fabric"(11404, "yarn") {
+        "1.14.4"(11404, "srg", file("versions/1.14.4-fabric-forge.txt")) {
+            "1.12.2"(11202, "srg", file("versions/1.14.4/mapping.txt"))
+        }
+    }
 }

@@ -22,7 +22,7 @@ public abstract class MixinEntityRenderer_VC {
     @Dynamic
     @Inject(method = {"setupRVE", "cacheRVEPos", "restoreRVEPos"}, at = @At("HEAD"), cancellable = true, remap = false)
     private void skipRVEHackWhenBPIsActive(CallbackInfo ci) {
-        if (mc.getRenderViewEntity() instanceof ViewCameraEntity) {
+        if (this.mc.getRenderViewEntity() instanceof ViewCameraEntity) {
             ci.cancel();
         }
     }

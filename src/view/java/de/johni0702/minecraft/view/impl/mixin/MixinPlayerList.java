@@ -15,10 +15,13 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
+
+import static de.johni0702.minecraft.view.impl.ViewAPIImplKt.getWorldsManagerImpl;
 
 //#if MC>=11400
 //$$ import net.minecraft.world.dimension.DimensionType;
@@ -27,18 +30,25 @@ import java.util.List;
 import net.minecraftforge.common.DimensionManager;
 //#endif
 
-/**
- * The player list has some methods used to send packet to all online players.
- * Instead of iterating over players via {@link net.minecraft.world.World#playerEntities}, it has its own list.
- * We can however not add view entities to that list because it is also used to reply to status messages, tab-complete
- * and probably a few other things we don't want view entities to show up in.
- * So, instead we inject into the relevant packet sending methods here and send them to our view entities as well.
- */
 @Mixin(PlayerList.class)
 public abstract class MixinPlayerList {
     @Shadow @Final private MinecraftServer mcServer;
 
+    //
+    // The player list has some methods used to send packet to all online players.
+    // Instead of iterating over players via the world's player list, it has its own list.
+    // We can however not add view entities to that list because it is also used to reply to status messages,
+    // tab-complete and probably a few other things we don't want view entities to show up in.
+    // So, instead we inject into the relevant packet sending methods here and send them to our view entities as well.
+    //
+
+    // FIXME technically the preprocessor could recognize the ambiguity and disambiguate on demand (or at least not drop
+    //       the explicit arguments when converting in the reverse direction
+    //#if FABRIC>=1
+    //$$ @Inject(method = "sendToAll(Lnet/minecraft/network/Packet;)V", at = @At("HEAD"))
+    //#else
     @Inject(method = "sendPacketToAllPlayers", at = @At("HEAD"))
+    //#endif
     private void sendPacketToAllViews(Packet<?> packetIn, CallbackInfo ci) {
         //#if MC>=11400
         //$$ for (ServerWorld world : this.server.getWorlds()) {
@@ -103,6 +113,10 @@ public abstract class MixinPlayerList {
         }
     }
 
+    //
+    // Don't actually load/store view entity data from/to disk.
+    //
+
     @Inject(method = "getPlayerAdvancements", at = @At("HEAD"), cancellable = true)
     private void getPlayerAdvancementsForViewEntity(EntityPlayerMP player, CallbackInfoReturnable<PlayerAdvancements> ci) {
         if (player instanceof ViewEntity) {
@@ -115,5 +129,20 @@ public abstract class MixinPlayerList {
         if (player instanceof ViewEntity) {
             ci.setReturnValue(new ViewStatsManager(this.mcServer));
         }
+    }
+
+    //
+    // Player lifecycle management
+    //
+
+    @Inject(method = "playerLoggedOut", at = @At("HEAD"))
+    private void destroyServerWorldsManager(EntityPlayerMP player, CallbackInfo ci) {
+        getWorldsManagerImpl(player).destroy();
+    }
+
+    @Redirect(method = "recreatePlayerEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/EntityPlayerMP;copyFrom(Lnet/minecraft/entity/player/EntityPlayerMP;Z)V"))
+    private void copyFromAndUpdateServerWorldsManager(EntityPlayerMP newEntity, EntityPlayerMP oldEntity, boolean keepEverything) {
+        newEntity.copyFrom(oldEntity, keepEverything); // pass through the call, we just need the reference
+        getWorldsManagerImpl(oldEntity).recreatePlayerEntity(newEntity);
     }
 }

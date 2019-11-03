@@ -14,22 +14,30 @@ import de.johni0702.minecraft.view.client.render.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.GlStateManager
 import net.minecraft.util.math.Vec3d
-import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.fml.common.eventhandler.EventPriority
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import org.lwjgl.opengl.GL11
 import kotlin.math.min
 
-//#if MC>=11400
-//$$ import net.minecraft.client.renderer.ActiveRenderInfo
-//$$ import net.minecraftforge.client.event.EntityViewRenderEvent
+//#if FABRIC>=1
+//$$ import de.johni0702.minecraft.view.common.register
+//#else
+import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.fml.common.eventhandler.EventPriority
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 //#endif
 
 internal object PortalRenderManager {
+    //#if FABRIC>=1
+    //$$ var registered = false
+    //#else
     var registered by MinecraftForge.EVENT_BUS
+    //#endif
     private val mc get() = Minecraft.getMinecraft()
 
+    //#if FABRIC>=1
+    //$$ init { DetermineRootPassEvent.EVENT.register { determineRootPass(it) } }
+    //#else
     @SubscribeEvent
+    //#endif
     fun determineRootPass(event: DetermineRootPassEvent) {
         // Determining the world of the camera is kind of tricky.
         // The syncPos (server-position) of the vehicle which our view entity is riding in directly determines the world.
@@ -46,9 +54,9 @@ internal object PortalRenderManager {
         val viewEntity = mc.renderViewEntity ?: mc.player
         val vehicle = viewEntity.lowestRidingEntity
         val vehicleSyncPos = vehicle.syncPos + vehicle.eyeOffset
-        val vehicleClientPos = vehicle.pos + vehicle.eyeOffset
+        val vehicleClientPos = vehicle.tickPos + vehicle.eyeOffset
         // Note: must not use prevPos (or by extension getPositionEyes) since EntityMinecraft completely breaks it
-        var vehicleInterpPos = vehicle.lastTickPos + (vehicle.pos - vehicle.lastTickPos) * event.partialTicks.toDouble()
+        var vehicleInterpPos = vehicle.lastTickPos + (vehicle.tickPos - vehicle.lastTickPos) * event.partialTicks.toDouble()
         var pos = vehicleSyncPos
         var target = vehicleClientPos
         var hitClientPosition = if (vehicleSyncPos == vehicleClientPos) true.also { target = vehicleInterpPos } else false
@@ -118,7 +126,11 @@ internal object PortalRenderManager {
         event.world = world
     }
 
+    //#if FABRIC>=1
+    //$$ init { PopulateTreeEvent.EVENT.register { buildPortalTree(it) } }
+    //#else
     @SubscribeEvent
+    //#endif
     fun buildPortalTree(event: PopulateTreeEvent) {
         val maxRecursions = maxRenderRecursionGetter()
         val root = event.root
@@ -184,7 +196,11 @@ internal object PortalRenderManager {
         renderDistanceDetail.renderDistance = if (fog == 1.0) 0.0 else renderDist - fog * (renderDist - dist)
     }
 
+    //#if FABRIC>=1
+    //$$ init { RenderPassEvent.Prepare.EVENT.register { prepareRenderPass(it) } }
+    //#else
     @SubscribeEvent
+    //#endif
     fun prepareRenderPass(event: RenderPassEvent.Prepare) {
         val renderPass = event.renderPass
         val parentPass = renderPass.parent ?: return
@@ -199,7 +215,11 @@ internal object PortalRenderManager {
         // Occlusion culling is already handled by the view api itself.
     }
 
+    //#if FABRIC>=1
+    //$$ init { RenderPassEvent.Start.EVENT.register { startRenderPass(it) } }
+    //#else
     @SubscribeEvent
+    //#endif
     fun startRenderPass(event: RenderPassEvent.Start) {
         val mc = Minecraft.getMinecraft()
         val partialTicks = event.partialTicks
@@ -229,20 +249,8 @@ internal object PortalRenderManager {
                     //#endif
             )
             //#if MC>=11400
-            //$$ with(mc.gameRenderer.activeRenderInfo) {
-            //$$     val event = EntityViewRenderEvent.CameraSetup(
-            //$$             Minecraft.getInstance().gameRenderer,
-            //$$             this as Any as ActiveRenderInfo,
-            //$$             partialTicks.toDouble(),
-            //$$             this.yaw,
-            //$$             this.pitch,
-            //$$             0f
-            //$$     )
-            //$$     MinecraftForge.EVENT_BUS.post(event)
-            //$$     GlStateManager.rotatef(event.roll, 0.0f, 0.0f, 1.0f)
-            //$$     GlStateManager.rotatef(event.pitch, 1.0f, 0.0f, 0.0f)
-            //$$     GlStateManager.rotatef(event.yaw + 180.0f, 0.0f, 1.0f, 0.0f)
-            //$$ }
+            //$$ // The booleans don't matter, BP will skip the update part of the call as long as the entity is the same
+            //$$ mc.gameRenderer.activeRenderInfo.update(mc.world, mc.renderViewEntity!!, false, false, partialTicks)
             //#endif
             if (hasVivecraft) {
                 (mc.entityRenderer as? AccessorEntityRenderer_VC)?.invokeApplyCameraDepth(false)
@@ -280,7 +288,11 @@ internal object PortalRenderManager {
         }
     }
 
+    //#if FABRIC>=1
+    //$$ init { RenderPassEvent.End.EVENT.register { endRenderPass(it) } }
+    //#else
     @SubscribeEvent
+    //#endif
     fun endRenderPass(event: RenderPassEvent.End) {
         fogOffset = 0f
         GL11.glDisable(GL11.GL_CLIP_PLANE5) // FIXME don't hard-code clipping plane id
@@ -288,7 +300,11 @@ internal object PortalRenderManager {
 
     private var fogOffset = 0.toFloat()
 
+    //#if FABRIC>=1
+    //$$ init { PostSetupFogEvent.EVENT.register { postSetupFog(it) } }
+    //#else
     @SubscribeEvent(priority = EventPriority.LOWEST)
+    //#endif
     fun postSetupFog(event: PostSetupFogEvent) {
         if (fogOffset != 0f) {
             GlStateManager.setFogStart(GlStateTracker.fogStart + fogOffset)

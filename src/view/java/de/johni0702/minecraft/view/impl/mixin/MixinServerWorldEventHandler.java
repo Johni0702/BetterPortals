@@ -40,7 +40,12 @@ public class MixinServerWorldEventHandler {
      * but instead basically copies that code.
      * We need to inject into this for the same reason as explained in {@link MixinPlayerList}.
      */
+    // FIXME preprocessor should handle this
+    //#if FABRIC>=1
+    //$$ @Inject(method = "setBlockBreakingProgress", at = @At("HEAD"))
+    //#else
     @Inject(method = "sendBlockBreakProgress", at = @At("HEAD"))
+    //#endif
     private void sendBlockBreakProgress(int breakerId, BlockPos pos, int progress, CallbackInfo ci) {
         //#if MC<11400
         List<EntityPlayer> players = world.playerEntities;

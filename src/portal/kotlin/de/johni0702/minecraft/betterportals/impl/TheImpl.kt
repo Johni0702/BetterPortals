@@ -4,7 +4,15 @@ import de.johni0702.minecraft.betterportals.common.BetterPortalsAPI
 import net.minecraft.entity.Entity
 import net.minecraft.util.ResourceLocation
 import net.minecraft.world.World
+
+//#if FABRIC>=1
+//$$ import de.johni0702.minecraft.betterportals.impl.net.FabricSpawnEntity
+//$$ import de.johni0702.minecraft.betterportals.impl.net.Net
+//$$ import net.minecraft.network.Packet
+//$$ import net.minecraft.client.network.packet.EntitySpawnS2CPacket
+//#else
 import net.minecraftforge.registries.ObjectHolderRegistry
+//#endif
 
 //#if MC>=11400
 //$$ import de.johni0702.minecraft.betterportals.common.provideDelegate
@@ -66,10 +74,13 @@ object TheImpl : Impl {
     }
 
     override fun addObjectHolderHandler(handler: (filter: (ResourceLocation) -> Boolean) -> Unit) {
+        //#if FABRIC>=1
+        //#else
         //#if MC>=11400
         //$$ ObjectHolderRegistry.addHandler { filter -> handler { filter.test(it) }  }
         //#else
         (ObjectHolderRegistry.INSTANCE as IObjectHolderRegistry).addHandler { handler { true } }
+        //#endif
         //#endif
     }
 
@@ -83,7 +94,12 @@ object TheImpl : Impl {
     //$$ override fun ServerWorld.updateTrackingState(entity: Entity) {
     //$$     val tracker = getTracker(entity)
     //$$     tracker.pos = SectionPos.from(entity)
-    //$$     tracker.entry.tick()
+    //$$     // FIXME preprocessor should handle this
+        //#if FABRIC>=1
+        //$$ tracker.entry.method_18756()
+        //#else
+        //$$ tracker.entry.tick()
+        //#endif
     //$$ }
     //$$
     //$$ var rayTraceContextOverwrite: RayTraceContext? by ThreadLocal()
@@ -96,5 +112,9 @@ object TheImpl : Impl {
     //$$         rayTraceContextOverwrite = null
     //$$     }
     //$$ }
+    //#endif
+
+    //#if FABRIC>=1
+    //$$ override fun createSpawnPacket(entity: Entity): Packet<*> = Net.INSTANCE.toVanillaImpl(FabricSpawnEntity(EntitySpawnS2CPacket(entity)))
     //#endif
 }

@@ -22,15 +22,15 @@ import net.minecraft.server.management.PlayerList
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.ResourceLocation
 import net.minecraft.util.Rotation
-import net.minecraft.util.math.*
+import net.minecraft.util.math.AxisAlignedBB
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.ChunkPos
+import net.minecraft.util.math.RayTraceResult
+import net.minecraft.util.math.Vec3d
+import net.minecraft.util.math.Vec3i
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
-import net.minecraftforge.common.MinecraftForge
 import net.minecraftforge.fml.common.eventhandler.Event
-import net.minecraftforge.fml.common.eventhandler.EventBus
-import net.minecraftforge.registries.IForgeRegistry
-import net.minecraftforge.registries.IForgeRegistryEntry
-import net.minecraftforge.registries.ObjectHolderRegistry
 import org.lwjgl.util.vector.Quaternion
 import java.lang.IllegalArgumentException
 import java.util.*
@@ -46,12 +46,27 @@ import kotlin.reflect.KProperty
 import org.lwjgl.util.vector.Matrix3f as LwjglMatrix3f
 import org.lwjgl.util.vector.Matrix4f as LwjglMatrix4f
 
+//#if FABRIC>=1
+//$$ import net.minecraft.util.registry.Registry
+//#else
+import net.minecraftforge.fml.common.eventhandler.EventBus
+import net.minecraftforge.registries.IForgeRegistry
+import net.minecraftforge.registries.IForgeRegistryEntry
+//#endif
+
 //#if MC>=11400
 //$$ import de.johni0702.minecraft.betterportals.impl.accessors.AccEntityLivingBase
 //$$ import de.johni0702.minecraft.betterportals.impl.theImpl
+//$$ import net.minecraft.entity.EntityType
+//$$ import net.minecraft.util.math.BlockRayTraceResult
+//$$ import net.minecraft.util.math.EntityRayTraceResult
+//$$ import net.minecraft.util.math.RayTraceContext
 //$$ import net.minecraft.world.chunk.Chunk
 //$$ import net.minecraft.world.chunk.ChunkSection
 //$$ import net.minecraft.world.chunk.ChunkStatus
+//#if FABRIC<=0
+//$$ import net.minecraftforge.registries.ForgeRegistries
+//#endif
 //$$
 //$$ typealias BlockStateContainer = net.minecraft.world.chunk.BlockStateContainer<BlockState>
 //#else
@@ -304,11 +319,21 @@ val Entity.syncPos get() = when {
     //#else
     this is AccEntityOtherPlayerMP && otherPlayerMPPosRotationIncrements > 0 -> otherPlayerMPPos
     //#endif
-    else -> pos
+    else -> tickPos
 }
+//#if FABRIC<=0
+@Deprecated(message = "Conflicts with fabric mappings. Also somewhat ambiguous.", replaceWith = ReplaceWith("tickPos"))
 var Entity.pos
+    get() = tickPos
+    set(value) { tickPos = value }
+//#endif
+var Entity.tickPos
     get() = Vec3d(posX, posY, posZ)
-    set(value) = with(value) { posX = x; posY = y; posZ = z }
+    set(value) {
+        posX = value.x
+        posY = value.y
+        posZ = value.z
+    }
 var Entity.lastTickPos
     get() = Vec3d(lastTickPosX, lastTickPosY, lastTickPosZ)
     set(value) = with(value) { lastTickPosX = x; lastTickPosY = y; lastTickPosZ = z }
@@ -475,9 +500,9 @@ private val byteBuf = Unpooled.buffer()
 private val packetBuffer = PacketBuffer(byteBuf)
 //#if MC>=11400
 //$$ private fun ChunkSection.clone(): ChunkSection {
+//$$     byteBuf.readerIndex(0)
 //$$     byteBuf.writerIndex(0)
 //$$     write(packetBuffer)
-//$$     byteBuf.readerIndex(0)
 //$$     return ChunkSection(yLocation).apply { read(packetBuffer) }
 //$$ }
 //#else
@@ -491,6 +516,21 @@ fun BlockStateContainer.clone(): BlockStateContainer {
 }
 //#endif
 
+//#if FABRIC>=1
+//$$ class ObjectHolder<in R, T: U, U>(
+//$$         private val registry: Registry<U>,
+//$$         val id: Identifier
+//$$ ) : ReadOnlyProperty<R, T> {
+//$$     private val value: T by lazy {
+//$$         @Suppress("UNCHECKED_CAST")
+//$$         registry.getOrEmpty(id).orElseThrow { IllegalStateException("$id not (yet?) registered") } as T
+//$$     }
+//$$
+//$$     override fun getValue(thisRef: R, property: KProperty<*>): T = value
+//$$ }
+//$$
+//$$ fun <R, T: EntityType<*>> entityTypeHolder(id: Identifier) = ObjectHolder<R, T, EntityType<*>>(Registry.ENTITY_TYPE, id)
+//#else
 class ObjectHolder<in R, T: U, U: IForgeRegistryEntry<U>>(
         private val registry: IForgeRegistry<U>,
         val id: ResourceLocation
@@ -520,6 +560,10 @@ class ObjectHolder<in R, T: U, U: IForgeRegistryEntry<U>>(
     override fun getValue(thisRef: R, property: KProperty<*>): T = value!!
 }
 
+//#if MC>=11400
+//$$ fun <R, T: EntityType<*>> entityTypeHolder(id: ResourceLocation) = ObjectHolder<R, T, EntityType<*>>(ForgeRegistries.ENTITIES, id)
+//#endif
+
 operator fun <T> EventBus.provideDelegate(thisRef: T, prop: KProperty<*>): ReadWriteProperty<T, Boolean>
         = EventBusRegistration(this)
 
@@ -537,9 +581,7 @@ private class EventBusRegistration<in T>(
     }
 
 }
-
-fun <T: Event> T.post() = apply { MinecraftForge.EVENT_BUS.post(this) }
-
+//#endif
 
 fun Entity.derivePosRotFrom(from: Entity, portal: Portal) {
     val rotation = portal.remoteRotation - portal.localRotation

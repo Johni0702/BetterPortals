@@ -5,6 +5,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.player.EntityPlayerMP
 import net.minecraft.init.Blocks
 import net.minecraft.nbt.NBTTagCompound
+import net.minecraft.network.Packet
 import net.minecraft.network.datasync.DataParameter
 import net.minecraft.network.datasync.DataSerializers
 import net.minecraft.network.datasync.EntityDataManager
@@ -17,8 +18,12 @@ import net.minecraftforge.fml.relauncher.SideOnly
 
 //#if MC>=11400
 //$$ import net.minecraft.entity.EntityType
-//$$ import net.minecraft.network.IPacket
+//#if FABRIC>=1
+//$$ import de.johni0702.minecraft.betterportals.impl.theImpl
+//$$ import net.minecraft.client.network.packet.EntitySpawnS2CPacket
+//#else
 //$$ import net.minecraftforge.fml.network.NetworkHooks
+//#endif
 //#endif
 
 interface Linkable {
@@ -138,8 +143,12 @@ abstract class AbstractPortalEntity(
         compound.setTag("BetterPortal", portal.writePortalToNBT())
     }
 
+    //#if FABRIC>=1
+    //$$ override fun createSpawnPacket(): Packet<*> = theImpl.createSpawnPacket(this)
+    //#else
     //#if MC>=11400
     //$$ override fun createSpawnPacket(): IPacket<*> = NetworkHooks.getEntitySpawningPacket(this)
+    //#endif
     //#endif
 
     fun getRemotePortal(): AbstractPortalEntity? {
@@ -150,7 +159,12 @@ abstract class AbstractPortalEntity(
         }
         val chunk = remoteWorld.getChunkFromBlockCoords(portal.remotePosition)
         val list = mutableListOf<AbstractPortalEntity>()
+        // FIXME preprocessor doesn't currently remap this one for yet-to-be-determined reason
+        //#if FABRIC>=1
+        //$$ chunk.appendEntities(javaClass, Box(portal.remotePosition), list) {
+        //#else
         chunk.getEntitiesOfTypeWithinAABB(javaClass, AxisAlignedBB(portal.remotePosition), list) {
+        //#endif
             it?.agent?.isLinked(agent) == true
         }
         return list.firstOrNull()

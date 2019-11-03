@@ -3,7 +3,7 @@ package de.johni0702.minecraft.betterportals.impl.vanilla.common.blocks
 import de.johni0702.minecraft.betterportals.common.dimensionId
 import de.johni0702.minecraft.betterportals.common.theServer
 import de.johni0702.minecraft.betterportals.common.FinitePortal
-import de.johni0702.minecraft.betterportals.common.block.PortalBlock
+import de.johni0702.minecraft.betterportals.common.block.PortalBlock as BPPortalBlock
 import de.johni0702.minecraft.betterportals.common.toDimensionId
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.NetherPortalEntity
 import net.minecraft.block.BlockPortal
@@ -18,6 +18,7 @@ import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 
 //#if MC>=11400
+//$$ import de.johni0702.minecraft.betterportals.impl.makeBlockSettings
 //$$ import net.minecraft.block.material.Material
 //$$ import net.minecraft.util.Direction
 //$$ import net.minecraft.util.math.shapes.ISelectionContext
@@ -34,15 +35,17 @@ import net.minecraft.world.IBlockAccess
 
 class BlockBetterNetherPortal(override val mod: Any) : BlockPortal(
         //#if MC>=11400
-        //$$ Properties.create(Material.PORTAL)
-        //$$         .doesNotBlockMovement()
-        //$$         .tickRandomly()
-        //$$         .hardnessAndResistance(-1.0f)
-        //$$         .sound(SoundType.GLASS)
-        //$$         .lightValue(15)
-        //$$         .noDrops()
+        //$$ makeBlockSettings(Material.PORTAL) {
+        //$$     doesNotBlockMovement()
+        //$$     tickRandomly()
+        //$$     hardnessAndResistance(-1.0f, -1.0f)
+        //$$     sound(SoundType.GLASS)
+        //$$     lightValue(15)
+        //$$     noDrops()
+        //$$ }
         //#endif
-), PortalBlock<NetherPortalEntity> {
+), BPPortalBlock<NetherPortalEntity> {
+    //#if FABRIC<=0
     init {
         //#if MC>=11400
         //$$ setRegistryName("minecraft", "nether_portal")
@@ -54,6 +57,7 @@ class BlockBetterNetherPortal(override val mod: Any) : BlockPortal(
         soundType = SoundType.GLASS
         //#endif
     }
+    //#endif
 
     override val portalBlock: IBlockState get() = this.defaultState
     override fun isPortalBlock(blockState: IBlockState): Boolean = blockState.block == this

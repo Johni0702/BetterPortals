@@ -4,6 +4,7 @@ import de.johni0702.minecraft.view.client.ClientViewAPI
 import de.johni0702.minecraft.view.client.worldsManager
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
+import de.johni0702.minecraft.view.common.fabricEvent
 import net.minecraftforge.fml.common.eventhandler.Event
 
 /**
@@ -49,6 +50,8 @@ class DetermineRootPassEvent(
         world: WorldClient,
         var camera: Camera
 ) : Event() {
+    companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<DetermineRootPassEvent>() }
+
     var world = world
         set(value) {
             val worldsManager = Minecraft.getMinecraft().worldsManager
@@ -78,3 +81,4 @@ class PopulateTreeEvent(
          */
         var changed: Boolean
 ) : Event()
+{ companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<PopulateTreeEvent>() } }

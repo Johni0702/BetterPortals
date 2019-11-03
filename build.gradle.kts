@@ -1,3 +1,4 @@
+import com.replaymod.gradle.preprocess.PreprocessExtension
 import net.minecraftforge.gradle.tasks.GenSrgs
 import net.minecraftforge.gradle.user.TaskSingleReobf
 import net.minecraftforge.gradle.user.patcherUser.forge.ForgeExtension
@@ -6,9 +7,20 @@ import net.minecraftforge.gradle.userdev.UserDevExtension
 import net.minecraftforge.gradle.userdev.tasks.GenerateSRG
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+apply(plugin = "org.jetbrains.kotlin.jvm")
+when (project.name) {
+    "1.14.4-fabric" -> apply(plugin = "fabric-loom")
+    "1.14.4" -> apply(plugin = "net.minecraftforge.gradle")
+    "1.12.2" -> apply(plugin = "net.minecraftforge.gradle.forge")
+    else -> throw IllegalArgumentException("Don't know how to apply to project named '${project.name}'")
+}
+apply(plugin = "com.replaymod.preprocess")
+
+val fabric = project.name.contains("fabric")
+val loom = fabric
 val mcVersion = project.extra["mcVersion"] as Int
 val mc11202 = mcVersion == 11202
-val fg3 = mcVersion >= 11300
+val fg3 = mcVersion >= 11300 && !loom
 val mcVersionStr = "${mcVersion / 10000}.${mcVersion / 100 % 100}" + (mcVersion % 100).let { if (it == 0) "" else ".$it" }
 version = parent!!.version
 group = "de.johni0702.minecraft"
@@ -16,6 +28,11 @@ group = "de.johni0702.minecraft"
 tasks.withType<JavaCompile> {
     sourceCompatibility = "1.8"
     targetCompatibility = "1.8"
+}
+
+configure<PreprocessExtension> {
+    vars.put("MC", mcVersion)
+    vars.put("FABRIC", if (fabric) 1 else 0)
 }
 
 class Implementations : HashMap<String, MutableList<String>>() {
@@ -49,9 +66,9 @@ implementations {
 }
 
 val sourceSets = the<SourceSetContainer>()
-if (fg3) {
+if (fg3 || loom) {
     val api by sourceSets.creating
-    configurations[api.compileConfigurationName].extendsFrom(configurations.compile.get())
+    configurations[api.compileConfigurationName].extendsFrom(configurations["compile"])
 }
 val api by sourceSets.getting // created by ForgeGradle
 for (name in implementations.keys) {
@@ -72,7 +89,8 @@ val integrationTest by sourceSets.registering {
     compileClasspath += main.get().output
 }
 
-if (fg3) {
+if (loom) {
+} else if (fg3) {
     configure<UserDevExtension> {
         mappings("snapshot", "20191009-1.14.3")
         val client by runs.creating
@@ -113,22 +131,24 @@ val mixinRefMaps = mapOf(
         "portal" to File(project.buildDir, "tmp/mixins/mixins.betterportals.portal.refmap.json"),
         "integrationTest" to File(project.buildDir, "tmp/mixins/mixins.betterportals.test.refmap.json")
 )
-mixinRefMaps.forEach { (name, refMap) ->
-    val mixinSrg = File(project.buildDir, "tmp/mixins/mixins.$name.srg")
-    if (name != "integrationTest") {
-        if (fg3) {
-            // TODO
-        } else {
-            tasks.getByName<TaskSingleReobf>("reobfJar").addSecondarySrgFile(mixinSrg)
+if (!loom) {
+    mixinRefMaps.forEach { (name, refMap) ->
+        val mixinSrg = File(project.buildDir, "tmp/mixins/mixins.$name.srg")
+        if (name != "integrationTest") {
+            if (fg3) {
+                // TODO
+            } else {
+                tasks.getByName<TaskSingleReobf>("reobfJar").addSecondarySrgFile(mixinSrg)
+            }
         }
-    }
-    tasks.named<JavaCompile>("compile${name.capitalize()}Java") {
-        dependsOn("copySrg")
-        options.compilerArgs.addAll(listOf(
-            "-AoutSrgFile=${mixinSrg.canonicalPath}",
-            "-AoutRefMapFile=${refMap.canonicalPath}",
-            "-AreobfSrgFiles=${mixinBaseSrgFile.canonicalPath};${mixinExtraSrgFile.canonicalPath}"
-        ))
+        tasks.named<JavaCompile>("compile${name.capitalize()}Java") {
+            dependsOn("copySrg")
+            options.compilerArgs.addAll(listOf(
+                    "-AoutSrgFile=${mixinSrg.canonicalPath}",
+                    "-AoutRefMapFile=${refMap.canonicalPath}",
+                    "-AreobfSrgFiles=${mixinBaseSrgFile.canonicalPath};${mixinExtraSrgFile.canonicalPath}"
+            ))
+        }
     }
 }
 
@@ -139,6 +159,7 @@ repositories {
     maven("http://repo.spongepowered.org/maven/")
     maven("https://minecraft.curseforge.com/api/maven/")
     maven("https://maven.shadowfacts.net")
+    maven("https://jitpack.io")
 }
 
 configurations {
@@ -148,10 +169,10 @@ configurations {
 // We want FG to deobf our mod-deps for us.
 // However FG sucks and doesn't support non-standard source sets, so we need to use this workaround...
 // Might need to run `./gradlew deobfCompileDummyTask` before importing into IDEA (doesn't happen automatically).
-fun DependencyHandler.deobf(dep: String, configure: Dependency.() -> Unit = {}): Dependency {
-    return if (fg3) {
-        project.the<DependencyManagementExtension>().deobf(dep, closureOf(configure))
-    } else {
+fun DependencyHandler.deobf(dep: String, configure: Dependency.() -> Unit = {}): Dependency = when {
+    loom -> create(dep, closureOf(configure)) // TODO not sure how to handle this with loom
+    fg3 -> project.the<DependencyManagementExtension>().deobf(dep, closureOf(configure))
+    else -> {
         val withoutClassifier = if (dep.count { it == ':' } > 2) {
             dep.take(dep.lastIndexOf(':'))
         } else {
@@ -164,29 +185,57 @@ fun DependencyHandler.deobf(dep: String, configure: Dependency.() -> Unit = {}):
 }
 
 dependencies {
+    if (loom) {
+        "minecraft"("com.mojang:minecraft:1.14.4")
+        "mappings"("net.fabricmc:yarn:1.14.4+build.14")
+        "modCompile"("net.fabricmc:fabric-loader:0.6.3+build.168")
+        "modCompile"("net.fabricmc.fabric-api:fabric-api:0.4.1+build.245-1.14")
+        "modCompile"("net.fabricmc.fabric-api:fabric-networking-v0:0.1.5+dfdb52d6b5")
+    }
     if (fg3) {
         "minecraft"("net.minecraftforge:forge:1.14.4-28.1.70")
-
+    }
+    if (mcVersion >= 11400) {
         // TODO shade
         "compile"("org.lwjgl.lwjgl:lwjgl_util:2.9.3") {
             isTransitive = false // only want vec, mat, quat, etc.
         }
     }
+    if (fabric) {
+        // Only really using it for the shader location fix
+        "include"("com.github.Ladysnake:Satin:1.3.2")
+        "modCompile"("com.github.Ladysnake:Satin:1.3.2")
 
-    "compile"("net.shadowfacts:Forgelin:1.8.3")
+        "include"("me.zeroeightsix:fiber:0.8.0-1")
+        "modCompile"("me.zeroeightsix:fiber:0.8.0-1")
 
-    val mixinDep = "org.spongepowered:mixin:" + (if (mcVersion >= 11400) { "0.8-preview-SNAPSHOT" } else { "0.7.11-SNAPSHOT" })
-    val withoutOldMixinDeps: ModuleDependency.() -> Unit = {
-        exclude(group = "com.google.guava") // 17.0
-        exclude(group = "com.google.code.gson") // 2.2.4
+        "compile"("javax.vecmath:vecmath:1.5.2")
+
+        "compile"("com.google.code.findbugs:jsr305:3.0.2") // Minecraft provides this, not sure why loom doesn't
     }
-    "runtime"(mixinDep, withoutOldMixinDeps)
-    "viewCompile"(mixinDep, withoutOldMixinDeps)
-    "portalCompile"(mixinDep, withoutOldMixinDeps)
-    "viewAnnotationProcessor"(mixinDep)
-    "portalAnnotationProcessor"(mixinDep)
-    "transitionAnnotationProcessor"(mixinDep)
-    "mixin"(mixinDep) { isTransitive = false }
+
+    if (fabric) {
+        "modCompile"("net.fabricmc:fabric-language-kotlin:1.3.50+build.3")
+    } else {
+        "compile"("net.shadowfacts:Forgelin:1.8.3")
+    }
+
+    if (!fabric) {
+        val mixinDep = "org.spongepowered:mixin:" + (if (mcVersion >= 11400) { "0.8-preview-SNAPSHOT" } else { "0.7.11-SNAPSHOT" })
+        val withoutOldMixinDeps: ModuleDependency.() -> Unit = {
+            exclude(group = "com.google.guava") // 17.0
+            exclude(group = "com.google.code.gson") // 2.2.4
+        }
+        "runtime"(mixinDep, withoutOldMixinDeps)
+        "apiCompile"(mixinDep, withoutOldMixinDeps)
+        "viewCompile"(mixinDep, withoutOldMixinDeps)
+        "portalCompile"(mixinDep, withoutOldMixinDeps)
+        "apiAnnotationProcessor"(mixinDep)
+        "viewAnnotationProcessor"(mixinDep)
+        "portalAnnotationProcessor"(mixinDep)
+        "transitionAnnotationProcessor"(mixinDep)
+        "mixin"(mixinDep) { isTransitive = false }
+    }
 
     "apiCompile"(deobf("opencubicchunks:CubicChunks-1.12.2-0.0.970.0:SNAPSHOT:all"))
 
@@ -199,7 +248,9 @@ dependencies {
     "integrationTestCompile"("org.junit.jupiter:junit-jupiter-engine:5.5.1")
     "integrationTestCompile"("org.junit.platform:junit-platform-launcher:1.5.0")
     "integrationTestCompile"("io.kotlintest:kotlintest-runner-junit5:3.4.0")
-    if (fg3) {
+    if (loom) {
+        // TODO
+    } else if (fg3) {
         // TODO
     } else {
         "integrationTestRuntimeOnly"(configurations["forgeGradleGradleStart"])
@@ -215,6 +266,7 @@ tasks.named<ProcessResources>("processResources") {
     from(main.get().resources.srcDirs) {
         include("mcmod.info")
         include("mods.toml")
+        include("fabric.mod.json")
 
         // replace version and mcversion
         expand("version" to project.version, "mcversion" to mcVersionStr)
@@ -224,14 +276,17 @@ tasks.named<ProcessResources>("processResources") {
     from(main.get().resources.srcDirs) {
         exclude("mcmod.info")
         exclude("mods.toml")
+        exclude("fabric.mod.json")
     }
 }
 
 tasks.named<Jar>("jar") {
     archiveBaseName.set("betterportals")
-    from({ configurations["mixin"].files.map { project.zipTree(it) } }) {
-        exclude("META-INF/*.SF")
-        exclude("META-INF/*.RSA")
+    if (!fabric) {
+        from({ configurations["mixin"].files.map { project.zipTree(it) } }) {
+            exclude("META-INF/*.SF")
+            exclude("META-INF/*.RSA")
+        }
     }
     from(api.output)
     from(implementations.keys.map { sourceSets[it].output })
@@ -239,58 +294,62 @@ tasks.named<Jar>("jar") {
     exclude("net/optifine") // skeletons
     exclude("org/vivecraft") // skeletons
     from(mixinRefMaps.filterNot { it.key == "integrationTest" }.values)
-    manifest {
-        attributes(
-                "TweakClass" to "org.spongepowered.asm.launch.MixinTweaker",
-                "TweakOrder" to "0",
-                "ForceLoadAsMod" to "true",
-                "FMLCorePluginContainsFMLMod" to "true",
-                "MixinConfigs" to listOf(
-                        "mixins.betterportals.json",
-                        "mixins.betterportals.view.json",
-                        "mixins.betterportals.transition.json",
-                        "mixins.betterportals.portal.json"
-                ).joinToString(",")
-        )
+    if (!fabric) {
+        manifest {
+            attributes(
+                    "TweakClass" to "org.spongepowered.asm.launch.MixinTweaker",
+                    "TweakOrder" to "0",
+                    "ForceLoadAsMod" to "true",
+                    "FMLCorePluginContainsFMLMod" to "true",
+                    "MixinConfigs" to listOf(
+                            "mixins.betterportals.json",
+                            "mixins.betterportals.view.json",
+                            "mixins.betterportals.transition.json",
+                            "mixins.betterportals.portal.json"
+                    ).joinToString(",")
+            )
+        }
     }
 }
 
-val copySrg = if (fg3) {
-    tasks.register("copySrg") {
-        val createMcpToSrg by tasks.existing(GenerateSRG::class)
-        dependsOn(createMcpToSrg)
-        doLast {
-            val tsrg = file(createMcpToSrg.get().output).readLines()
-            val srg = mutableListOf<String>()
-            var cls = ""
-            for (line in tsrg) {
-                if (line[0] != '\t') {
-                    srg.add("CL: $line")
-                    cls = line.split(" ")[0]
-                } else {
-                    val parts = line.substring(1).split(" ")
-                    if (line.contains("(")) {
-                        srg.add("MD: $cls/${parts[0]} ${parts[1]} $cls/${parts[2]} ${parts[1]}")
+if (!loom) {
+    val copySrg = if (fg3) {
+        tasks.register("copySrg") {
+            val createMcpToSrg by tasks.existing(GenerateSRG::class)
+            dependsOn(createMcpToSrg)
+            doLast {
+                val tsrg = file(createMcpToSrg.get().output).readLines()
+                val srg = mutableListOf<String>()
+                var cls = ""
+                for (line in tsrg) {
+                    if (line[0] != '\t') {
+                        srg.add("CL: $line")
+                        cls = line.split(" ")[0]
                     } else {
-                        srg.add("FD: $cls/${parts[0]} $cls/${parts[1]}")
+                        val parts = line.substring(1).split(" ")
+                        if (line.contains("(")) {
+                            srg.add("MD: $cls/${parts[0]} ${parts[1]} $cls/${parts[2]} ${parts[1]}")
+                        } else {
+                            srg.add("FD: $cls/${parts[0]} $cls/${parts[1]}")
+                        }
                     }
                 }
+                File(project.buildDir, "mcp-srg.srg").writeText(srg.joinToString("\n"))
             }
-            File(project.buildDir, "mcp-srg.srg").writeText(srg.joinToString("\n"))
         }
+    } else {
+        val copySrg by tasks.registering(Copy::class) {
+            dependsOn("genSrgs")
+            from({ tasks.getByName<GenSrgs>("genSrgs").mcpToSrg })
+            into("build")
+        }
+        tasks["setupDecompWorkspace"].dependsOn(copySrg)
+        tasks["setupDevWorkspace"].dependsOn(copySrg)
+        tasks["idea"].dependsOn(copySrg)
+        copySrg
     }
-} else {
-    val copySrg by tasks.registering(Copy::class) {
-        dependsOn("genSrgs")
-        from({ tasks.getByName<GenSrgs>("genSrgs").mcpToSrg })
-        into("build")
-    }
-    tasks["setupDecompWorkspace"].dependsOn(copySrg)
-    tasks["setupDevWorkspace"].dependsOn(copySrg)
-    tasks["idea"].dependsOn(copySrg)
-    copySrg
+    tasks.withType<JavaCompile>().configureEach { dependsOn(copySrg) }
 }
-tasks.withType<JavaCompile>().configureEach { dependsOn(copySrg) }
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
@@ -298,7 +357,7 @@ tasks.withType<KotlinCompile> {
     }
 }
 
-if (!fg3) // TODO
+if (!fg3 && !loom) // TODO
 tasks.register("runIntegrationTest", JavaExec::class) {
     dependsOn(tasks["jar"])
     dependsOn(tasks["makeStart"])

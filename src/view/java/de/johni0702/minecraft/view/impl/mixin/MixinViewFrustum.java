@@ -104,7 +104,7 @@ public abstract class MixinViewFrustum {
 
         if (isCubicWorld(world)) {
             Entity view = mc.getRenderViewEntity();
-            this.renderChunks = getOrCreateChunkArray(ExtensionsKt.getPos(view));
+            this.renderChunks = getOrCreateChunkArray(ExtensionsKt.getTickPos(view));
         } else {
             this.renderChunks = getOrCreateChunkArray(new Vec3d(x, 8.0, z));
         }
@@ -175,7 +175,7 @@ public abstract class MixinViewFrustum {
     private RenderChunk allocChunk(BlockPos pos) {
         RenderChunk chunk = freeChunks.pollFirst();
         if (chunk == null) {
-            chunk = chunkFactory.create(world, renderGlobal
+            chunk = chunkFactory.create(world, this.renderGlobal
                     //#if MC<11400
                     , 0
                     //#endif

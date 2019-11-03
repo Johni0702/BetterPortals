@@ -34,15 +34,13 @@
 //$$     @Shadow @Final private ClientWorld world;
 //$$     @Shadow @Final private static Logger LOGGER;
 //$$
-//$$     @Shadow public abstract WorldLightManager getLightManager();
-//$$
 //$$     private final Map<ChunkPos, Chunk> chunkMap = new ConcurrentHashMap<>();
 //$$
 //$$     @Overwrite
 //$$     public void unloadChunk(int x, int z) {
 //$$         Chunk chunk = chunkMap.remove(new ChunkPos(x, z));
 //$$         if (chunk != null) {
-//$$             world.onChunkUnloaded(chunk);
+//$$             this.world.onChunkUnloaded(chunk);
 //$$         }
 //$$     }
 //$$
@@ -72,12 +70,11 @@
 //$$         }
 //$$
 //$$         ChunkSection[] sections = chunk.getSections();
-//$$         WorldLightManager lightManager = this.getLightManager();
-//$$         lightManager.func_215571_a(new ChunkPos(x, z), true);
+//$$         this.lightManager.func_215571_a(new ChunkPos(x, z), true);
 //$$
 //$$         for (int y = 0; y < sections.length; ++y) {
 //$$             ChunkSection chunksection = sections[y];
-//$$             lightManager.updateSectionStatus(SectionPos.of(x, y, z), ChunkSection.isEmpty(chunksection));
+//$$             this.lightManager.updateSectionStatus(SectionPos.of(x, y, z), ChunkSection.isEmpty(chunksection));
 //$$         }
 //$$
 //$$         return chunk;
@@ -94,7 +91,12 @@
 //$$     }
 //$$
 //$$     @Overwrite
-//$$     public String makeString() {
+//$$     // FIXME preprocessor should handle this?
+    //#if FABRIC>=1
+    //$$ public String getStatus() {
+    //#else
+    //$$ public String makeString() {
+    //#endif
 //$$         return "Client Chunk Cache: " + this.getLoadedChunksCount();
 //$$     }
 //$$

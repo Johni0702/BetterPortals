@@ -1,10 +1,13 @@
 package de.johni0702.minecraft.betterportals.impl;
 
+import static de.johni0702.minecraft.betterportals.impl.BetterPortalsModKt.MOD_ID;
+
+//#if FABRIC>=1
+//#else
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-
-import static de.johni0702.minecraft.betterportals.impl.BetterPortalsModKt.MOD_ID;
+//#endif
 
 //#if MC>=11400
 //#else
@@ -13,7 +16,9 @@ import net.minecraftforge.common.config.ConfigManager;
 //#endif
 
 @Config(modid = MOD_ID)
+//#if FABRIC<=0
 @Mod.EventBusSubscriber(modid = MOD_ID)
+//#endif
 public class BPConfig {
     @Config.Name("Vanilla Nether Portals")
     @Config.Comment("Configuration for vanilla nether portals.")
@@ -113,12 +118,14 @@ public class BPConfig {
     @Config.Comment("Show debug view instead of composed view. Client-side setting.")
     public static boolean debugView = false;
 
+    //#if FABRIC<=0
     @SubscribeEvent
     public static void onConfigChanged(ConfigChangedEvent.OnConfigChangedEvent event) {
         if (MOD_ID.equals(event.getModID())) {
             load();
         }
     }
+    //#endif
 
     public static void load() {
         //#if MC>=11400

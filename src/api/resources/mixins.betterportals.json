@@ -4,6 +4,7 @@
   "plugin": "de.johni0702.minecraft.betterportals.impl.BetterPortalsMixinConfigPlugin",
   "mixins": [
     //#if MC>=11400
+    //$$ "AccServerWorld",
     //#else
     "AccEntityTracker",
     "AccPlayerChunkMap",
@@ -14,7 +15,8 @@
     "AccEntityMinecart",
     "AccEntityPlayerMP",
     "AccLazyLoadBase",
-    "AccNetHandlerPlayServer"
+    "AccNetHandlerPlayServer",
+    "AccNetworkManager"
   ],
   "server": [],
   "client": [

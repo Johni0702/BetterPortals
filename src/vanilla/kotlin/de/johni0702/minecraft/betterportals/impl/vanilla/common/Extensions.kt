@@ -5,7 +5,11 @@ import de.johni0702.minecraft.betterportals.client.render.RenderOneWayPortalEnti
 import de.johni0702.minecraft.betterportals.client.render.RenderPortalEntity
 import de.johni0702.minecraft.betterportals.common.PortalConfiguration
 import de.johni0702.minecraft.betterportals.common.entity.PortalEntityAccessor
-import de.johni0702.minecraft.betterportals.common.portalManager
+import de.johni0702.minecraft.betterportals.impl.BlockRegistry
+import de.johni0702.minecraft.betterportals.impl.register
+import de.johni0702.minecraft.betterportals.impl.registerBlockEntityRenderer
+import de.johni0702.minecraft.betterportals.impl.registerEntityRenderer
+import de.johni0702.minecraft.betterportals.impl.registerPortalAccessor
 import de.johni0702.minecraft.betterportals.impl.EntityTypeRegistry
 import de.johni0702.minecraft.betterportals.impl.TileEntityTypeRegistry
 import de.johni0702.minecraft.betterportals.impl.vanilla.client.renderer.EndPortalRenderer
@@ -16,20 +20,19 @@ import de.johni0702.minecraft.betterportals.impl.vanilla.common.blocks.TileEntit
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndEntryPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndExitPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.NetherPortalEntity
-import net.minecraft.block.Block
 import net.minecraft.client.Minecraft
-import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.event.world.WorldEvent
-import net.minecraftforge.fml.client.registry.ClientRegistry
-import net.minecraftforge.fml.client.registry.RenderingRegistry
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
-import net.minecraftforge.registries.IForgeRegistry
+import net.minecraft.util.ResourceLocation
+
+//#if FABRIC>=1
+//$$ import net.fabricmc.fabric.api.event.client.ClientSpriteRegistryCallback
+//$$ import net.minecraft.client.texture.SpriteAtlasTexture
+//$$ import net.minecraft.entity.EntityDimensions
+//#endif
 
 //#if MC>=11400
 //$$ import net.minecraft.entity.EntityClassification
-//$$ import net.minecraft.entity.EntityType
-//$$ import net.minecraft.world.World
 //$$ import com.mojang.datafixers.DataFixUtils
+//$$ import de.johni0702.minecraft.betterportals.impl.registerEntityType
 //$$ import net.minecraft.block.Blocks
 //$$ import net.minecraft.tileentity.TileEntityType
 //$$ import net.minecraft.util.SharedConstants
@@ -38,7 +41,6 @@ import net.minecraftforge.registries.IForgeRegistry
 //$$ import java.util.function.Supplier
 //#else
 import net.minecraft.tileentity.TileEntity
-import net.minecraft.util.ResourceLocation
 import net.minecraftforge.fml.common.registry.EntityRegistry
 //#endif
 
@@ -49,7 +51,7 @@ internal lateinit var END_PORTAL_CONFIG: PortalConfiguration
 fun initVanilla(
         mod: Any,
         clientPreInit: (() -> Unit) -> Unit,
-        registerBlocks: (IForgeRegistry<Block>.() -> Unit) -> Unit,
+        registerBlocks: (BlockRegistry.() -> Unit) -> Unit,
         registerTileEntities: (TileEntityTypeRegistry.() -> Unit) -> Unit,
         registerEntities: (EntityTypeRegistry.() -> Unit) -> Unit,
         enableNetherPortals: Boolean,
@@ -62,27 +64,44 @@ fun initVanilla(
 
     clientPreInit {
         if (enableNetherPortals) {
-            RenderingRegistry.registerEntityRenderingHandler(NetherPortalEntity::class.java) {
+            //#if MC>=11400
+            //$$ val netherPortalSpriteId = ResourceLocation("minecraft", "block/nether_portal")
+            //#endif
+            registerEntityRenderer<NetherPortalEntity> {
                 RenderPortalEntity(it, FramedPortalRenderer(configNetherPortals.opacity, {
+                    //#if MC>=11400
+                    //$$ Minecraft.getInstance().textureMap.getSprite(netherPortalSpriteId)
+                    //#else
                     Minecraft.getMinecraft().textureMapBlocks.getAtlasSprite("minecraft:blocks/portal")
+                    //#endif
                 }))
             }
+            // Note: This is only required on fabric because there we replace the vanilla portal block. Forge on the
+            //       other hand has the "overwrite" concept, where it keeps both registrations (and thereby the vanilla
+            //       block model registers the sprite for us).
+            //#if FABRIC>=1
+            //$$ ClientSpriteRegistryCallback.event(SpriteAtlasTexture.BLOCK_ATLAS_TEX).register(ClientSpriteRegistryCallback { _, registry ->
+            //$$     registry.register(netherPortalSpriteId)
+            //$$ })
+            //#endif
         }
         if (enableEndPortals) {
-            ClientRegistry.bindTileEntitySpecialRenderer(TileEntityBetterEndPortal::class.java, BetterEndPortalTileRenderer())
-            RenderingRegistry.registerEntityRenderingHandler(EndEntryPortalEntity::class.java) {
+            registerBlockEntityRenderer<TileEntityBetterEndPortal>(BetterEndPortalTileRenderer())
+            registerEntityRenderer<EndEntryPortalEntity> {
                 RenderOneWayPortalEntity(it, EndPortalRenderer(configEndPortals.opacity))
             }
-            RenderingRegistry.registerEntityRenderingHandler(EndExitPortalEntity::class.java) {
+            registerEntityRenderer<EndExitPortalEntity> {
                 RenderOneWayPortalEntity(it, EndPortalRenderer(configEndPortals.opacity))
             }
         }
     }
 
     registerBlocks {
-        if (enableNetherPortals) register(BlockBetterNetherPortal(mod))
+        if (enableNetherPortals) {
+            register(ResourceLocation("minecraft", "nether_portal"), BlockBetterNetherPortal(mod))
+        }
         if (enableEndPortals) {
-            register(BlockBetterEndPortal())
+            register(ResourceLocation("minecraft", "end_portal"), BlockBetterEndPortal())
         }
     }
 
@@ -94,10 +113,9 @@ fun initVanilla(
             //$$         .getSchema(DataFixUtils.makeKey(SharedConstants.getVersion().worldVersion))
             //$$         .getChoiceType(TypeReferences.BLOCK_ENTITY, key)
             //$$
-            //$$ TileEntityType.Builder.create(Supplier { TileEntityBetterEndPortal() }, Blocks.END_PORTAL)
+            //$$ val type = TileEntityType.Builder.create(Supplier { TileEntityBetterEndPortal() }, Blocks.END_PORTAL)
             //$$         .build(dataFixerType)
-            //$$         .setRegistryName("minecraft", key)
-            //$$         .also { register(it) }
+            //$$ register(ResourceLocation("minecraft", key), type)
             //#else
             TileEntity.register("end_portal", TileEntityBetterEndPortal::class.java)
             //#endif
@@ -107,16 +125,20 @@ fun initVanilla(
     registerEntities {
         if (enableNetherPortals) {
             //#if MC>=11400
-            //$$ EntityType.Builder.create<NetherPortalEntity>(::NetherPortalEntity, EntityClassification.MISC)
-            //$$         .disableSummoning()
-            //$$         .immuneToFire()
-            //$$         .size(0f, 0f)
-            //$$         .setUpdateInterval(Int.MAX_VALUE)
-            //$$         .setTrackingRange(256)
-            //$$         .setCustomClientFactory { _, world -> NetherPortalEntity(world = world) }
-            //$$         .build(NetherPortalEntity.ID.toString())
-            //$$         .setRegistryName(NetherPortalEntity.ID)
-            //$$         .let { register(it) }
+            //$$ registerEntityType(NetherPortalEntity.ID, ::NetherPortalEntity, EntityClassification.MISC) {
+                //#if FABRIC>=1
+                //$$ disableSummon()
+                //$$ setImmuneToFire()
+                //$$ size(EntityDimensions.fixed(0f, 0f))
+                //$$ trackable(256, Int.MAX_VALUE)
+                //#else
+                //$$ disableSummoning()
+                //$$ immuneToFire()
+                //$$ size(0f, 0f)
+                //$$ setUpdateInterval(Int.MAX_VALUE)
+                //$$ setTrackingRange(256)
+                //#endif
+            //$$ }
             //#else
             EntityRegistry.registerModEntity(
                     ResourceLocation(MOD_ID, "nether_portal"),
@@ -129,39 +151,38 @@ fun initVanilla(
                     false
             )
             //#endif
-            MinecraftForge.EVENT_BUS.register(object {
-                @SubscribeEvent
-                fun onWorld(event: WorldEvent.Load) {
-                    val world = event.world
-                    //#if MC>=11400
-                    //$$ if (world !is World) return
-                    //#endif
-                    world.portalManager.registerPortals(PortalEntityAccessor(NetherPortalEntity::class.java, world))
-                }
-            })
+            registerPortalAccessor { PortalEntityAccessor(NetherPortalEntity::class.java, it) }
         }
         if (enableEndPortals) {
             //#if MC>=11400
-            //$$ EntityType.Builder.create<EndEntryPortalEntity>(::EndEntryPortalEntity, EntityClassification.MISC)
-            //$$         .disableSummoning()
-            //$$         .immuneToFire()
-            //$$         .size(0f, 0f)
-            //$$         .setUpdateInterval(Int.MAX_VALUE)
-            //$$         .setTrackingRange(256)
-            //$$         .setCustomClientFactory { _, world -> EndEntryPortalEntity(world = world) }
-            //$$         .build(EndEntryPortalEntity.ID.toString())
-            //$$         .setRegistryName(EndEntryPortalEntity.ID)
-            //$$         .let { register(it) }
-            //$$ EntityType.Builder.create<EndExitPortalEntity>(::EndExitPortalEntity, EntityClassification.MISC)
-            //$$         .disableSummoning()
-            //$$         .immuneToFire()
-            //$$         .size(0f, 0f)
-            //$$         .setUpdateInterval(Int.MAX_VALUE)
-            //$$         .setTrackingRange(256)
-            //$$         .setCustomClientFactory { _, world -> EndExitPortalEntity(world = world) }
-            //$$         .build(EndExitPortalEntity.ID.toString())
-            //$$         .setRegistryName(EndExitPortalEntity.ID)
-            //$$         .let { register(it) }
+            //$$ registerEntityType(EndEntryPortalEntity.ID, ::EndEntryPortalEntity, EntityClassification.MISC) {
+                //#if FABRIC>=1
+                //$$ disableSummon()
+                //$$ setImmuneToFire()
+                //$$ size(EntityDimensions.fixed(0f, 0f))
+                //$$ trackable(256, Int.MAX_VALUE)
+                //#else
+                //$$ disableSummoning()
+                //$$ immuneToFire()
+                //$$ size(0f, 0f)
+                //$$ setUpdateInterval(Int.MAX_VALUE)
+                //$$ setTrackingRange(256)
+                //#endif
+            //$$ }
+            //$$ registerEntityType(EndExitPortalEntity.ID, ::EndExitPortalEntity, EntityClassification.MISC) {
+                //#if FABRIC>=1
+                //$$ disableSummon()
+                //$$ setImmuneToFire()
+                //$$ size(EntityDimensions.fixed(0f, 0f))
+                //$$ trackable(256, Int.MAX_VALUE)
+                //#else
+                //$$ disableSummoning()
+                //$$ immuneToFire()
+                //$$ size(0f, 0f)
+                //$$ setUpdateInterval(Int.MAX_VALUE)
+                //$$ setTrackingRange(256)
+                //#endif
+            //$$ }
             //#else
             EntityRegistry.registerModEntity(
                     ResourceLocation(MOD_ID, "end_entry_portal"),
@@ -184,18 +205,8 @@ fun initVanilla(
                     false
             )
             //#endif
-            MinecraftForge.EVENT_BUS.register(object {
-                @SubscribeEvent
-                fun onWorld(event: WorldEvent.Load) {
-                    val world = event.world
-                    //#if MC>=11400
-                    //$$ if (world !is World) return
-                    //#endif
-                    val portalManager = world.portalManager
-                    portalManager.registerPortals(PortalEntityAccessor(EndEntryPortalEntity::class.java, world))
-                    portalManager.registerPortals(PortalEntityAccessor(EndExitPortalEntity::class.java, world))
-                }
-            })
+            registerPortalAccessor { PortalEntityAccessor(EndEntryPortalEntity::class.java, it) }
+            registerPortalAccessor { PortalEntityAccessor(EndExitPortalEntity::class.java, it) }
         }
     }
 }

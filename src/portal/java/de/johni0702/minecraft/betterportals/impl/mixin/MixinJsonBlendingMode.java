@@ -11,6 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.lang.reflect.Field;
+
 @Mixin(JsonBlendingMode.class)
 public abstract class MixinJsonBlendingMode {
     @Shadow private static JsonBlendingMode lastApplied;
@@ -44,22 +46,34 @@ public abstract class MixinJsonBlendingMode {
      * @author johni0702
      */
     @Inject(method = "apply", at = @At("HEAD"), cancellable = true)
-    private void apply(CallbackInfo ci) {
+    private void apply(CallbackInfo ci) throws NoSuchFieldException, IllegalAccessException {
         ci.cancel();
 
+        // TODO
+        // The following call throws a NoSuchMethodError on fabric, appears to be somewhat similar (except the other way
+        // around) to https://github.com/SpongePowered/Mixin/issues/342 (and indeed, I can reproduce the exact issue in
+        // there as well. but that also means that neither works for me atm). I'm assuming this is fixed in Mixin 0.8,
+        // so once fabric upgrades, the special case can probably be removed. For now I'm going with the slow (and
+        // dev-env-only) option, just to get it running so I can continue working on it.
+        //#if FABRIC>=1
+        //$$ Field field = JsonGlProgram.class.getDeclaredField("activeProgram");
+        //$$ field.setAccessible(true);
+        //$$ JsonGlProgram shaderManager = (JsonGlProgram) field.get(null);
+        //#else
         ShaderManager shaderManager = AccShaderManager.getStaticShaderManager();
+        //#endif
         if (shaderManager != null && "entity_outline".equals(((AccShaderManager) shaderManager).getProgramFilename())) {
             GlStateManager.disableBlend();
             return;
         }
 
-        if (opaque) {
+        if (this.opaque) {
             GlStateManager.disableBlend();
         } else {
             GlStateManager.enableBlend();
         }
 
-        GlStateManager.glBlendEquation(blendFunction);
-        GlStateManager.tryBlendFuncSeparate(srcColorFactor, destColorFactor, srcAlphaFactor, destAlphaFactor);
+        GlStateManager.glBlendEquation(this.blendFunction);
+        GlStateManager.tryBlendFuncSeparate(this.srcColorFactor, this.destColorFactor, this.srcAlphaFactor, this.destAlphaFactor);
     }
 }

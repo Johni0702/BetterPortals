@@ -19,11 +19,11 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import net.minecraft.world.DimensionType
 import net.minecraft.world.WorldServer
-import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.event.world.ChunkWatchEvent
 
 //#if MC>=11400
+//#if FABRIC<=0
 //$$ import net.minecraftforge.fml.hooks.BasicEventHooks
+//#endif
 //$$ import de.johni0702.minecraft.view.impl.mixin.AccessorChunkManager
 //$$ import de.johni0702.minecraft.view.impl.mixin.AccessorEntityTracker
 //$$ import de.johni0702.minecraft.view.impl.mixin.AccessorServerChunkProvider
@@ -36,6 +36,8 @@ import de.johni0702.minecraft.view.impl.mixin.AccessorCubeWatcher_CC
 import io.github.opencubicchunks.cubicchunks.core.server.PlayerCubeMap
 import net.minecraft.entity.EntityTrackerEntry
 import net.minecraft.server.management.PlayerChunkMapEntry
+import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.event.world.ChunkWatchEvent
 import net.minecraftforge.fml.common.FMLCommonHandler
 //#endif
 
@@ -262,10 +264,12 @@ internal class ServerWorldManager(
         manager.endTransaction()
 
         manager.flushPackets() // Just for good measure, who knows what other mods will do during the event
+        //#if FABRIC<=0
         //#if MC>=11400
         //$$ BasicEventHooks.firePlayerChangedDimensionEvent(player, oldDim, newDim)
         //#else
         FMLCommonHandler.instance().firePlayerChangedDimensionEvent(player, oldDim, newDim)
+        //#endif
         //#endif
     }
 }
@@ -285,14 +289,22 @@ internal object EntityTrackerHandler : SwapHandler {
         //#endif
         entries.forEach { entry ->
             if (entry.trackingPlayers.remove(prevPlayer)) {
+                //#if FABRIC>=1
+                //$$ entry.trackedEntity.onStoppedTrackingBy(prevPlayer)
+                //#else
                 entry.trackedEntity.removeTrackingPlayer(prevPlayer)
+                //#endif
                 knownEntities.add(entry)
             }
         }
         return { newPlayer ->
             knownEntities.forEach {
                 it.trackingPlayers.add(newPlayer)
+                //#if FABRIC>=1
+                //$$ it.trackedEntity.onStartedTrackingBy(prevPlayer)
+                //#else
                 it.trackedEntity.addTrackingPlayer(newPlayer)
+                //#endif
             }
         }
     }

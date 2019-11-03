@@ -27,21 +27,33 @@
 //$$         this.onEntityRemoved.add(onEntityRemoved);
 //$$     }
 //$$
-//$$     @Inject(method = "onEntityAdded", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;onAddedToWorld()V"))
-//$$     private void onEntityAdded(Entity entity, CallbackInfo ci) {
-//$$         onEntityAdded.forEach(it -> it.invoke(entity));
-//$$     }
-//$$
-//$$     @Group(name ="onEntityRemoved")
-//$$     @Inject(method = "onEntityRemoved", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;onRemovedFromWorld()V"))
-//$$     private void onEntityRemoved_Vanilla(Entity entity, CallbackInfo ci) {
-//$$         onEntityRemoved.forEach(it -> it.invoke(entity));
-//$$     }
-//$$
-//$$     @Group(name = "onEntityRemoved")
-//$$     @Inject(method = "removeEntityComplete", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;onRemovedFromWorld()V"), remap = false)
-//$$     private void onEntityRemoved_Forge(Entity entity, boolean keepData, CallbackInfo ci) {
-//$$         onEntityRemoved.forEach(it -> it.invoke(entity));
-//$$     }
+    //#if FABRIC>=1
+    //$$ @Inject(method = "loadEntityUnchecked", at = @At("RETURN"))
+    //$$ private void onEntityAdded(Entity entity, CallbackInfo ci) {
+    //$$     onEntityAdded.forEach(it -> it.invoke(entity));
+    //$$ }
+    //$$
+    //$$ @Inject(method = "unloadEntity", at = @At("RETURN"))
+    //$$ private void onEntityRemoved(Entity entity, CallbackInfo ci) {
+    //$$     onEntityRemoved.forEach(it -> it.invoke(entity));
+    //$$ }
+    //#else
+    //$$ @Inject(method = "onEntityAdded", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;onAddedToWorld()V"))
+    //$$ private void onEntityAdded(Entity entity, CallbackInfo ci) {
+    //$$     onEntityAdded.forEach(it -> it.invoke(entity));
+    //$$ }
+    //$$
+    //$$ @Group(name ="onEntityRemoved")
+    //$$ @Inject(method = "onEntityRemoved", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;onRemovedFromWorld()V"))
+    //$$ private void onEntityRemoved_Vanilla(Entity entity, CallbackInfo ci) {
+    //$$     onEntityRemoved.forEach(it -> it.invoke(entity));
+    //$$ }
+    //$$
+    //$$ @Group(name = "onEntityRemoved")
+    //$$ @Inject(method = "removeEntityComplete", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;onRemovedFromWorld()V"), remap = false)
+    //$$ private void onEntityRemoved_Forge(Entity entity, boolean keepData, CallbackInfo ci) {
+    //$$     onEntityRemoved.forEach(it -> it.invoke(entity));
+    //$$ }
+    //#endif
 //$$ }
 //#endif

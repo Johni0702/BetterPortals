@@ -18,14 +18,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 //$$ import de.johni0702.minecraft.view.impl.net.Net;
 //$$ import net.minecraft.network.NetworkManager;
 //$$ import net.minecraft.network.play.server.SCustomPayloadPlayPacket;
+//#if FABRIC<=0
 //$$ import net.minecraftforge.fml.network.NetworkHooks;
+//#endif
 //#endif
 
 @Mixin(NetHandlerPlayClient.class)
 public abstract class MixinNetHandlerPlayerClient implements INetHandlerPlayClient {
     @Shadow private Minecraft gameController;
 
+    // FIXME why does the preprocessor not handle these?
+    //#if FABRIC>=1
+    //$$ @Inject(method = "onPlayerPositionLook", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;setPositionAndRotation(DDDFF)V"))
+    //#else
     @Inject(method = "handlePlayerPosLook", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/EntityPlayer;setPositionAndRotation(DDDFF)V"))
+    //#endif
     private void rewindLocalViewChanges(SPacketPlayerPosLook packet, CallbackInfo ci) {
         // If this method gets called while this view is the server's main view (i.e. the client went through a portal
         // but the server doesn't know yet), then the player has been teleported around on the server side and we need
@@ -38,7 +45,12 @@ public abstract class MixinNetHandlerPlayerClient implements INetHandlerPlayClie
         }
     }
 
+    // FIXME why does the preprocessor not handle these?
+    //#if FABRIC>=1
+    //$$ @Inject(method = "onKeepAlive", at = @At(value = "HEAD"))
+    //#else
     @Inject(method = "handleKeepAlive", at = @At(value = "HEAD"))
+    //#endif
     private void forceKeepAliveToSyncWithMainThread(SPacketKeepAlive packet, CallbackInfo ci) {
         // Keep alive packets are handled on the network thread (presumably just case it doesn't strictly need to
         // access MC state). This can cause issues since there's no guarantee that the right view will be active
@@ -46,6 +58,7 @@ public abstract class MixinNetHandlerPlayerClient implements INetHandlerPlayClie
         PacketThreadUtil.checkThreadAndEnqueue(packet, this, this.gameController);
     }
 
+    //#if FABRIC<=0
     //#if MC>=11400
     //$$ @Shadow public NetworkManager netManager;
     //$$
@@ -56,9 +69,10 @@ public abstract class MixinNetHandlerPlayerClient implements INetHandlerPlayClie
     //$$ @Inject(method = "handleCustomPayload", at = @At("HEAD"), cancellable = true)
     //$$ private void handleViewPacketsOnNetworkThread(SCustomPayloadPlayPacket packet, CallbackInfo ci) {
     //$$     if (Net.CHANNEL.equals(packet.getChannelName())) {
-    //$$         NetworkHooks.onCustomPayload(packet, netManager);
+    //$$         NetworkHooks.onCustomPayload(packet, this.netManager);
     //$$         ci.cancel();
     //$$     }
     //$$ }
+    //#endif
     //#endif
 }
