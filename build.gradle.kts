@@ -1,4 +1,6 @@
 import com.replaymod.gradle.preprocess.PreprocessExtension
+import net.fabricmc.loom.LoomGradleExtension
+import net.fabricmc.loom.task.RemapJarTask
 import net.minecraftforge.gradle.tasks.GenSrgs
 import net.minecraftforge.gradle.user.TaskSingleReobf
 import net.minecraftforge.gradle.user.patcherUser.forge.ForgeExtension
@@ -131,7 +133,23 @@ val mixinRefMaps = mapOf(
         "portal" to File(project.buildDir, "tmp/mixins/mixins.betterportals.portal.refmap.json"),
         "integrationTest" to File(project.buildDir, "tmp/mixins/mixins.betterportals.test.refmap.json")
 )
-if (!loom) {
+if (loom) {
+    afterEvaluate {
+        // While loom does try to support mixin, it doesn't do so well for multiple source sets, so we'll do it ourselves
+        val loom = the<LoomGradleExtension>()
+        mixinRefMaps.forEach { (name, refMap) ->
+            tasks.named<JavaCompile>("compile${name.capitalize()}Java") {
+                outputs.file(refMap)
+                options.compilerArgs.addAll(listOf(
+                        "-AinMapFileNamedIntermediary=" + loom.mappingsProvider.MAPPINGS_TINY.canonicalPath,
+                        "-AoutMapFileNamedIntermediary=" + loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT.canonicalPath,
+                        "-AoutRefMapFile=" + refMap.canonicalPath,
+                        "-AdefaultObfuscationEnv=named:intermediary"
+                ))
+            }
+        }
+    }
+} else {
     mixinRefMaps.forEach { (name, refMap) ->
         val mixinSrg = File(project.buildDir, "tmp/mixins/mixins.$name.srg")
         if (name != "integrationTest") {
@@ -143,6 +161,8 @@ if (!loom) {
         }
         tasks.named<JavaCompile>("compile${name.capitalize()}Java") {
             dependsOn("copySrg")
+            outputs.file(mixinSrg)
+            outputs.file(refMap)
             options.compilerArgs.addAll(listOf(
                     "-AoutSrgFile=${mixinSrg.canonicalPath}",
                     "-AoutRefMapFile=${refMap.canonicalPath}",
@@ -220,7 +240,14 @@ dependencies {
         "compile"("net.shadowfacts:Forgelin:1.8.3")
     }
 
-    if (!fabric) {
+    if (fabric) {
+        // still need to fabric's mixin to our other source sets (though we don't add it directly but instead just
+        // inherit from the default configuration where loom will add its mixin dep)
+        val baseConfiguration = configurations["annotationProcessor"]
+        mixinRefMaps.keys.forEach { sourceSet ->
+            configurations["${sourceSet}AnnotationProcessor"].extendsFrom(baseConfiguration)
+        }
+    } else {
         val mixinDep = "org.spongepowered:mixin:" + (if (mcVersion >= 11400) { "0.8-preview-SNAPSHOT" } else { "0.7.11-SNAPSHOT" })
         val withoutOldMixinDeps: ModuleDependency.() -> Unit = {
             exclude(group = "com.google.guava") // 17.0
@@ -309,6 +336,13 @@ tasks.named<Jar>("jar") {
                     ).joinToString(",")
             )
         }
+    }
+}
+
+if (loom) {
+    tasks.named<RemapJarTask>("remapJar") {
+        archiveBaseName.set("betterportals")
+        addNestedDependencies.set(true)
     }
 }
 
