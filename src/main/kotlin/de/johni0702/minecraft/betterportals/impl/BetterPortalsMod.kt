@@ -53,16 +53,15 @@ const val MOD_ID = "betterportals"
 lateinit var LOGGER: Logger
 
 //#if FABRIC>=1
-//$$ object
+//$$ object BetterPortalsMod {
 //#else
 //#if MC>=11400
 //$$ @Mod(MOD_ID)
 //#else
 @Mod(modid = MOD_ID, useMetadata = true)
 //#endif
-internal class
+internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by BetterPortalsAPIImpl {
 //#endif
-BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by BetterPortalsAPIImpl {
 
     internal val clientPreInitCallbacks = mutableListOf<() -> Unit>()
     internal val commonInitCallbacks = mutableListOf<() -> Unit>()
@@ -74,10 +73,11 @@ BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by BetterPortalsAPIIm
     private val registerEntitiesCallbacks = mutableListOf<EntityTypeRegistry.() -> Unit>()
 
     //#if FABRIC>=1
-    //$$ init {
+    //$$ fun clientInit() = clientRegister()
+    //$$ fun init() {
     //$$     LOGGER = LogManager.getLogger("betterportals")
     //$$     BPConfig.load()
-    //$$ }
+    //$$     viewApiImpl = object : ViewAPI by ViewAPIImpl, BetterPortalsAPI by BetterPortalsAPIImpl {}
     //#else
     //#if MC>=11400
     //$$ init { FMLJavaModLoadingContext.get().modEventBus.register(this) }
@@ -90,14 +90,10 @@ BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by BetterPortalsAPIIm
     //$$     //      server startup?).
     //$$ }
     //#endif
-    //#endif
 
     init {
-        //#if FABRIC>=1
-        //$$ viewApiImpl = this
-        //#else
         INSTANCE = this
-        //#endif
+    //#endif
 
         fun PortalConfig.toConfiguration() = PortalConfiguration(
                 { opacity },
@@ -184,17 +180,21 @@ BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by BetterPortalsAPIIm
                 configTravelHutsPortals = BPConfig.travelHutsPortals.toConfiguration()
         )
         //#endif
+
+        //#if FABRIC>=1
+        //$$ commonRegister()
+        //#endif
     }
 
     //#if FABRIC>=1
-    //$$ fun init() {
+    //$$ fun commonRegister() {
     //$$     with(Registry.BLOCK) { registerBlockCallbacks.forEach { it() }}
     //$$     with(Registry.BLOCK_ENTITY) { registerTileEntitiesCallbacks.forEach { it() }}
     //$$     with(Registry.ENTITY_TYPE) { registerEntitiesCallbacks.forEach { it() }}
     //$$     commonInitCallbacks.forEach { it() }
     //$$ }
     //$$
-    //$$ fun clientInit() {
+    //$$ fun clientRegister() {
     //$$     clientPreInitCallbacks.forEach { it() }
     //$$     clientInitCallbacks.forEach { it() }
     //$$ }
