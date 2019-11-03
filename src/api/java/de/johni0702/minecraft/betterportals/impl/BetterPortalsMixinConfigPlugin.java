@@ -85,6 +85,15 @@ public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
         return null;
     }
 
+    //#if MC>=11400 && FABRIC<=0
+    //$$ @Override
+    //$$ public void preApply(String targetClassName, org.objectweb.asm.tree.ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
+    //$$ }
+    //$$
+    //$$ @Override
+    //$$ public void postApply(String targetClassName, org.objectweb.asm.tree.ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
+    //$$ }
+    //#else
     @Override
     public void preApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
     }
@@ -92,6 +101,7 @@ public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
     @Override
     public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
     }
+    //#endif
 
     public BetterPortalsMixinConfigPlugin() throws IOException {
     }
