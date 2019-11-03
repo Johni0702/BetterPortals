@@ -137,15 +137,56 @@ if (loom) {
     afterEvaluate {
         // While loom does try to support mixin, it doesn't do so well for multiple source sets, so we'll do it ourselves
         val loom = the<LoomGradleExtension>()
+        val compileTasks = mutableListOf<TaskProvider<*>>()
+        val mixinMaps = mutableListOf<File>()
         mixinRefMaps.forEach { (name, refMap) ->
-            tasks.named<JavaCompile>("compile${name.capitalize()}Java") {
+            val mixinMap = File(project.buildDir, "tmp/mixins/mixins.$name.tiny")
+            val compileTask = tasks.named<JavaCompile>("compile${name.capitalize()}Java") {
+                outputs.file(mixinMap)
                 outputs.file(refMap)
                 options.compilerArgs.addAll(listOf(
                         "-AinMapFileNamedIntermediary=" + loom.mappingsProvider.MAPPINGS_TINY.canonicalPath,
-                        "-AoutMapFileNamedIntermediary=" + loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT.canonicalPath,
+                        "-AoutMapFileNamedIntermediary=" + mixinMap,
                         "-AoutRefMapFile=" + refMap.canonicalPath,
                         "-AdefaultObfuscationEnv=named:intermediary"
                 ))
+            }
+            if (name != "integrationTest") {
+                mixinMaps.add(mixinMap)
+                compileTasks.add(compileTask)
+            }
+        }
+        // The remap task expects a single mixin-generated mapping file, not one per source-set (it doesn't do source sets)
+        val mergedMixinMap = File(project.buildDir, "tmp/mixins/mixins.tiny")
+        val mergeMixinMapsTask = tasks.register("mergeMixinMapsForRemap") {
+            compileTasks.forEach { dependsOn(it) }
+            mixinMaps.forEach { inputs.file(it) }
+            outputs.file(mergedMixinMap)
+            doLast {
+                var result = mutableListOf<String>()
+                for (src in mixinMaps) {
+                    if (result.isEmpty()) {
+                        result.addAll(src.readLines())
+                    } else {
+                        // trim header
+                        result.addAll(src.readLines().drop(1))
+                    }
+                }
+                mergedMixinMap.writeText(result.joinToString("\n"))
+            }
+        }
+        tasks.named<RemapJarTask>("remapJar") {
+            dependsOn(mergeMixinMapsTask)
+            inputs.file(mergedMixinMap)
+
+            // Unfortunately there doesn't seem to be any better way to configure this
+            var orgPath: File? = null
+            doFirst {
+                orgPath = loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT
+                loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT = mergedMixinMap
+            }
+            doLast {
+                loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT = orgPath!!
             }
         }
     }
