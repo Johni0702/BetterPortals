@@ -257,7 +257,11 @@ dependencies {
         "minecraft"("net.minecraftforge:forge:1.14.4-28.1.70")
     }
     if (mcVersion >= 11400) {
-        // TODO shade
+        if (fabric) {
+            "include"("org.lwjgl.lwjgl:lwjgl_util:2.9.3")
+        } else {
+            // TODO shade
+        }
         "compile"("org.lwjgl.lwjgl:lwjgl_util:2.9.3") {
             isTransitive = false // only want vec, mat, quat, etc.
         }
@@ -270,6 +274,7 @@ dependencies {
         "include"("me.zeroeightsix:fiber:0.8.0-1")
         "modCompile"("me.zeroeightsix:fiber:0.8.0-1")
 
+        "include"("javax.vecmath:vecmath:1.5.2")
         "compile"("javax.vecmath:vecmath:1.5.2")
 
         "compile"("com.google.code.findbugs:jsr305:3.0.2") // Minecraft provides this, not sure why loom doesn't
