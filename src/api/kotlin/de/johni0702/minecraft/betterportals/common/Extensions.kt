@@ -607,4 +607,5 @@ operator fun <T, V> ThreadLocal<V>.provideDelegate(thisRef: T, prop: KProperty<*
     }
 }
 
-val hasVivecraft by lazy { Launch.classLoader.getClassBytes("org.vivecraft.asm.VivecraftASMTransformer") != null }
+// Note: Checking for both because the first one is in the non-VR version as well while the second one is always available in a dev env (even though vivecraft is not)
+val hasVivecraft by lazy { Launch.classLoader.getClassBytes("org.vivecraft.asm.VivecraftASMTransformer") != null && Launch.classLoader.getClassBytes("org.vivecraft.provider.MCOpenVR") != null }

@@ -18,6 +18,8 @@ public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
     private boolean hasCC = Launch.classLoader.getClassBytes("io.github.opencubicchunks.cubicchunks.core.asm.coremod.CubicChunksCoreMod") != null;
     private boolean hasSponge = Launch.classLoader.getClassBytes("org.spongepowered.common.SpongePlatform") != null;
     private boolean hasVC = Launch.classLoader.getClassBytes("org.vivecraft.asm.VivecraftASMTransformer") != null;
+    private boolean vcVR = hasVC && Launch.classLoader.getClassBytes("org.vivecraft.provider.MCOpenVR") != null;
+    private boolean vcNonVR = hasVC && !vcVR;
 
     {
         if (!hasKotlin) {
@@ -27,18 +29,24 @@ public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
         logger.debug("hasOF: " + hasOF);
         logger.debug("hasCC: " + hasCC);
         logger.debug("hasSponge: " + hasSponge);
-        logger.debug("hasVC: " + hasVC);
+        logger.debug("hasVC: " + hasVC + " (VR: " + vcVR + ")");
     }
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         if (!hasKotlin) return false;
-        if (hasVC) {
+        if (vcVR) {
             if (mixinClassName.endsWith("MixinEntityRenderer_NoOF")) {
                 return true;
             }
             if (mixinClassName.endsWith("MixinEntityRenderer_OF")) {
                 return false;
+            }
+        }
+        if (vcNonVR) {
+            // Patreon file downloader exists in non-vr version as well
+            if (mixinClassName.endsWith("AbstractClientPlayer_VC")) {
+                return true;
             }
         }
         if (mixinClassName.endsWith("_OF")) return hasOF;
@@ -47,8 +55,8 @@ public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
         if (mixinClassName.endsWith("_NoCC")) return !hasCC;
         if (mixinClassName.endsWith("_Sponge")) return hasSponge;
         if (mixinClassName.endsWith("_NoSponge")) return !hasSponge;
-        if (mixinClassName.endsWith("_VC")) return hasVC;
-        if (mixinClassName.endsWith("_NoVC")) return !hasVC;
+        if (mixinClassName.endsWith("_VC")) return vcVR;
+        if (mixinClassName.endsWith("_NoVC")) return !vcVR;
         return true;
     }
 
