@@ -2,6 +2,7 @@ package de.johni0702.minecraft.betterportals.impl.vanilla.common.entity
 
 import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.entity.OneWayPortalEntity
+import de.johni0702.minecraft.betterportals.common.util.TickTimer
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.END_PORTAL_CONFIG
 import net.minecraft.block.Block
 import net.minecraft.block.BlockEndPortal
@@ -53,12 +54,25 @@ class EndExitPortalEntity(
     override val portalFrameBlock: Block
         get() = Blocks.BEDROCK
 
+    /**
+     * Check if the world spawn has changed and therefore if this portal should relocated when this timer reaches 0.
+     */
+    private val checkWorldSpawnDelay = TickTimer(60 * 20, world)
+
     override fun onUpdate() {
         if (!world.isRemote && !isTailEnd) {
             // Destruction of the end exit portal does not call [Block.neighborChanged], so we need to check here
             // manually for the disappearance of our portal.
             if (portal.localBlocks.any { world.getBlockState(it).block !is BlockEndPortal }) {
                 setDead()
+            }
+        }
+        if (!world.isRemote && isTailEnd) {
+            checkWorldSpawnDelay.tick("checkWorldSpawn") {
+                // Just update the original position, the normal tail obstruction check will take it from there.
+                originalTailPos = world.getTopSolidOrLiquidBlock(world.spawnPoint).add(0, 40, 0).let {
+                    if (it.y > world.height) BlockPos(it.x, world.height - 1, it.z) else it
+                }
             }
         }
         super.onUpdate()
