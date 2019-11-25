@@ -55,9 +55,15 @@ public abstract class MixinMinecraft implements IHasMainThread {
      * @author johni0702
      */
     @Overwrite
+    //#if FABRIC>=1
+    //$$ protected Thread getThread() {
+    //$$     return clientThread;
+    //$$ }
+    //#else
     public boolean isCallingFromMinecraftThread() {
         return Thread.currentThread() == clientThread;
     }
+    //#endif
 
     @Override
     public void setMainThread() {

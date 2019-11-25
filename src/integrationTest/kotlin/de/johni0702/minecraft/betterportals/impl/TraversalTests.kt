@@ -1,7 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.dimensionId
-import de.johni0702.minecraft.betterportals.common.pos
+import de.johni0702.minecraft.betterportals.common.tickPos
 import de.johni0702.minecraft.betterportals.common.to3dMid
 import de.johni0702.minecraft.betterportals.common.toDimensionId
 import de.johni0702.minecraft.betterportals.impl.worlds.DoubleNetherPortalSetup
@@ -98,7 +98,7 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
     fun testTeleportAfterTraversal() {
         moveUpThroughPortal()
         moveDownThroughPortal()
-        sendTpCommand(mc.player.pos)
+        sendTpCommand(mc.player.tickPos)
 
         updateClient()
         mc.world.dimensionId shouldBe 0.toDimensionId()
@@ -111,14 +111,14 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
     @Test
     fun testTeleportDuringTraversal() {
         moveUpThroughPortal()
-        val tpPos = mc.player.pos
+        val tpPos = mc.player.tickPos
         sendTpCommand(tpPos)
         moveDownThroughPortal()
 
         mc.world.dimensionId shouldBe 0.toDimensionId()
         updateClient()
         mc.world.dimensionId shouldBe (-1).toDimensionId()
-        mc.player.pos shouldBe tpPos
+        mc.player.tickPos shouldBe tpPos
 
         moveDownThroughPortal()
         mc.world.dimensionId shouldBe 0.toDimensionId()
@@ -130,14 +130,14 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
      */
     @Test
     fun testTeleportBeforeTraversal() {
-        val tpPos = mc.player.pos
+        val tpPos = mc.player.tickPos
         sendTpCommand(tpPos)
         moveUpThroughPortal()
 
         mc.world.dimensionId shouldBe (-1).toDimensionId()
         updateClient()
         mc.world.dimensionId shouldBe 0.toDimensionId()
-        mc.player.pos shouldBe tpPos
+        mc.player.tickPos shouldBe tpPos
 
         // Make sure it's not horribly broken in some way
         testSimpleTraversal()
@@ -149,7 +149,7 @@ open class SinglePortalTraversalTests : AnnotationSpec() {
      */
     @Test
     fun testTeleportBeforeNestedTraversal() {
-        sendTpCommand(mc.player.pos)
+        sendTpCommand(mc.player.tickPos)
         moveUpThroughPortal()
         moveDownThroughPortal()
 
@@ -259,23 +259,23 @@ open class NearTeleporterTraversalTests : AnnotationSpec() {
         lookAt(BlockPos(0, 10, 10).to3dMid())
 
         mc.player.updateMovement { forwardKeyDown = true; moveForward += 1 }
-        var prevPos = mc.player.pos
+        var prevPos = mc.player.tickPos
         repeat(10) {
             tickClient()
             tickServer()
-            mc.player.pos.x shouldBe prevPos.x
-            mc.player.pos.y shouldBe prevPos.y
-            mc.player.pos.z shouldNotBe prevPos.z
-            mc.player.pos.z.shouldBeBetween(-2.0, 2.0, 0.0)
-            prevPos = mc.player.pos
+            mc.player.tickPos.x shouldBe prevPos.x
+            mc.player.tickPos.y shouldBe prevPos.y
+            mc.player.tickPos.z shouldNotBe prevPos.z
+            mc.player.tickPos.z.shouldBeBetween(-2.0, 2.0, 0.0)
+            prevPos = mc.player.tickPos
         }
         mc.player.updateMovement { forwardKeyDown = false }
         tickClient()
 
-        prevPos = mc.player.pos
+        prevPos = mc.player.tickPos
         tickServer()
         updateClient()
-        mc.player.pos shouldBe prevPos
+        mc.player.tickPos shouldBe prevPos
     }
 
     /**
@@ -287,25 +287,25 @@ open class NearTeleporterTraversalTests : AnnotationSpec() {
         lookAt(BlockPos(0, 10, -10).to3dMid())
 
         mc.player.updateMovement { forwardKeyDown = true; moveForward += 1 }
-        var prevPos = mc.player.pos
+        var prevPos = mc.player.tickPos
         repeat(10) {
             tickClient()
             tickServer()
-            mc.player.pos.x shouldBe prevPos.x
-            mc.player.pos.y shouldBe prevPos.y
-            mc.player.pos.z shouldBeLessThanOrEqual prevPos.z
-            prevPos = mc.player.pos
+            mc.player.tickPos.x shouldBe prevPos.x
+            mc.player.tickPos.y shouldBe prevPos.y
+            mc.player.tickPos.z shouldBeLessThanOrEqual prevPos.z
+            prevPos = mc.player.tickPos
         }
         mc.player.updateMovement { forwardKeyDown = false }
         tickClient()
 
         // Player should have walked against the back wall of the teleporter
-        mc.player.pos.z.shouldBeBetween(-0.7, -0.7, 0.1)
+        mc.player.tickPos.z.shouldBeBetween(-0.7, -0.7, 0.1)
 
-        prevPos = mc.player.pos
+        prevPos = mc.player.tickPos
         tickServer()
         updateClient()
-        mc.player.pos shouldBe prevPos
+        mc.player.tickPos shouldBe prevPos
     }
 }
 //#endif

@@ -17,10 +17,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @SideOnly(Side.CLIENT)
 @Mixin(NetHandlerPlayServer.class)
 public abstract class MixinNetHandlerPlayServer {
+    // TODO preprocessor should handle this?
+    //#if FABRIC>=1
+    //$$ @Inject(method = "onCustomPayload", at = @At("HEAD"), cancellable = true)
+    //#else
     @Inject(method = "processCustomPayload", at = @At("HEAD"), cancellable = true)
+    //#endif
     private void onCustomPayload(CPacketCustomPayload packet, CallbackInfo ci) {
         //#if MC>=11400
+        //#if FABRIC>=1
+        //$$ if (true) { // cannot get packet name, so for now assume we're the only once using that packet
+        //#else
         //$$ if (new ResourceLocation("betterportals", "testsync").equals(packet.getName())) {
+        //#endif
         //#else
         if ("testsync".equals(packet.getChannelName())) {
         //#endif

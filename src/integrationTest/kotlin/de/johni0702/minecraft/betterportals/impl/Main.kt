@@ -4,13 +4,17 @@ import de.johni0702.minecraft.view.impl.net.Transaction
 import io.kotlintest.*
 import io.kotlintest.extensions.TestListener
 import net.minecraft.client.Minecraft
-import net.minecraftforge.fml.client.registry.RenderingRegistry
 import org.junit.platform.engine.discovery.DiscoverySelectors.selectClass
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder
 import org.junit.platform.launcher.core.LauncherFactory
 import org.junit.platform.launcher.listeners.SummaryGeneratingListener
 import java.io.PrintWriter
 import java.time.Duration
+
+//#if FABRIC>=1
+//#else
+import net.minecraftforge.fml.client.registry.RenderingRegistry
+//#endif
 
 //#if MC>=11400
 //$$ import org.lwjgl.glfw.GLFW
@@ -47,8 +51,12 @@ fun runTests(): Boolean {
     mc.gameSettings.renderDistanceChunks = 8 // some tests depend on this specific render distance
     Transaction.disableTransactions = true
 
+    //#if FABRIC>=1
+    //$$ // FIXME
+    //#else
     mc.renderManager.entityRenderMap[TestEntity::class.java] = RenderTestEntity(mc.renderManager)
     RenderingRegistry.registerEntityRenderingHandler(TestEntity::class.java) { RenderTestEntity(it) }
+    //#endif
 
     releaseMainThread()
     System.setProperty("kotlintest.project.config", ProjectConfig::class.java.name)

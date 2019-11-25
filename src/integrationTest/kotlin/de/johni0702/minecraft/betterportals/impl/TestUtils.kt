@@ -1,6 +1,5 @@
 package de.johni0702.minecraft.betterportals.impl
 
-import de.johni0702.minecraft.betterportals.common.provideDelegate
 import de.johni0702.minecraft.betterportals.common.toDimensionId
 import de.johni0702.minecraft.betterportals.impl.accessors.AccMinecraft
 import de.johni0702.minecraft.view.client.render.RenderPassEvent
@@ -23,17 +22,26 @@ import net.minecraft.world.GameType
 import net.minecraft.world.WorldServer
 import net.minecraft.world.WorldSettings
 import net.minecraft.world.WorldType
-import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+
+//#if FABRIC>=1
+//$$ import de.johni0702.minecraft.betterportals.impl.accessors.AccServerWorld
+//$$ import de.johni0702.minecraft.view.common.register
+//#else
+import de.johni0702.minecraft.betterportals.common.provideDelegate
+import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
+//#endif
 
 //#if MC>=11400
 //$$ import io.kotlintest.shouldBe
 //$$ import net.minecraft.client.world.ClientWorld
 //$$ import net.minecraft.util.ResourceLocation
 //$$ import net.minecraft.util.text.ITextComponent
+//#if FABRIC<=0
 //$$ import net.minecraftforge.fml.hooks.BasicEventHooks
+//#endif
 //$$ import java.util.concurrent.CompletableFuture
 //$$ import kotlin.streams.toList
 //#else
@@ -76,7 +84,12 @@ fun launchServer() {
 
     updateClient()
     //#if MC>=11400
+    //$$ // TODO https://github.com/ReplayMod/remap/issues/10
+    //#if FABRIC>=1
+    //$$ mc.method_21684() shouldBe 0
+    //#else
     //$$ mc.func_223704_be() shouldBe 0
+    //#endif
     //#else
     (mc as AccMinecraft).scheduledTasks.shouldBeEmpty()
     //#endif
@@ -129,9 +142,16 @@ fun updateClient(skipSync: Boolean = false) {
         }
     }
     //#if MC>=11400
+    //$$ // TODO preprocessor should handle this
+    //#if FABRIC>=1
+    //$$ mc.waitFor {
+    //$$     mc.method_21684() == 0
+    //$$ }
+    //#else
     //$$ mc.driveUntil {
     //$$     mc.func_223704_be() == 0
     //$$ }
+    //#endif
     //#else
     synchronized((mc as AccMinecraft).scheduledTasks) {
         while (!(mc as AccMinecraft).scheduledTasks.isEmpty()) {
@@ -148,9 +168,17 @@ fun tickClient() {
 }
 
 private object SkipRender {
+    //#if FABRIC>=1
+    //$$ var registered = false
+    //#else
     var registered by MinecraftForge.EVENT_BUS
+    //#endif
 
+    //#if FABRIC>=1
+    //$$ init { RenderPassEvent.Prepare.EVENT.register { if (registered) preRenderPass(it) } }
+    //#else
     @SubscribeEvent
+    //#endif
     fun preRenderPass(event: RenderPassEvent.Prepare) {
         event.isCanceled = true
     }
@@ -169,6 +197,9 @@ fun render(partialTicks: Float = mc.renderPartialTicks) {
     (mc as AccMinecraft).framebuffer.bindFramebuffer(true)
     GlStateManager.enableTexture2D()
 
+    //#if FABRIC>=1
+    //$$ mc.gameRenderer.render(partialTicks, 0, true)
+    //#else
     //#if MC>=11400
     //$$ BasicEventHooks.onRenderTickStart(partialTicks)
     //$$ mc.gameRenderer.updateCameraAndRender(partialTicks, 0, true)
@@ -178,6 +209,7 @@ fun render(partialTicks: Float = mc.renderPartialTicks) {
     mc.entityRenderer.updateCameraAndRender(partialTicks, 0)
     FMLCommonHandler.instance().onRenderTickEnd(partialTicks)
     //#endif
+    //#endif
 
     (mc as AccMinecraft).framebuffer.unbindFramebuffer()
 }
@@ -185,7 +217,12 @@ fun render(partialTicks: Float = mc.renderPartialTicks) {
 //#if MC>=11400
 //$$ fun screenshot(name: String? = null): String {
 //$$     val future = CompletableFuture<ITextComponent>()
-//$$     ScreenShotHelper.saveScreenshot(mc.gameDir, name, mc.framebuffer.framebufferWidth, mc.framebuffer.framebufferHeight, (mc as AccMinecraft).framebuffer) {
+//$$     // TODO https://github.com/ReplayMod/remap/issues/10
+    //#if FABRIC>=1
+    //$$ ScreenshotUtils.method_1662(mc.runDirectory, name, mc.framebuffer.viewWidth, mc.framebuffer.viewHeight, (mc as AccMinecraft).framebuffer) {
+    //#else
+    //$$ ScreenShotHelper.saveScreenshot(mc.gameDir, name, mc.framebuffer.framebufferWidth, mc.framebuffer.framebufferHeight, (mc as AccMinecraft).framebuffer) {
+    //#endif
 //$$         future.complete(it)
 //$$     }
 //$$     return future.join().unformattedComponentText
@@ -261,6 +298,10 @@ fun KeyBinding.trigger() {
 }
 
 //#if MC>=11400
+//#if FABRIC>=1
+//$$ val ServerWorld.loadedEntityList get() = (this as AccServerWorld).entitiesById.values.toList()
+//#else
 //$$ val ServerWorld.loadedEntityList get() = entities.toList()
+//#endif
 //$$ val ClientWorld.loadedEntityList get() = allEntities.toList()
 //#endif

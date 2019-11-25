@@ -8,15 +8,21 @@ import org.spongepowered.asm.mixin.Shadow;
 
 import java.io.IOException;
 
+//#if FABRIC>=1
+//#else
 //#if MC>=11400
 //$$ import net.minecraftforge.fml.server.ServerLifecycleHooks;
 //#else
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.StartupQuery;
 //#endif
+//#endif
 
 @Mixin(MinecraftServer.class)
 public abstract class MixinMinecraftServer implements IHasMainThread {
+    //#if FABRIC>=1
+    //$$ // FIXME
+    //#else
     @Shadow public abstract boolean init() throws IOException;
 
     @Shadow private boolean serverIsRunning;
@@ -85,4 +91,5 @@ public abstract class MixinMinecraftServer implements IHasMainThread {
             serverStopped = true;
         }
     }
+    //#endif
 }

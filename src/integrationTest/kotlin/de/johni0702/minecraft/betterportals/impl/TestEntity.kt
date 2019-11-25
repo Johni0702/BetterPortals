@@ -100,12 +100,24 @@ fun WorldClient.verifyTestEntityRenderResults(): Int {
 }
 
 class RenderTestEntity(renderManagerIn: RenderManager) : Render<TestEntity>(renderManagerIn) {
+    // TODO these three preprocessor statements should all be handled by remap, not sure why they aren't
+    //#if FABRIC>=1
+    //$$ override fun getTexture(p0: TestEntity?): Identifier? = null
+    //#else
     override fun getEntityTexture(entity: TestEntity): ResourceLocation? = null
+    //#endif
 
-    // Multipass to ensure portals are rendered before the test entity because we rely on the occlusion query to function
+    //#if FABRIC>=1
+    //$$ override fun render(entity: TestEntity, x: Double, y: Double, z: Double, entityYaw: Float, partialTicks: Float) = Unit
+    //#else
     override fun doRender(entity: TestEntity, x: Double, y: Double, z: Double, entityYaw: Float, partialTicks: Float) = Unit
+    //#endif
     override fun isMultipass(): Boolean = true
+    //#if FABRIC>=1
+    //$$ override fun renderSecondPass(entity: TestEntity, x: Double, y: Double, z: Double, entityYaw: Float, partialTicks: Float) {
+    //#else
     override fun renderMultipass(entity: TestEntity, x: Double, y: Double, z: Double, entityYaw: Float, partialTicks: Float) {
+    //#endif
         val occlusionQuery = OcclusionQuery()
         occlusionQuery.begin()
 
