@@ -31,7 +31,7 @@ object ViewAPIImpl : ViewAPI {
 }
 
 internal object ClientViewAPIImpl : ClientViewAPI {
-    internal val viewManagerImpl by lazy { ClientWorldsManagerImpl() }
+    val viewManagerImpl by lazy { ClientWorldsManagerImpl() }
 
     override fun getWorldsManager(minecraft: Minecraft): ClientWorldsManager? = if (minecraft.player == null) null else viewManagerImpl
     override fun getRenderPassManager(minecraft: Minecraft): RenderPassManager = ViewRenderManager.INSTANCE

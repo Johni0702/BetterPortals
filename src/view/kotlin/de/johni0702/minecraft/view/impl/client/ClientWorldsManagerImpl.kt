@@ -241,7 +241,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
      * Rewinds all changes of main view which haven't been confirmed by the server.
      * Must only be called from main view during update (i.e. caused by a teleport packet sent from the server).
      */
-    internal fun rewindMainView() {
+    fun rewindMainView() {
         val fallbackPos = unconfirmedChanges.firstOrNull()?.fallbackPos ?: return
 
         LOGGER.warn("Got teleport in old main view, rewinding main view changes to before that change..")

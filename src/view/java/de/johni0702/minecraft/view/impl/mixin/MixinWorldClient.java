@@ -38,7 +38,7 @@ public abstract class MixinWorldClient extends World  {
     @Inject(method = "getEntityByID", at = @At("HEAD"), cancellable = true)
     private void getPlayerEntityByID(int entityId, CallbackInfoReturnable<Entity> ci) {
         // Note: Cannot get worldsManager via mc.worldsManager as that'll return null during player swap when mc.player is null
-        ClientWorldsManagerImpl viewManager = ClientViewAPIImpl.INSTANCE.getViewManagerImpl$betterportals_view();
+        ClientWorldsManagerImpl viewManager = ClientViewAPIImpl.INSTANCE.getViewManagerImpl();
         for (ClientState view : viewManager.getViews()) {
             World world = view.getWorld();
             if (world == this) {
