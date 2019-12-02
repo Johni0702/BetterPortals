@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.view.impl.mixin;
 
+import de.johni0702.minecraft.view.impl.server.ViewEntity;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.server.management.PlayerList;
 import net.minecraftforge.common.util.ITeleporter;
@@ -23,5 +24,19 @@ public abstract class MixinPlayerList_NoSponge {
             remap = false)
     private void tearDownViewsBeforeRespawnPacket(EntityPlayerMP player, int dimensionIn, ITeleporter teleporter, CallbackInfo ci) {
         getWorldsManagerImpl(player).beforeTransferToDimension();
+    }
+
+    //
+    // Some mods might attempt to teleport our view entities, suppress that
+    // e.g. https://github.com/Johni0702/BetterPortals/issues/420
+    //
+    @Inject(method = "transferPlayerToDimension(Lnet/minecraft/entity/player/EntityPlayerMP;ILnet/minecraftforge/common/util/ITeleporter;)V",
+            at = @At("HEAD"),
+            cancellable = true,
+            remap = false)
+    private void ignoreIfViewEntity(EntityPlayerMP player, int dimensionIn, ITeleporter teleporter, CallbackInfo ci) {
+        if (player instanceof ViewEntity) {
+            ci.cancel();
+        }
     }
 }

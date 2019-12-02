@@ -1,5 +1,6 @@
 package de.johni0702.minecraft.view.impl.mixin;
 
+import de.johni0702.minecraft.view.impl.server.ViewEntity;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.WorldServer;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,5 +25,18 @@ public abstract class MixinEntityUtil_Sponge {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/network/play/server/SPacketRespawn;<init>(ILnet/minecraft/world/EnumDifficulty;Lnet/minecraft/world/WorldType;Lnet/minecraft/world/GameType;)V"))
     private static void tearDownViewsBeforeRespawnPacket(EntityPlayerMP player, @Coerce Object event, WorldServer initialToWorld, @Coerce Object teleporter, CallbackInfoReturnable<EntityPlayerMP> ci) {
         getWorldsManagerImpl(player).beforeTransferToDimension();
+    }
+
+    //
+    // Some mods might attempt to teleport our view entities, suppress that
+    // e.g. https://github.com/Johni0702/BetterPortals/issues/420
+    //
+    @Inject(method = "transferPlayerToWorld(Lnet/minecraft/entity/player/EntityPlayerMP;Lorg/spongepowered/api/event/entity/MoveEntityEvent$Teleport;Lnet/minecraft/world/WorldServer;Lorg/spongepowered/common/bridge/world/ForgeITeleporterBridge;)Lnet/minecraft/entity/player/EntityPlayerMP;",
+            at = @At("HEAD"),
+            cancellable = true)
+    private static void ignoreIfViewEntity(EntityPlayerMP player, @Coerce Object event, WorldServer initialToWorld, @Coerce Object teleporter, CallbackInfoReturnable<EntityPlayerMP> ci) {
+        if (player instanceof ViewEntity) {
+            ci.cancel();
+        }
     }
 }

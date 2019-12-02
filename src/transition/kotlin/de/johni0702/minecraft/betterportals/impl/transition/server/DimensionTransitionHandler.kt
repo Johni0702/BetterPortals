@@ -25,6 +25,11 @@ internal object DimensionTransitionHandler {
             return false
         }
 
+        val worldsManager = player.worldsManager
+        if (worldsManager.player !== player) {
+            return false // ignore teleport of view entities
+        }
+
         if (teleporter.javaClass.name in knownBadTeleporterClasses) {
             LOGGER.debug("Skipping fancy dimension transition because of bad teleporter class: {}", teleporter.javaClass)
             return false
@@ -32,7 +37,6 @@ internal object DimensionTransitionHandler {
 
         val oldWorld = player.serverWorld
         val newWorld = player.server!!.getWorld(dimension)
-        val worldsManager = player.worldsManager
         val id = nextId++
 
         // Hold on to the old world until the client has finished the transition
