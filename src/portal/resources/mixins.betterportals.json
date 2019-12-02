@@ -4,6 +4,7 @@
   "plugin": "de.johni0702.minecraft.betterportals.impl.BetterPortalsMixinConfigPlugin",
   "mixins": [
     "MixinEntity",
+    "MixinTileEntityEndGateway",
     "MixinWorld"
   ],
   "server": [],
