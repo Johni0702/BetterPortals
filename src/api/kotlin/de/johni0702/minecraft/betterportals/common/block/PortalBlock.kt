@@ -219,7 +219,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
                             }
                         }
                     }
-                } else if (blockState == Blocks.AIR) {
+                } else if (blockState.block == Blocks.AIR) {
                     for ((rotation, blocks) in rotatedPortalBlocks) {
                         val axis = rotation.axis(plane.opposite)
                         if (considerPlacingPortalAt(asyncBlockCache, blocks, pos, axis)) {
