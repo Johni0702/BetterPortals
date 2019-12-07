@@ -41,7 +41,7 @@ public abstract class MixinMinecraftServer implements IHasMainThread {
      */
     @Overwrite
     public void startServerThread() {
-        serverThread = Thread.currentThread();
+        this.serverThread = Thread.currentThread();
         //#if MC<11400
         StartupQuery.reset();
         //#endif
@@ -55,12 +55,12 @@ public abstract class MixinMinecraftServer implements IHasMainThread {
         //#else
         FMLCommonHandler.instance().handleServerStarted();
         //#endif
-        serverIsRunning = true;
+        this.serverIsRunning = true;
     }
 
     @Override
     public void setMainThread() {
-        serverThread = Thread.currentThread();
+        this.serverThread = Thread.currentThread();
     }
 
     /**
@@ -69,10 +69,10 @@ public abstract class MixinMinecraftServer implements IHasMainThread {
      */
     @Overwrite
     public void initiateShutdown() {
-        if (!serverRunning) {
+        if (!this.serverRunning) {
             return;
         }
-        serverRunning = false;
+        this.serverRunning = false;
         //#if MC>=11400
         //$$ ServerLifecycleHooks.handleServerStopping((MinecraftServer) (Object) this);
         //$$ ServerLifecycleHooks.expectServerStopped();
@@ -88,7 +88,7 @@ public abstract class MixinMinecraftServer implements IHasMainThread {
             //#else
             FMLCommonHandler.instance().handleServerStopped();
             //#endif
-            serverStopped = true;
+            this.serverStopped = true;
         }
     }
     //#endif
