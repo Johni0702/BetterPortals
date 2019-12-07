@@ -78,13 +78,13 @@ class BlockBetterTFPortal(override val mod: Any) : BlockTFPortal(), PortalBlock<
         // Let TF determine the optimal target position (and spawn a return portal if necessary)
         val teleporter = TFTeleporter.getTeleporterForDim(remoteWorld.theServer, remoteWorld.provider.dimension)
         val fakePlayer = FakePlayerFactory.getMinecraft(localWorld)
-        fakePlayer.pos = localPos.to3d()
+        fakePlayer.tickPos = localPos.to3d()
         fakePlayer.connection = fakePlayer.connection.also {
             fakePlayer.connection = NetHandlerPlayServer(localWorld.theServer, NetworkManager(EnumPacketDirection.CLIENTBOUND), fakePlayer)
             teleporter.placeInPortal(fakePlayer, 0f)
         }
         // TF places us somewhere randomly close to the exit portal (one block above the portal)
-        val targetPos = BlockPos(fakePlayer.pos).down(1)
+        val targetPos = BlockPos(fakePlayer.tickPos).down(1)
         // It also clears five blocks above that portal, so let's just put our tail end up there
         val remotePos = targetPos.up(5)
 

@@ -226,7 +226,7 @@ open class PortalAgent<P: Portal>(
      */
     fun getEntitySide(entity: Entity): EnumFacing {
         val riddenEntity = entity.lowestRidingEntity
-        val entityPos = lastTickPos[riddenEntity] ?: (riddenEntity.pos + riddenEntity.eyeOffset)
+        val entityPos = lastTickPos[riddenEntity] ?: (riddenEntity.tickPos + riddenEntity.eyeOffset)
         return portal.localFacing.axis.toFacing(entityPos - portal.localPosition.to3dMid())
     }
 
@@ -387,7 +387,7 @@ open class PortalAgent<P: Portal>(
      * up on incorrect sides or immediately teleporting back.
      */
     protected open fun updateEntityPosWithoutTeleport(entity: Entity) {
-        lastTickPos[entity] = entity.pos + entity.eyeOffset
+        lastTickPos[entity] = entity.tickPos + entity.eyeOffset
     }
 
     /**
@@ -399,7 +399,7 @@ open class PortalAgent<P: Portal>(
      */
     protected open fun checkTeleportee(entity: Entity) {
         val portalPos = portal.localPosition.to3dMid()
-        val entityPos = entity.pos + entity.eyeOffset
+        val entityPos = entity.tickPos + entity.eyeOffset
         val entityPrevPos = lastTickPos[entity].also {
             lastTickPos[entity] = entityPos
         } ?: return
@@ -659,7 +659,7 @@ open class PortalAgent<P: Portal>(
             return
         }
 
-        val pos = newEntity.pos
+        val pos = newEntity.tickPos
         val yaw = newEntity.rotationYaw
         val pitch = newEntity.rotationPitch
         newEntity.derivePosRotFrom(entity, portal)
