@@ -30,19 +30,26 @@ public abstract class MixinRenderLivingBase<T extends EntityLivingBase> {
 
     private T entity;
 
-    @Inject(method = "canRenderName", at = @At("HEAD"))
+    //#if FABRIC>=1
+    //$$ @Inject(method = "method_4055", at = @At("HEAD"))
+    //#else
+    @Inject(method = "canRenderName(Lnet/minecraft/entity/EntityLivingBase;)Z", at = @At("HEAD"))
+    //#endif
     private void rememberEntity(T entity, CallbackInfoReturnable<Boolean> cir) {
         this.entity = entity;
     }
 
+    //#if FABRIC>=1
+    //$$ @Redirect(method = "method_4055", at = @At(
+    //#else
+    @Redirect(method = "canRenderName(Lnet/minecraft/entity/EntityLivingBase;)Z", at = @At(
+    //#endif
     //#if MC>=11400
-    //$$ @Redirect(method = "canRenderName", at = @At(
     //$$         value = "INVOKE",
     //$$         target = "Lnet/minecraft/client/renderer/ActiveRenderInfo;getRenderViewEntity()Lnet/minecraft/entity/Entity;"
     //$$ ))
     //$$ private Entity getLogicalViewEntity(ActiveRenderInfo activeRenderInfo) {
     //#else
-    @Redirect(method = "canRenderName", at = @At(
             value = "FIELD",
             opcode = Opcodes.GETFIELD,
             target = "Lnet/minecraft/client/renderer/entity/RenderManager;renderViewEntity:Lnet/minecraft/entity/Entity;"
