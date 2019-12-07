@@ -89,7 +89,12 @@ internal fun EntityPlayer.swapPosRotWith(e2: EntityPlayer) {
 
 internal val <T> LazyLoadBase<T>.maybeValue get() =
     //#if MC>=11400
+    //$$ // TODO https://github.com/ReplayMod/remap/issues/2
+    //#if FABRIC>=1
+    //$$ if ((this as AccLazyLoadBase).supplier == null) get() else null
+    //#else
     //$$ if ((this as AccLazyLoadBase).supplier == null) value else null
+    //#endif
     //#else
     if ((this as AccLazyLoadBase).isLoaded) value else null
     //#endif

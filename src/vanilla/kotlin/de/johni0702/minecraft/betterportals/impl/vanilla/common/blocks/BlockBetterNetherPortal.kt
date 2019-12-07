@@ -36,12 +36,21 @@ import net.minecraft.world.IBlockAccess
 class BlockBetterNetherPortal(override val mod: Any) : BlockPortal(
         //#if MC>=11400
         //$$ makeBlockSettings(Material.PORTAL) {
-        //$$     doesNotBlockMovement()
-        //$$     tickRandomly()
-        //$$     hardnessAndResistance(-1.0f, -1.0f)
-        //$$     sound(SoundType.GLASS)
-        //$$     lightValue(15)
-        //$$     noDrops()
+            //#if FABRIC>=1
+            //$$ noCollision()
+            //$$ ticksRandomly()
+            //$$ strength(-1.0f, -1.0f)
+            //$$ sounds(BlockSoundGroup.GLASS)
+            //$$ lightLevel(15)
+            //$$ dropsNothing()
+            //#else
+            //$$ doesNotBlockMovement()
+            //$$ tickRandomly()
+            //$$ hardnessAndResistance(-1.0f, -1.0f)
+            //$$ sound(SoundType.GLASS)
+            //$$ lightValue(15)
+            //$$ noDrops()
+            //#endif
         //$$ }
         //#endif
 ), BPPortalBlock<NetherPortalEntity> {

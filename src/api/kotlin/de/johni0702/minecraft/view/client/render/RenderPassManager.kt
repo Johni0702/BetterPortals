@@ -5,7 +5,7 @@ import de.johni0702.minecraft.view.client.worldsManager
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.WorldClient
 import de.johni0702.minecraft.view.common.fabricEvent
-import net.minecraftforge.fml.common.eventhandler.Event
+import de.johni0702.minecraft.view.common.Event
 
 /**
  * Manages the way in which multiple views will be rendered in order to produce one final frame.

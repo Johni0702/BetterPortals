@@ -3,8 +3,8 @@ package de.johni0702.minecraft.view.client.render
 import de.johni0702.minecraft.view.common.fabricEvent
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.shader.Framebuffer
-import net.minecraftforge.fml.common.eventhandler.Cancelable
-import net.minecraftforge.fml.common.eventhandler.Event
+import de.johni0702.minecraft.view.common.Cancelable
+import de.johni0702.minecraft.view.common.Event
 
 /**
  * Contains settings and dependencies for rendering a single view.

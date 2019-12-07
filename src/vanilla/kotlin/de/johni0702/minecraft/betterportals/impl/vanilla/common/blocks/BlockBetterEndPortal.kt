@@ -46,10 +46,17 @@ import net.minecraft.world.IBlockAccess
 class BlockBetterEndPortal : BlockEndPortal(
         //#if MC>=11400
         //$$ makeBlockSettings(Material.PORTAL, MaterialColor.BLACK) {
-        //$$     doesNotBlockMovement()
-        //$$     lightValue(15)
-        //$$     hardnessAndResistance(-1.0f, 3600000.0f)
-        //$$     noDrops()
+            //#if FABRIC>=1
+            //$$ noCollision()
+            //$$ lightLevel(15)
+            //$$ strength(-1.0f, 3600000.0f)
+            //$$ dropsNothing()
+            //#else
+            //$$ doesNotBlockMovement()
+            //$$ lightValue(15)
+            //$$ hardnessAndResistance(-1.0f, 3600000.0f)
+            //$$ noDrops()
+            //#endif
         //$$ }
         //#else
         Material.PORTAL

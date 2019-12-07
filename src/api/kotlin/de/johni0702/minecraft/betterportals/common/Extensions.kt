@@ -30,7 +30,6 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
 import net.minecraft.world.World
 import net.minecraft.world.WorldServer
-import net.minecraftforge.fml.common.eventhandler.Event
 import org.lwjgl.util.vector.Quaternion
 import java.lang.IllegalArgumentException
 import java.util.*
@@ -681,11 +680,9 @@ fun World.rayTracePortals(start: Vec3d, end: Vec3d): Pair<World, Matrix4d> {
 }
 
 //#if MC>=11400
-//$$ val RayTraceContext.start get() = func_222253_b()
-//$$ val RayTraceContext.end get() = func_222250_a()
-//$$ operator fun RayTraceContext.component1(): Vec3d = start
-//$$ operator fun RayTraceContext.component2(): Vec3d = end
-//$$ fun RayTraceContext.with(start: Vec3d = this.start, end: Vec3d = this.end) = with(theImpl) { withImpl(start, end) }
+//$$ operator fun RayTraceContext.component1(): Vec3d = func_222253_b()
+//$$ operator fun RayTraceContext.component2(): Vec3d = func_222250_a()
+//$$ fun RayTraceContext.with(start: Vec3d = this.func_222253_b(), end: Vec3d = this.func_222250_a()) = with(theImpl) { withImpl(start, end) }
 //#endif
 
 fun World.rayTraceBlocksWithPortals(

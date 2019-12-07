@@ -1,4 +1,2 @@
 net.fabricmc.api.Environment net.minecraftforge.api.distmarker.OnlyIn
 net.fabricmc.api.EnvType net.minecraftforge.api.distmarker.Dist
-de.johni0702.minecraft.view.common.Cancelable net.minecraftforge.eventbus.api.Cancelable
-de.johni0702.minecraft.view.common.Event net.minecraftforge.eventbus.api.Event

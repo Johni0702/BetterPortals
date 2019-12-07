@@ -32,7 +32,9 @@ package de.johni0702.minecraft.view.common
 //$$ annotation class Cancelable
 //#else
 import net.minecraftforge.common.MinecraftForge
-import net.minecraftforge.fml.common.eventhandler.Event
+
+typealias Event = net.minecraftforge.fml.common.eventhandler.Event
+typealias Cancelable = net.minecraftforge.fml.common.eventhandler.Cancelable
 
 @Deprecated("Only functional in Fabric build.")
 @Suppress("unused") // type parameter exists for (non-fabric) compile-time validation with post()-calls and fabric-parity
