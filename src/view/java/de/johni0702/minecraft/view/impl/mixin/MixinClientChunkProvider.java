@@ -9,6 +9,7 @@
 //$$ import net.minecraft.util.math.SectionPos;
 //$$ import net.minecraft.world.World;
 //$$ import net.minecraft.world.biome.Biome;
+//$$ import net.minecraft.world.chunk.AbstractChunkProvider;
 //$$ import net.minecraft.world.chunk.Chunk;
 //$$ import net.minecraft.world.chunk.ChunkSection;
 //$$ import net.minecraft.world.chunk.ChunkStatus;
@@ -28,7 +29,7 @@
 //$$ // TODO Could probably be replaced with injects instead of overwrites but let's wait for CC first
 //$$ @SuppressWarnings("OverwriteAuthorRequired")
 //$$ @Mixin(ClientChunkProvider.class)
-//$$ public abstract class MixinClientChunkProvider {
+//$$ public abstract class MixinClientChunkProvider extends AbstractChunkProvider {
 //$$     @Shadow @Final private WorldLightManager lightManager;
 //$$     @Shadow @Final private Chunk empty;
 //$$     @Shadow @Final private ClientWorld world;
@@ -91,12 +92,7 @@
 //$$     }
 //$$
 //$$     @Overwrite
-//$$     // FIXME preprocessor should handle this?
-    //#if FABRIC>=1
-    //$$ public String getStatus() {
-    //#else
-    //$$ public String makeString() {
-    //#endif
+//$$     public String makeString() {
 //$$         return "Client Chunk Cache: " + this.getLoadedChunksCount();
 //$$     }
 //$$
