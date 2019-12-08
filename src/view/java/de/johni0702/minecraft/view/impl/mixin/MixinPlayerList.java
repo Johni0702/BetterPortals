@@ -42,13 +42,7 @@ public abstract class MixinPlayerList {
     // So, instead we inject into the relevant packet sending methods here and send them to our view entities as well.
     //
 
-    // FIXME technically the preprocessor could recognize the ambiguity and disambiguate on demand (or at least not drop
-    //       the explicit arguments when converting in the reverse direction
-    //#if FABRIC>=1
-    //$$ @Inject(method = "sendToAll(Lnet/minecraft/network/Packet;)V", at = @At("HEAD"))
-    //#else
     @Inject(method = "sendPacketToAllPlayers", at = @At("HEAD"))
-    //#endif
     private void sendPacketToAllViews(Packet<?> packetIn, CallbackInfo ci) {
         //#if MC>=11400
         //$$ for (ServerWorld world : this.server.getWorlds()) {

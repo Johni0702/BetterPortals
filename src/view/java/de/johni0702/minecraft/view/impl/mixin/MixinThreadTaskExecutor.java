@@ -46,12 +46,7 @@
 //$$         this.blockingQueue = blockingQueue;
 //$$     }
 //$$
-//$$     // FIXME preprocessor should support @ModifyVariable
-    //#if FABRIC>=1
-    //$$ @ModifyVariable(method = "method_18858", at = @At("HEAD"))
-    //#else
-    //$$ @ModifyVariable(method = "enqueue", at = @At("HEAD"))
-    //#endif
+//$$     @ModifyVariable(method = "enqueue", at = @At("HEAD"))
 //$$     private Runnable wrapWithView(Runnable task) {
 //$$         if ((Object) this instanceof Minecraft) {
 //$$             return ViewDemuxingTaskQueue.wrapTask(task);

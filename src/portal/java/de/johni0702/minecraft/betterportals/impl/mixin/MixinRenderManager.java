@@ -10,24 +10,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(RenderManager.class)
 public abstract class MixinRenderManager {
-    // FIXME preprocessor could handle these
-    //#if FABRIC>=1
-    //$$ @Inject(method = "render(Lnet/minecraft/entity/Entity;DDDFFZ)V", at = @At("HEAD"), cancellable = true)
-    //#else
     @Inject(method = "renderEntity", at = @At("HEAD"), cancellable = true)
-    //#endif
     private void beforeRenderEntity(Entity entityIn, double x, double y, double z, float yaw, float partialTicks, boolean p_188391_10_, CallbackInfo ci) {
         if (!PortalRendererHooks.INSTANCE.beforeRender(entityIn)) {
             ci.cancel();
         }
     }
 
-    // FIXME preprocessor could handle these
-    //#if FABRIC>=1
-    //$$ @Inject(method = "render(Lnet/minecraft/entity/Entity;DDDFFZ)V", at = @At("HEAD"), cancellable = true)
-    //#else
     @Inject(method = "renderEntity", at = @At("RETURN"))
-    //#endif
     private void afterRenderEntity(Entity entityIn, double x, double y, double z, float yaw, float partialTicks, boolean p_188391_10_, CallbackInfo ci) {
         PortalRendererHooks.INSTANCE.afterRender(entityIn);
     }

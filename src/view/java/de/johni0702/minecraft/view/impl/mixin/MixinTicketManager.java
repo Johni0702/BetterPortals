@@ -151,12 +151,7 @@
 //$$         this.pos = pos;
 //$$     }
 //$$
-//$$     // FIXME preprocessor should handle @ModifyConstant
-    //#if FABRIC>=1
-    //$$ @ModifyConstant(method = "handleChunkLeave", constant = @Constant(intValue = Integer.MAX_VALUE))
-    //#else
-    //$$ @ModifyConstant(method = "removePlayer", constant = @Constant(intValue = Integer.MAX_VALUE))
-    //#endif
+//$$     @ModifyConstant(method = "removePlayer", constant = @Constant(intValue = Integer.MAX_VALUE))
 //$$     private int getSourceLevelWithViews(int invalidLevel) {
 //$$         return getSourceLevelForChunk(pos.asLong());
 //$$     }

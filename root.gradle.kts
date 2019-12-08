@@ -25,7 +25,7 @@ buildscript {
 plugins {
     kotlin("jvm") version "1.3.40" apply false
     id("fabric-loom") version "0.2.5-SNAPSHOT" apply false
-    id("com.replaymod.preprocess") version "897066f"
+    id("com.replaymod.preprocess") version "b744ea7"
 }
 
 version = determineVersion()
