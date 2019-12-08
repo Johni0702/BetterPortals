@@ -2,7 +2,7 @@
 package de.johni0702.minecraft.betterportals.impl.travelhuts.common.blocks
 
 import de.johni0702.minecraft.betterportals.common.FinitePortal
-import de.johni0702.minecraft.betterportals.common.forceSpawnEntity
+import de.johni0702.minecraft.betterportals.common.forceAddEntity
 import de.johni0702.minecraft.betterportals.common.toFacing
 import de.johni0702.minecraft.betterportals.common.toRotation
 import de.johni0702.minecraft.betterportals.impl.travelhuts.common.TRAVELHUTS_MOD_ID
@@ -101,8 +101,8 @@ class BlockBetterTravelHutsPortal : BlockHutPortal("$TRAVELHUTS_MOD_ID:blockhutp
 
         val localEntity = TravelHutsPortalEntity(world, localPortal)
         val remoteEntity = TravelHutsPortalEntity(world, FinitePortal(EnumFacing.Plane.VERTICAL, blocks, dim, dstPos, facing.toRotation()))
-        world.forceSpawnEntity(localEntity)
-        world.forceSpawnEntity(remoteEntity)
+        world.forceAddEntity(localEntity)
+        world.forceAddEntity(remoteEntity)
         localEntity.link(remoteEntity)
     }
 

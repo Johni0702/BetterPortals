@@ -93,11 +93,11 @@ class BlockBetterTFPortal(override val mod: Any) : BlockTFPortal(), PortalBlock<
         localPortal.localBlocks.forEach {
             localWorld.setBlockState(it, portalBlock, 2)
         }
-        localWorld.forceSpawnEntity(localEntity)
+        localWorld.forceAddEntity(localEntity)
 
         val remotePortal = FinitePortal(EnumFacing.Plane.HORIZONTAL, portalBlocks, remoteDim, remotePos, rot)
         val remoteEntity = createPortalEntity(false, remoteWorld, remotePortal)
-        remoteWorld.forceSpawnEntity(remoteEntity)
+        remoteWorld.forceAddEntity(remoteEntity)
 
         localEntity.link(remoteEntity)
 
