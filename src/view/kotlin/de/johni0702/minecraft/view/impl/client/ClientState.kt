@@ -272,7 +272,7 @@ internal class ClientState(
                     //#if MC>=11400
                     //$$ 0,
                     //$$ mc.profiler,
-                    //$$ mc.worldRenderer
+                    //$$ view.renderGlobal!!
                     //#else
                     message.difficulty!!,
                     mc.mcProfiler
