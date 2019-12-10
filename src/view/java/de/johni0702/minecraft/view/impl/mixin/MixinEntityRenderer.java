@@ -14,6 +14,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+//#if FABRIC>=1
+//$$ import de.johni0702.minecraft.view.impl.client.render.FOVSetupEvent;
+//$$ import net.minecraft.client.render.Camera;
+//$$ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+//#endif
+
 @Mixin(EntityRenderer.class)
 public abstract class MixinEntityRenderer {
     @Shadow @Final private Minecraft mc;
@@ -50,4 +56,13 @@ public abstract class MixinEntityRenderer {
         if (distance == null) return;
         this.farPlaneDistance = distance.floatValue();
     }
+
+    //#if FABRIC>=1
+    //$$ @Inject(method = "getFov", at = @At("RETURN"), cancellable = true)
+    //$$ private void reuseFovInInnerViews(Camera camera_1, float float_1, boolean boolean_1, CallbackInfoReturnable<Double> ci) {
+    //$$     FOVSetupEvent event = new FOVSetupEvent(ci.getReturnValue());
+    //$$     FOVSetupEvent.EVENT.invoker().handle(event);
+    //$$     ci.setReturnValue(event.getFov());
+    //$$ }
+    //#endif
 }

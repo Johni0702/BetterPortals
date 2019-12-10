@@ -633,7 +633,6 @@ internal class ViewRenderPlan(
 //$$ data class CameraSetupEvent(var yaw: Float, var pitch: Float, var roll: Float) : Event()
 //$$ { companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<CameraSetupEvent>() } }
 //$$
-//$$ // TODO actually invoke it from somewhere
 //$$ data class FOVSetupEvent(var fov: Double) : Event()
 //$$ { companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<FOVSetupEvent>() } }
 //$$
