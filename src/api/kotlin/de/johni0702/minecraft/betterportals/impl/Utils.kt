@@ -188,7 +188,11 @@ fun registerPortalAccessor(factory: (World) -> PortalAccessor) {
 //$$     registerImpl(handler, id, T::class.java)
 //$$ }
 //$$ fun SimpleChannel.toVanilla(packet: IMessage): Packet<*> = toVanillaImpl(packet)
-//$$ fun MessageContext.sync(task: () -> Unit) = taskQueue.executeSync(task)
+//$$ fun MessageContext.sync(task: () -> Unit) {
+//$$     if (!taskQueue.isOnThread) {
+//$$         taskQueue.execute(task)
+//$$     }
+//$$ }
 //$$ val MessageContext.serverPlayer get() = player as ServerPlayerEntity
 //#else
 //$$ fun createNetworkChannel(id: ResourceLocation): SimpleChannel {
