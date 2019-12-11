@@ -98,7 +98,12 @@ fun initVanilla(
 
     registerBlocks {
         if (enableNetherPortals) {
-            register(ResourceLocation("minecraft", "nether_portal"), BlockBetterNetherPortal(mod))
+            //#if MC>=11400
+            //$$ val id = "nether_portal"
+            //#else
+            val id = "portal"
+            //#endif
+            register(ResourceLocation("minecraft", id), BlockBetterNetherPortal(mod))
         }
         if (enableEndPortals) {
             register(ResourceLocation("minecraft", "end_portal"), BlockBetterEndPortal())
