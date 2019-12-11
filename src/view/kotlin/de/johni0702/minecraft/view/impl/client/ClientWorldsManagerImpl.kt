@@ -2,9 +2,11 @@ package de.johni0702.minecraft.view.impl.client
 
 import de.johni0702.minecraft.betterportals.common.popOrNull
 import de.johni0702.minecraft.betterportals.common.pos
+import de.johni0702.minecraft.betterportals.common.post
 import de.johni0702.minecraft.betterportals.common.removeAtOrNull
 import de.johni0702.minecraft.view.client.ClientWorldsManager
 import de.johni0702.minecraft.view.impl.LOGGER
+import de.johni0702.minecraft.view.impl.common.clientSyncIgnoringView
 import io.netty.buffer.ByteBuf
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
@@ -17,6 +19,7 @@ import net.minecraft.util.math.Vec3d
 import net.minecraft.world.EnumDifficulty
 import net.minecraftforge.client.event.RenderGameOverlayEvent
 import net.minecraftforge.common.MinecraftForge
+import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.fml.common.eventhandler.EventPriority
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
@@ -102,9 +105,8 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         mainView = ClientState(this, null, null, null, null).also { it.captureState(mc) }
         activeView = mainView
 
-        unusedViews.addAll(views)
-        unusedViews.forEach { it.isValid = false }
-        views.clear()
+        views.toList().forEach(this::destroyState)
+        check(views.isEmpty()) { "Even after destroying all non-main views, there are still non-main views remaining." }
         views.add(mainView)
     }
 
@@ -124,6 +126,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         if (view == mainView) throw IllegalArgumentException("Cannot remove main view")
 
         withView(view) {
+            mc.world?.let { WorldEvent.Unload(it).post() }
             mc.renderGlobal.setWorldAndLoadRenderers(null)
         }
 
@@ -388,7 +391,9 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
 
         @SubscribeEvent(priority = EventPriority.LOW)
         fun onDisconnect(event: FMLNetworkEvent.ClientDisconnectionFromServerEvent) {
-            reset()
+            clientSyncIgnoringView {
+                reset()
+            }
         }
 
         @SubscribeEvent
