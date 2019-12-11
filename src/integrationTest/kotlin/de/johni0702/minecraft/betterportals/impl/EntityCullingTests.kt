@@ -44,8 +44,8 @@ class EntityCullingTests : AnnotationSpec() {
         val local = mc.world as WorldClient
         val remote = mc.worldsManager!!.worlds.find { it != local }!!
 
-        local.provider.dimensionType shouldBe 0.toDimensionId()
-        remote.provider.dimensionType shouldBe (-1).toDimensionId()
+        local.dimensionId shouldBe 0.toDimensionId()
+        remote.dimensionId shouldBe (-1).toDimensionId()
 
         // Local world, inside portal, bottom/near side
         TestEntity.shouldBeVisible(local, localPortal + slightlyBelow)
@@ -195,8 +195,8 @@ class EntityTraversalRenderTests : AnnotationSpec() {
         val local = mc.world as WorldClient
         val remote = mc.worldsManager!!.worlds.find { it != local }!!
 
-        local.provider.dimensionType shouldBe 0.toDimensionId()
-        remote.provider.dimensionType shouldBe (-1).toDimensionId()
+        local.dimensionId shouldBe 0.toDimensionId()
+        remote.dimensionId shouldBe (-1).toDimensionId()
 
         val overworldEntity = TestEntity(serverOverworld).apply {
             with(startPos - eyeOffset) { setPosition(x, y, z) }
