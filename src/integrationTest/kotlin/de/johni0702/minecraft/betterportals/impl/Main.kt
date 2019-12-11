@@ -12,12 +12,16 @@ import java.io.PrintWriter
 import java.time.Duration
 
 //#if FABRIC>=1
+//$$ import net.fabricmc.loader.launch.common.FabricLauncherBase
+//$$ import net.fabricmc.loader.util.UrlUtil
 //#else
 import net.minecraftforge.fml.client.registry.RenderingRegistry
 //#endif
 
 //#if MC>=11400
 //$$ import org.lwjgl.glfw.GLFW
+//$$ import org.lwjgl.opengl.GL
+//$$ import org.lwjgl.opengl.GLCapabilities
 //#else
 import org.lwjgl.opengl.Display
 import net.minecraft.util.ResourceLocation
@@ -25,9 +29,31 @@ import net.minecraftforge.fml.common.registry.EntityRegistry
 //#endif
 
 lateinit var mc: Minecraft
+//#if MC>=11400
+//$$ lateinit var glCapabilities: GLCapabilities
+//#endif
 
 fun preInitTests(mcIn: Minecraft) {
     mc = mcIn
+
+    // kotlintest loads our test classes via Class.forName(String), so we need to ensure it is loaded on the same
+    // classloader as MC / our mod.
+    addJarToModClassLoader("org.junit.platform.launcher.core.DefaultLauncher")
+    addJarToModClassLoader("org.junit.platform.engine.discovery.DiscoverySelectors")
+    addJarToModClassLoader("org.junit.jupiter.engine.JupiterTestEngine")
+    addJarToModClassLoader("io.kotlintest.runner.jvm.TestDiscovery")
+    addJarToModClassLoader("io.kotlintest.runner.junit5.KotlinTestEngine")
+}
+
+private fun addJarToModClassLoader(className: String) {
+    //#if FABRIC>=1
+    //$$ val launcher = FabricLauncherBase.getLauncher()
+    //$$ val classLoader = launcher.targetClassLoader
+    //$$ val fileName = className.replace('.', '/') + ".class"
+    //$$ val url = classLoader.getResource(fileName)!!
+    //$$ val urlSource = UrlUtil.getSource(fileName, url)
+    //$$ launcher.propose(urlSource)
+    //#endif
 }
 
 fun initTests() {
@@ -58,6 +84,9 @@ fun runTests(): Boolean {
     RenderingRegistry.registerEntityRenderingHandler(TestEntity::class.java) { RenderTestEntity(it) }
     //#endif
 
+    //#if MC>=11400
+    //$$ glCapabilities = GL.getCapabilities()
+    //#endif
     releaseMainThread()
     System.setProperty("kotlintest.project.config", ProjectConfig::class.java.name)
 
@@ -96,6 +125,7 @@ object ProjectConfig : AbstractProjectConfig() {
 fun acquireMainThread() {
     //#if MC>=11400
     //$$ GLFW.glfwMakeContextCurrent(mc.mainWindow.handle)
+    //$$ GL.setCapabilities(glCapabilities)
     //#else
     Display.getDrawable().makeCurrent()
     //#endif
@@ -106,6 +136,7 @@ fun acquireMainThread() {
 fun releaseMainThread() {
     //#if MC>=11400
     //$$ GLFW.glfwMakeContextCurrent(0)
+    //$$ GL.setCapabilities(null)
     //#else
     Display.getDrawable().releaseContext()
     //#endif

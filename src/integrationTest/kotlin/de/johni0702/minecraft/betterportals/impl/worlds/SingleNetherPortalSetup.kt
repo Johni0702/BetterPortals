@@ -56,13 +56,17 @@ open class SingleNetherPortalSetup : EmptyWorldSetup() {
         buildFrame(serverOverworld, BlockPos(0, 20, 0))
         buildFrame(serverNether, BlockPos(20, 80, 20))
 
+        // Need something below the fire to be able to place it in 1.14
+        // using (tall) grass because of its smaller hitbox and because it automatically breaks once on fire
+        serverOverworld.setBlockState(BlockPos(1, 19, 0), Blocks.GRASS.defaultState)
+
         sendMessage("/give @p minecraft:flint_and_steel")
 
         tickServer()
         updateClient()
         mc.player.heldItemMainhand.item shouldBe Items.FLINT_AND_STEEL
 
-        moveTo(BlockPos(0, 17, 0).to3dMid())
+        moveTo(BlockPos(0, 17, 0).to3dMid().addVector(0.0, 0.5, 0.0))
 
         val targetPos = BlockPos(1, 20, 0)
         lookAt(targetPos.to3dMid().addVector(0.5, 0.0, 0.0))
@@ -87,6 +91,9 @@ open class SingleNetherPortalSetup : EmptyWorldSetup() {
         until(10.seconds, { serverOverworld.portalManager.loadedPortals.first().remoteAgent != null }) {
             tickServer()
         }
+
+        // Move player back to where all tests assume them to be (had to move them up for 1.14)
+        moveTo(BlockPos(0, 17, 0).to3dMid())
 
         // Sync portal and remote world with client
         repeat(10) { tickServer() }

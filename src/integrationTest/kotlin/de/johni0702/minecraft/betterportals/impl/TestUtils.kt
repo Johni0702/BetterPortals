@@ -50,6 +50,12 @@ import net.minecraft.util.Util
 import net.minecraftforge.fml.common.FMLCommonHandler
 //#endif
 
+//#if MC>=11400
+//$$ interface IRender {
+//$$     fun invokeRender();
+//$$ }
+//#endif
+
 val TEST_WORLD_SETTINGS = WorldSettings(0, GameType.CREATIVE, true, false, WorldType.FLAT).apply {
     enableCommands()
 }
@@ -82,6 +88,12 @@ fun launchServer() {
         tickServer()
     }
 
+    //#if MC>=11400
+    //$$ while (mc.isGamePaused) {
+    //$$     (mc as IRender).invokeRender()
+    //$$ }
+    //#endif
+
     updateClient()
     //#if MC>=11400
     //$$ // TODO https://github.com/ReplayMod/remap/issues/10
@@ -103,6 +115,7 @@ fun launchServer() {
 fun closeServer() {
     mc.world.sendQuittingDisconnectingPacket()
     //#if MC>=11400
+    //$$ mc.integratedServer?.close()
     //$$ mc.func_213254_o()
     //#else
     mc.loadWorld(null)
@@ -259,6 +272,15 @@ fun tickServer() {
         serverSyncCond.await()
     }
     //#if MC>=11400
+    //#if FABRIC>=1
+    //$$ server.waitFor {
+    //$$     server.method_21684() == 0
+    //$$ }
+    //#else
+    //$$ server.driveUntil {
+    //$$     server.func_223704_be() == 0
+    //$$ }
+    //#endif
     //$$ server.tick { true }
     //#else
     server.tick()
@@ -293,7 +315,13 @@ fun EntityPlayerSP.updateMovement(update: TestMovementInput.() -> Unit) {
 }
 
 fun KeyBinding.trigger() {
-    val field = javaClass.getDeclaredField("pressTime").apply { isAccessible = true }
+    val field = javaClass.getDeclaredField(
+            //#if FABRIC>=1
+            //$$ "timesPressed"
+            //#else
+            "pressTime"
+            //#endif
+    ).apply { isAccessible = true }
     field[this] = (field[this] as Int) + 1
 }
 

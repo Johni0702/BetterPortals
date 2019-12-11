@@ -12,9 +12,33 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+//#if MC>=11400
+//$$ import de.johni0702.minecraft.betterportals.impl.IRender;
+//$$ import net.minecraft.client.gui.LoadingGui;
+//$$ import org.spongepowered.asm.mixin.Shadow;
+//#endif
+
 @SideOnly(Side.CLIENT)
 @Mixin(Minecraft.class)
-public abstract class MixinMinecraft implements IHasMainThread {
+public abstract class MixinMinecraft implements IHasMainThread
+    //#if MC>=11400
+    //$$ , IRender
+    //#endif
+{
+    //#if MC>=11400
+    //$$ @Shadow public LoadingGui loadingGui;
+    //$$
+    //$$ @Shadow protected abstract void runGameLoop(boolean boolean_1);
+    //$$
+    //$$ @Shadow private boolean isGamePaused;
+    //$$
+    //$$ @Override
+    //$$ public void invokeRender() {
+    //$$     runGameLoop(true);
+    //$$ }
+    //$$
+    //#endif
+
     @Inject(method = "init", at = @At("HEAD"))
     private void preInitTests(CallbackInfo ci) {
         MainKt.preInitTests((Minecraft) (Object) this);
@@ -27,6 +51,12 @@ public abstract class MixinMinecraft implements IHasMainThread {
 
     @Inject(method = "run", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Minecraft;init()V", shift = At.Shift.AFTER))
     private void runTests(CallbackInfo ci) {
+        //#if MC>=11400
+        //$$ while (this.loadingGui != null && this.loadingGui.isPauseScreen()) {
+        //$$     runGameLoop(true);
+        //$$ }
+        //#endif
+
         boolean success = false;
         try {
             if (MainKt.runTests()) {
@@ -56,7 +86,7 @@ public abstract class MixinMinecraft implements IHasMainThread {
      */
     @Overwrite
     //#if FABRIC>=1
-    //$$ protected Thread getThread() {
+    //$$ public Thread getThread() {
     //$$     return clientThread;
     //$$ }
     //#else

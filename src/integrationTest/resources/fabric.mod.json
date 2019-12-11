@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "id": "betterportals-test",
+  "version": "0",
+  "mixins": [
+    "mixins.betterportals.test.json"
+  ]
+}
