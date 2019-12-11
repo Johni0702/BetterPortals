@@ -508,9 +508,9 @@ private val packetBuffer = PacketBuffer(byteBuf)
 @Deprecated("implementation detail and gone in 1.14")
 fun BlockStateContainer.copy(): BlockStateContainer = clone()
 private fun BlockStateContainer.clone(): BlockStateContainer {
+    byteBuf.readerIndex(0)
     byteBuf.writerIndex(0)
     write(packetBuffer)
-    byteBuf.readerIndex(0)
     return BlockStateContainer().apply { read(packetBuffer) }
 }
 //#endif
