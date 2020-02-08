@@ -304,7 +304,7 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
     }
 
     private fun tickViews() {
-        if (mc.isGamePaused) {
+        if (mc.isGamePaused || mc.playerController == null) {
             return
         }
 
