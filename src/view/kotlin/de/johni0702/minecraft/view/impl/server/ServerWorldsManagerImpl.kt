@@ -26,6 +26,7 @@ import net.minecraftforge.event.world.WorldEvent
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent
 import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent
 import net.minecraftforge.fml.common.gameevent.TickEvent
+import net.minecraftforge.fml.common.network.NetworkRegistry
 import net.minecraftforge.fml.common.network.handshake.NetworkDispatcher
 import java.util.*
 import kotlin.Comparator
@@ -192,6 +193,7 @@ internal class ServerWorldsManagerImpl(
 
         val networkDispatcher = NetworkDispatcher.allocAndSet(camera.connection.networkManager, server.playerList)
         channel.pipeline().addBefore("packet_handler", "fml:packet_handler", networkDispatcher)
+        channel.attr(NetworkRegistry.FML_MARKER).set(true)
 
         val stateField = NetworkDispatcher::class.java.getDeclaredField("state")
         val connectedState = stateField.type.asSubclass(Enum::class.java).enumConstants.last()
