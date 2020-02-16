@@ -64,15 +64,8 @@ internal class ServerWorldsManagerImpl(
 
         // Queue main player view
         if (!player.hasDisconnected()) {
+            check(player.serverWorld in worldManagers) { "Player changed world without us noticing. Did some third-party mod do something weird?" }
             queuedViews.add(VanillaView(this, player).also { anchorDistances[it] = 0 })
-            val world = player.serverWorld
-            if (world !in worldManagers) {
-                // (Non-enhanced) third-party world transfer (see [beforeTransferToDimension])
-                check(worldManagers.size == 1) { "Third-party transfer but not all views have been disposed of!" }
-                // Remove the manager for the old world and instead add the one for the new world
-                worldManagers.clear()
-                worldManagers[world] = ServerWorldManager(this, world, connection.player)
-            }
         }
 
         val anchoredViews = mutableMapOf<WorldServer, MutableList<View>>()
@@ -156,7 +149,7 @@ internal class ServerWorldsManagerImpl(
      * We need to tear down all of our dimensions before the Respawn packet is sent (otherwise the client will no longer
      * be able to uniquely map dimension ids to world instances and stuff will break).
      */
-    fun beforeTransferToDimension() {
+    fun beforeTransferToDimension(destination: WorldServer) {
         worldManagers.values.toList().forEach {
             // Vanilla hasn't not yet removed us from the previous world, so we need to keep
             // that world manager around so we know which chunks we're tracking.
@@ -165,6 +158,20 @@ internal class ServerWorldsManagerImpl(
                 destroyWorldManager(it)
             }
         }
+        check(worldManagers.size == 1) { "More than one non-view world?!" }
+
+        // Vanilla removes the player from the old world's PlayerChunkMap only after adding it to the new world.
+        // However, adding it to the new world may add it near active portals which could re-add a view to the old (no
+        // longer technically valid) world. This gets messy quite quickly, so to make this a bit easier, we just remove
+        // them ourselves before everything MC does. This should be fine unless some third-party mod relies on the
+        // (strange) fact that the respawn packet is sent before the player is removed.
+        // Only other thing we need to have this work, is removing the vanilla call. We also can't just ignore the next
+        // one cause they next one MAY be a valid call, we actually need to remove that specific, faulty one via Mixin.
+        player.serverWorld.playerChunkMap.removePlayer(player)
+
+        // Remove the manager for the old world and instead add the one for the new world
+        worldManagers.clear()
+        worldManagers[destination] = ServerWorldManager(this, destination, connection.player)
     }
 
     override var player: EntityPlayerMP = connection.player
