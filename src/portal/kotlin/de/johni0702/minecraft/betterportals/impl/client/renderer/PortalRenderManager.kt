@@ -55,7 +55,12 @@ internal object PortalRenderManager {
                 // Ignore portals which haven't yet been loaded
                 agent.remoteAgent ?: return@flatMap listOf<Pair<Pair<PortalAgent<*>, Vec3d>, Double>>()
 
-                // FIXME handle one-way portals
+                // Ignore currently invisible one-way portals
+                if (agent is PortalAgent.OneWay) {
+                    if (agent.isTailEnd && !agent.isTailEndVisible) {
+                        return@flatMap listOf<Pair<Pair<PortalAgent<*>, Vec3d>, Double>>()
+                    }
+                }
 
                 // For each portal, find the point intercepting the line between entity and camera
                 val vec = portal.localFacing.directionVec.to3d() * 0.5 // FIXME assumes portals to be one block deep

@@ -675,4 +675,20 @@ open class PortalAgent<P: Portal>(
      * value needs to be reduced as otherwise the remote back plane would be visible, occluding everything else.
      */
     open fun getClippingPlaneOffset(cameraSide: EnumFacing) = 0.5
+
+    interface OneWay {
+        /**
+         * Whether this portal instance is the tail/exit end of a pair of portals.
+         * Not to be confused with the exit portal which spawns after the dragon fight; its tail end is in the overworld.
+         * A pair of one-way portals cannot be entered from the tail end.
+         */
+        val isTailEnd: Boolean
+
+        /**
+         * Whether the tail end of the pair of portals is currently visible. Ignored if [isTailEnd] is false.
+         *
+         * The tail end of a one-way portal pair will usually disappear shortly after you've used it.
+         */
+        val isTailEndVisible: Boolean
+    }
 }

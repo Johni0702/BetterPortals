@@ -22,9 +22,14 @@ import kotlin.math.abs
 open class OneWayPortalEntityPortalAgent(
         manager: PortalManager,
         portalConfig: PortalConfiguration
-) : PortalEntityPortalAgent(manager, portalConfig) {
+) : PortalEntityPortalAgent(manager, portalConfig), PortalAgent.OneWay {
     lateinit var oneWayEntity: OneWayPortalEntity
         internal set
+
+    override val isTailEnd: Boolean
+        get() = oneWayEntity.isTailEnd
+    override val isTailEndVisible: Boolean
+        get() = oneWayEntity.isTailEndVisible
 
     override fun modifyAABBs(entity: Entity, queryAABB: AxisAlignedBB, aabbList: MutableList<AxisAlignedBB>, queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>) {
         if (oneWayEntity.isTailEnd && !oneWayEntity.isTailVisible) {
