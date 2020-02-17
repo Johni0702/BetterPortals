@@ -1,11 +1,13 @@
 package de.johni0702.minecraft.view.impl.client
 
-import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
+import de.johni0702.minecraft.view.client.ClientViewAPI
 import net.minecraft.block.material.Material
 import net.minecraft.client.Minecraft
 import net.minecraft.client.entity.EntityPlayerSP
 import net.minecraft.client.multiplayer.WorldClient
 import net.minecraft.client.network.NetHandlerPlayClient
+import net.minecraft.potion.Potion
+import net.minecraft.potion.PotionEffect
 import net.minecraft.stats.RecipeBook
 import net.minecraft.stats.StatisticsManager
 
@@ -38,4 +40,10 @@ internal class ViewEntity constructor(world: WorldClient, connection: NetHandler
     override fun isSpectator(): Boolean = true
     override fun shouldRenderInPass(pass: Int): Boolean = false
     override fun isInvisible(): Boolean = true
+
+    private val actualPlayer = ClientViewAPI.instance.getWorldsManager(mc)?.player
+    override fun getActivePotionMap(): MutableMap<Potion, PotionEffect> = actualPlayer?.activePotionMap ?: mutableMapOf()
+    override fun getActivePotionEffects(): MutableCollection<PotionEffect> = actualPlayer?.activePotionEffects ?: mutableListOf()
+    override fun getActivePotionEffect(potionIn: Potion): PotionEffect? = actualPlayer?.getActivePotionEffect(potionIn)
+    override fun isPotionActive(potionIn: Potion): Boolean = actualPlayer?.isPotionActive(potionIn) ?: false
 }
