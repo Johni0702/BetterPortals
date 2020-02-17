@@ -258,6 +258,12 @@ internal object PortalRenderManager {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     fun postSetupFog(event: PostSetupFogEvent) {
         if (fogOffset != 0f) {
+            if (GlStateManager.fogState.end < 16) {
+                // Skip this for super close fog (e.g. blindness effect) where the error would be too obvious
+                // The closer the fog to the camera, the more obvious becomes the fact that we offset it from
+                // the center of the portal and not the camera.
+                return
+            }
             GlStateManager.setFogStart(GlStateManager.fogState.start + fogOffset)
             GlStateManager.setFogEnd(GlStateManager.fogState.end + fogOffset)
         }
