@@ -27,7 +27,7 @@ public abstract class MixinPlayerList_NoSponge {
     // be able to uniquely map dimension ids to world instances).
     //
     @Inject(method = "transferPlayerToDimension(Lnet/minecraft/entity/player/EntityPlayerMP;ILnet/minecraftforge/common/util/ITeleporter;)V",
-            at = @At(value = "INVOKE", target = "Lnet/minecraft/world/WorldServer;getDifficulty()Lnet/minecraft/world/EnumDifficulty;"),
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/network/play/server/SPacketRespawn;<init>(ILnet/minecraft/world/EnumDifficulty;Lnet/minecraft/world/WorldType;Lnet/minecraft/world/GameType;)V"),
             remap = false)
     private void tearDownViewsBeforeRespawnPacket(EntityPlayerMP player, int dimensionIn, ITeleporter teleporter, CallbackInfo ci) {
         getWorldsManagerImpl(player).beforeTransferToDimension(mcServer.getWorld(dimensionIn));
