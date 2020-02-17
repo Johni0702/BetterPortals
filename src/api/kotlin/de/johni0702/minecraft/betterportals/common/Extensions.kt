@@ -508,6 +508,12 @@ fun World.findPortal(start: Vec3d, end: Vec3d): Triple<World, Vec3d, PortalAgent
         val negVec = vec * -1
         agent.portal.localBoundingBox.contract(vec).contract(negVec).calculatePlaneIntercept(start, end) != null
     }.flatMap { agent ->
+        if (agent is PortalAgent.OneWay) {
+            // Ignore currently invisible one-way portals
+            if (agent.isTailEnd && !agent.isTailEndVisible) {
+                return@flatMap listOf<Triple<World, Vec3d, PortalAgent<*>>>()
+            }
+        }
         val portal = agent.portal
         val vec = portal.localFacing.directionVec.to3d() * 0.5
         val negVec = vec * -1
