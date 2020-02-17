@@ -64,6 +64,8 @@ internal object PortalRendererHooks {
             val largeEntityAABB = entityAABB.grow(it.portal.localFacing.directionVec.to3d().abs() * 100)
             // ignore the remote end of our current portal
             portal?.isTarget(it.portal) != true
+                    // ignore invisible one-way portals
+                    && (it !is PortalAgent.OneWay || !it.isTailEnd || it.isTailEndVisible)
                     // the entity has to be even remotely close to it
                     && it.portal.localBoundingBox.intersects(largeEntityAABB)
                     // if it is, then check if it's actually in one of the blocks (and not some hole)
