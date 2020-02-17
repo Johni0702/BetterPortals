@@ -45,6 +45,18 @@ open class OneWayPortalEntityPortalAgent(
         super.checkTeleportees()
     }
 
+    override fun checkTeleportee(entity: Entity) {
+        // If a player is touching the head end of the portal, immediately make the tail end visible.
+        // Otherwise, they can logically stand on the other side of the portal while the other side is still invisible,
+        // leading to the camera being placed on the wrong side (i.e. the remote side because the portal back to the
+        // local one is invisible).
+        if (entity is EntityPlayer && !oneWayEntity.isTailEnd) {
+            val remotePortal = this.entity.getRemotePortal()
+            (remotePortal as OneWayPortalEntity).isTailVisible = true
+        }
+        super.checkTeleportee(entity)
+    }
+
     override fun teleportPlayer(player: EntityPlayer, from: EnumFacing): Boolean {
         val remotePortal = entity.getRemotePortal() // FIXME for some reason this call fails after the teleport; might be fixed by now
         val success = super.teleportPlayer(player, from)
