@@ -42,7 +42,7 @@ internal object PortalRenderManager {
         val vehicleSyncPos = vehicle.syncPos + vehicle.eyeOffset
         val vehicleClientPos = vehicle.pos + vehicle.eyeOffset
         // Note: must not use prevPos (or by extension getPositionEyes) since EntityMinecraft completely breaks it
-        var vehicleInterpPos = vehicle.lastTickPos + (vehicle.pos - vehicle.lastTickPos) * event.partialTicks.toDouble()
+        var vehicleInterpPos = vehicle.lastTickPos + (vehicle.pos - vehicle.lastTickPos) * event.partialTicks.toDouble() + vehicle.eyeOffset
         var pos = vehicleSyncPos
         var target = vehicleClientPos
         var hitClientPosition = if (vehicleSyncPos == vehicleClientPos) true.also { target = vehicleInterpPos } else false
