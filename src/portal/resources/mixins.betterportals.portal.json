@@ -4,7 +4,7 @@
   "plugin": "de.johni0702.minecraft.betterportals.impl.BetterPortalsMixinConfigPlugin",
   "mixins": [
     //#if FABRIC>=1
-    //$$ "MixinPortalBlock",,
+    //$$ "MixinPortalBlock",
     //#endif
     //#if MC>=11400
     //$$ "AccessorChunkManager",
