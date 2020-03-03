@@ -22,15 +22,16 @@ import net.minecraft.world.World
 //$$ import net.minecraft.entity.EntityType
 //$$ import net.minecraft.entity.MoverType
 //$$ import net.minecraft.network.IPacket
+//$$ import net.minecraft.util.registry.Registry
+//$$ import de.johni0702.minecraft.betterportals.common.entityTypeHolder
+//#if FABRIC<1
+//$$ import net.minecraftforge.fml.network.NetworkHooks
 //#endif
-
-//#if MC>=11400
-//$$ val TYPE = EntityType.Builder.create<TestEntity>(EntityClassification.MISC).build("betterportals:test")
 //#endif
 
 open class TestEntity(world: World) : Entity(
         //#if MC>=11400
-        //$$ TYPE,
+        //$$ ENTITY_TYPE,
         //#endif
         world
 ) {
@@ -46,7 +47,11 @@ open class TestEntity(world: World) : Entity(
     //#endif
 
     //#if MC>=11400
-    //$$ override fun createSpawnPacket(): IPacket<*> = throw UnsupportedOperationException()
+    //#if FABRIC>=1
+    //$$ override fun createSpawnPacket(): Packet<*> = theImpl.createSpawnPacket(this)
+    //#else
+    //$$ override fun createSpawnPacket(): IPacket<*> = NetworkHooks.getEntitySpawningPacket(this)
+    //#endif
     //$$ fun move(type: MoverType, x: Double, y: Double, z: Double) {
     //$$     move(type, Vec3d(x, y, z))
     //$$ }
@@ -79,6 +84,11 @@ open class TestEntity(world: World) : Entity(
 
             world.forceRemoveEntity(entity)
         }
+
+        //#if MC>=11400
+        //$$ val ID = ResourceLocation("$MOD_ID:test")
+        //$$ val ENTITY_TYPE: EntityType<TestEntity> by entityTypeHolder(ID)
+        //#endif
     }
 }
 

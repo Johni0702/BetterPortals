@@ -19,6 +19,8 @@ import net.minecraftforge.fml.client.registry.RenderingRegistry
 //#endif
 
 //#if MC>=11400
+//$$ import net.minecraft.entity.EntityClassification
+//$$ import net.minecraft.util.registry.Registry
 //$$ import org.lwjgl.glfw.GLFW
 //$$ import org.lwjgl.opengl.GL
 //$$ import org.lwjgl.opengl.GLCapabilities
@@ -77,8 +79,17 @@ fun runTests(): Boolean {
     mc.gameSettings.renderDistanceChunks = 8 // some tests depend on this specific render distance
     Transaction.disableTransactions = true
 
+    //#if MC>=11400
     //#if FABRIC>=1
+    //$$ Registry.ENTITY_TYPE.registerEntityType<TestEntity>(TestEntity.ID, { _, world -> TestEntity(world) }, EntityCategory.MISC) {
+    //$$ }
+    //#else
     //$$ // FIXME
+    //#endif
+    //#endif
+
+    //#if FABRIC>=1
+    //$$ registerEntityRenderer { RenderTestEntity(it) }
     //#else
     mc.renderManager.entityRenderMap[TestEntity::class.java] = RenderTestEntity(mc.renderManager)
     RenderingRegistry.registerEntityRenderingHandler(TestEntity::class.java) { RenderTestEntity(it) }
