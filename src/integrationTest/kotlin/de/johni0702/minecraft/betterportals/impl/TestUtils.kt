@@ -116,6 +116,7 @@ fun closeServer() {
     mc.world.sendQuittingDisconnectingPacket()
     //#if MC>=11400
     //$$ mc.integratedServer?.close()
+    //$$ mc.integratedServer?.initiateShutdown(true)
     //$$ mc.func_213254_o()
     //#else
     mc.loadWorld(null)
