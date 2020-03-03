@@ -11,6 +11,7 @@ buildscript {
     dependencies {
         classpath("com.github.MinecraftForge:ForgeGradle:d4e8925") {
             exclude(group = "trove", module = "trove") // preprocessor/idea requires more recent one
+            exclude(group = "org.eclipse.jdt") // loom requires more recent one
         }
         // classpath("net.minecraftforge.gradle:ForgeGradle:3.+") {
         //     exclude(group = "trove", module = "trove") // preprocessor/idea requires more recent one
@@ -18,6 +19,7 @@ buildscript {
         classpath("com.github.ReplayMod:ForgeGradle:2e95b7fe") {
             exclude(group = "net.sf.trove4j", module = "trove4j") // preprocessor/idea requires more recent one
             exclude(group = "trove", module = "trove") // different name same thing
+            exclude(group = "org.eclipse.jdt") // loom requires more recent one
         }
     }
 }
