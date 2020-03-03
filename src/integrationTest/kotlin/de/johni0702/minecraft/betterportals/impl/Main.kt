@@ -131,6 +131,9 @@ fun acquireMainThread() {
     //#endif
     (mc as IHasMainThread).setMainThread()
     (mc.integratedServer as IHasMainThread?)?.setMainThread()
+    //#if MC>=11400
+    //$$ mc.integratedServer?.worlds?.forEach { (it.chunkProvider as IHasMainThread).setMainThread() }
+    //#endif
 }
 
 fun releaseMainThread() {

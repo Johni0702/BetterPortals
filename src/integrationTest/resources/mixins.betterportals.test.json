@@ -4,6 +4,9 @@
   "mixins": [],
   "server": [],
   "client": [
+    //#if MC>=11400
+    //$$ "Mixin_ServerChunkManager_IHasMainThread",
+    //#endif
     "MixinMinecraft",
     "MixinMinecraftServer",
     "MixinNetHandlerPlayClient",
