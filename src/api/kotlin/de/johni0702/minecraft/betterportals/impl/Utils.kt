@@ -191,6 +191,8 @@ fun registerPortalAccessor(factory: (World) -> PortalAccessor) {
 //$$ fun MessageContext.sync(task: () -> Unit) {
 //$$     if (!taskQueue.isOnThread) {
 //$$         taskQueue.execute(task)
+//$$     } else {
+//$$         task()
 //$$     }
 //$$ }
 //$$ val MessageContext.serverPlayer get() = player as ServerPlayerEntity
