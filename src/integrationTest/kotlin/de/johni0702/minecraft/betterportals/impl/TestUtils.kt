@@ -275,13 +275,25 @@ fun tickServer() {
     //#if MC>=11400
     //#if FABRIC>=1
     //$$ server.waitFor {
-    //$$     server.method_21684() == 0
+    //$$     do {
+    //$$         var allDone = server.method_21684() == 0
+    //$$         if (server.executeQueuedTask()) {
+    //$$             allDone = false
+    //$$         }
+    //$$         for (world in server.worlds) {
+    //$$             if (world.method_14178().executeQueuedTasks()) {
+    //$$                 allDone = false
+    //$$             }
+    //$$         }
+    //$$     } while (!allDone)
+    //$$     true
     //$$ }
     //#else
     //$$ server.driveUntil {
     //$$     server.func_223704_be() == 0
     //$$ }
     //#endif
+    //$$ while (server.driveOne()) { /* until there's nothing left */ }
     //$$ server.tick { true }
     //#else
     server.tick()
