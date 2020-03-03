@@ -7,20 +7,13 @@ import de.johni0702.minecraft.betterportals.common.toDimensionId
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndEntryPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndExitPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndPortalEntity
-import net.minecraft.block.BlockEndPortal
 import net.minecraft.block.BlockEndPortalFrame
-import net.minecraft.block.material.Material
 import net.minecraft.block.state.BlockWorldState
-import net.minecraft.block.state.IBlockState
 import net.minecraft.block.state.pattern.BlockMatcher
 import net.minecraft.block.state.pattern.BlockPattern
 import net.minecraft.block.state.pattern.FactoryBlockPattern
-import net.minecraft.entity.Entity
-import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.init.Blocks
-import net.minecraft.tileentity.TileEntity
 import net.minecraft.tileentity.TileEntityEndPortal
-import net.minecraft.util.EnumBlockRenderType
 import net.minecraft.util.EnumFacing
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
@@ -29,101 +22,51 @@ import net.minecraft.world.World
 import net.minecraft.world.WorldServer
 
 //#if MC>=11400
-//$$ import de.johni0702.minecraft.betterportals.impl.makeBlockSettings
-//$$ import net.minecraft.block.material.MaterialColor
-//$$ import net.minecraft.util.math.shapes.ISelectionContext
-//$$ import net.minecraft.util.math.shapes.VoxelShape
-//$$ import net.minecraft.util.math.shapes.VoxelShapes
-//$$ import net.minecraft.world.IBlockReader
-//$$ import net.minecraft.world.IWorld
+//$$ import net.minecraft.tileentity.TileEntityType
 //$$ import net.minecraft.world.gen.Heightmap
 //#else
 import de.johni0702.minecraft.betterportals.common.EMPTY_AABB
 import net.minecraft.block.Block
+import net.minecraft.block.state.IBlockState
+import net.minecraft.entity.Entity
+import net.minecraft.entity.player.EntityPlayer
+import net.minecraft.tileentity.TileEntity
 import net.minecraft.world.IBlockAccess
 //#endif
 
-class BlockBetterEndPortal : BlockEndPortal(
-        //#if MC>=11400
-        //$$ makeBlockSettings(Material.PORTAL, MaterialColor.BLACK) {
-            //#if FABRIC>=1
-            //$$ noCollision()
-            //$$ lightLevel(15)
-            //$$ strength(-1.0f, 3600000.0f)
-            //$$ dropsNothing()
-            //#else
-            //$$ doesNotBlockMovement()
-            //$$ lightValue(15)
-            //$$ hardnessAndResistance(-1.0f, 3600000.0f)
-            //$$ noDrops()
-            //#endif
-        //$$ }
-        //#else
-        Material.PORTAL
-        //#endif
-) {
+class BlockBetterEndPortal {
     companion object {
         val BETTER_END_SPAWN = BlockPos(1, 0, 1)
         val exitPattern: BlockPattern = FactoryBlockPattern.start()
-                .aisle("       ", "       ", "       ", "   #   ", "       ", "       ", "       ")
-                .aisle("       ", "       ", "       ", "   #   ", "       ", "       ", "       ")
-                .aisle("       ", "       ", "       ", "   #   ", "       ", "       ", "       ")
-                .aisle("  ###  ", " #---# ", "#-----#", "#--#--#", "#-----#", " #---# ", "  ###  ")
+                .aisle("       ", "       ", "       ", "   ?   ", "       ", "       ", "       ")
+                .aisle("       ", "       ", "       ", "   ?   ", "       ", "       ", "       ")
+                .aisle("       ", "       ", "       ", "   ?   ", "       ", "       ", "       ")
+                .aisle("  ###  ", " #---# ", "#-----#", "#--?--#", "#-----#", " #---# ", "  ###  ")
                 .aisle("       ", "  ###  ", " ##### ", " ##### ", " ##### ", "  ###  ", "       ")
                 .where('#', BlockWorldState.hasState(BlockMatcher.forBlock(Blocks.BEDROCK)))
                 .where('-', { true })
+                // Note: The middle column has intentionally been left out because MC builds it last, so for some
+                //       neighbour updates, it doesn't yet exist (but we don't want to kill our portal blocks
+                //       just because of that)
+                .where('?') { true }
                 .build()
     }
 
-    //#if FABRIC<=0
-    init {
-        setRegistryName("minecraft", "end_portal")
-        //#if MC<11400
-        unlocalizedName = "end_portal"
-        setBlockUnbreakable()
-        setLightLevel(1f)
-        setResistance(6000000f)
-        //#endif
-    }
-    //#endif
-
-    override fun getRenderType(state: IBlockState): EnumBlockRenderType = EnumBlockRenderType.INVISIBLE
-
     //#if MC>=11400
-    //$$ override fun createNewTileEntity(worldIn: IBlockReader): TileEntity = TileEntityBetterEndPortal()
-    //$$ override fun getShape(state: BlockState, worldIn: IBlockReader, pos: BlockPos, context: ISelectionContext): VoxelShape =
-    //$$         VoxelShapes.empty()
-    //$$ override fun onEntityCollision(state: BlockState, worldIn: World, pos: BlockPos, entityIn: Entity) {
-    //$$     if (entityIn is PlayerEntity) {
-    //$$         makePortal(worldIn, pos) // Convert vanilla portals upon touching
-    //$$     }
-    //$$ }
-    //$$
-    //$$ override fun updatePostPlacement(stateIn: BlockState, facing: Direction, facingState: BlockState, worldIn: IWorld, pos: BlockPos, facingPos: BlockPos): BlockState {
-    //$$     return if (EndPortalFrameBlock.getOrCreatePortalShape().match(worldIn, pos) == null
-    //$$             && exitPattern.match(worldIn, pos) == null) {
-    //$$         worldIn.getEntitiesWithinAABB(EndPortalEntity::class.java, AxisAlignedBB(pos)).forEach {
-    //$$             it.remove()
-    //$$         }
-    //$$         Blocks.AIR.defaultState
-    //$$     } else {
-    //$$         stateIn
-    //$$     }
-    //$$ }
     //#else
-    override fun createNewTileEntity(worldIn: World, meta: Int): TileEntity = TileEntityBetterEndPortal()
-    override fun getBoundingBox(state: IBlockState, source: IBlockAccess, pos: BlockPos): AxisAlignedBB = EMPTY_AABB
-    override fun onEntityCollidedWithBlock(worldIn: World, pos: BlockPos, state: IBlockState, entityIn: Entity) {
+    fun createNewTileEntity(worldIn: World, meta: Int): TileEntity = TileEntityBetterEndPortal()
+    fun getBoundingBox(state: IBlockState, source: IBlockAccess, pos: BlockPos): AxisAlignedBB = EMPTY_AABB
+    fun onEntityCollidedWithBlock(worldIn: World, pos: BlockPos, state: IBlockState, entityIn: Entity) {
         if (entityIn is EntityPlayer) {
             onBlockAdded(worldIn, pos, state) // Convert vanilla portals upon touching
         }
     }
 
-    override fun onBlockAdded(localWorld: World, pos: BlockPos, state: IBlockState) {
+    fun onBlockAdded(localWorld: World, pos: BlockPos, state: IBlockState) {
         makePortal(localWorld, pos)
     }
 
-    override fun neighborChanged(state: IBlockState, worldIn: World, pos: BlockPos, blockIn: Block, fromPos: BlockPos) {
+    fun neighborChanged(state: IBlockState, worldIn: World, pos: BlockPos, blockIn: Block, fromPos: BlockPos) {
         if (BlockEndPortalFrame.getOrCreatePortalShape().match(worldIn, pos) == null
                 && exitPattern.match(worldIn, pos) == null) {
             worldIn.getEntitiesWithinAABB(EndPortalEntity::class.java, AxisAlignedBB(pos)).forEach {
@@ -134,7 +77,7 @@ class BlockBetterEndPortal : BlockEndPortal(
     }
     //#endif
 
-    private fun makePortal(localWorld: World, pos: BlockPos) {
+    fun makePortal(localWorld: World, pos: BlockPos) {
         if (localWorld !is WorldServer) return
         val server = localWorld.theServer
 
@@ -212,6 +155,15 @@ class BlockBetterEndPortal : BlockEndPortal(
 //$$         getHeight(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, below)
 //#endif
 
-class TileEntityBetterEndPortal : TileEntityEndPortal() {
+class TileEntityBetterEndPortal : TileEntityEndPortal(
+        //#if MC>=11400
+        //$$ TYPE
+        //#endif
+) {
+    //#if MC>=11400
+    //$$ companion object {
+    //$$     lateinit var TYPE: TileEntityType<TileEntityBetterEndPortal>
+    //$$ }
+    //#endif
     override fun shouldRenderFace(side: EnumFacing): Boolean = false
 }

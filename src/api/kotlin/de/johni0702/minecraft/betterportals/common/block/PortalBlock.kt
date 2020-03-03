@@ -118,9 +118,14 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
         val localPortal = createPortalEntity(true, localWorld,
                 FinitePortal(localAxis.perpendicularPlane, portalBlocks, localDim, localPos, localRot))
         localPortal.portal.localBlocks.forEach {
-            localWorld.setBlockState(it, portalBlock, 2)
+            // First set blocks without any neighbour updates
+            localWorld.setBlockState(it, portalBlock, 16)
         }
         localWorld.forceAddEntity(localPortal)
+        localPortal.portal.localBlocks.forEach {
+            // Then dispatch neighbour updates
+            localWorld.setBlockState(it, portalBlock)
+        }
 
         future.thenAcceptAsync({ result ->
             if (localPortal.isDead) return@thenAcceptAsync
@@ -129,9 +134,14 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             val remotePortal = createPortalEntity(false, remoteWorld,
                     FinitePortal(localAxis.perpendicularPlane, portalBlocks, remoteDim, remotePos, remoteRot))
             remotePortal.portal.localBlocks.forEach {
-                remoteWorld.setBlockState(it, portalBlock, 2)
+                // First set blocks without any neighbour updates
+                remoteWorld.setBlockState(it, portalBlock, 16)
             }
             remoteWorld.forceAddEntity(remotePortal)
+            remotePortal.portal.localBlocks.forEach {
+                // Then dispatch neighbour updates
+                remoteWorld.setBlockState(it, portalBlock)
+            }
 
             localPortal.link(remotePortal)
         }, localWorld.theServer.executor::execute).exceptionally {

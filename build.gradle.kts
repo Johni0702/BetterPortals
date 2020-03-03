@@ -131,6 +131,7 @@ val mixinRefMaps = mapOf(
         "view" to File(project.buildDir, "tmp/mixins/mixins.betterportals.view.refmap.json"),
         "transition" to File(project.buildDir, "tmp/mixins/mixins.betterportals.transition.refmap.json"),
         "portal" to File(project.buildDir, "tmp/mixins/mixins.betterportals.portal.refmap.json"),
+        "vanilla" to File(project.buildDir, "tmp/mixins/mixins.betterportals.vanilla.refmap.json"),
         "integrationTest" to File(project.buildDir, "tmp/mixins/mixins.betterportals.test.refmap.json")
 )
 if (loom) {
@@ -378,7 +379,8 @@ tasks.named<Jar>("jar") {
                             "mixins.betterportals.json",
                             "mixins.betterportals.view.json",
                             "mixins.betterportals.transition.json",
-                            "mixins.betterportals.portal.json"
+                            "mixins.betterportals.portal.json",
+                            "mixins.betterportals.vanilla.json"
                     ).joinToString(",")
             )
         }

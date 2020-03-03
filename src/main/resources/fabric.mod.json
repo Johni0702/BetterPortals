@@ -33,7 +33,8 @@
     "mixins.betterportals.json",
     "mixins.betterportals.view.json",
     "mixins.betterportals.transition.json",
-    "mixins.betterportals.portal.json"
+    "mixins.betterportals.portal.json",
+    "mixins.betterportals.vanilla.json"
   ],
 
   "depends": {

@@ -14,13 +14,12 @@ import de.johni0702.minecraft.betterportals.impl.EntityTypeRegistry
 import de.johni0702.minecraft.betterportals.impl.TileEntityTypeRegistry
 import de.johni0702.minecraft.betterportals.impl.vanilla.client.renderer.EndPortalRenderer
 import de.johni0702.minecraft.betterportals.impl.vanilla.client.tile.renderer.BetterEndPortalTileRenderer
-import de.johni0702.minecraft.betterportals.impl.vanilla.common.blocks.BlockBetterEndPortal
-import de.johni0702.minecraft.betterportals.impl.vanilla.common.blocks.BlockBetterNetherPortal
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.blocks.TileEntityBetterEndPortal
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndEntryPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.EndExitPortalEntity
 import de.johni0702.minecraft.betterportals.impl.vanilla.common.entity.NetherPortalEntity
 import net.minecraft.client.Minecraft
+import net.minecraft.init.Blocks
 import net.minecraft.util.ResourceLocation
 
 //#if FABRIC>=1
@@ -33,7 +32,6 @@ import net.minecraft.util.ResourceLocation
 //$$ import net.minecraft.entity.EntityClassification
 //$$ import com.mojang.datafixers.DataFixUtils
 //$$ import de.johni0702.minecraft.betterportals.impl.registerEntityType
-//$$ import net.minecraft.block.Blocks
 //$$ import net.minecraft.tileentity.TileEntityType
 //$$ import net.minecraft.util.SharedConstants
 //$$ import net.minecraft.util.datafix.DataFixesManager
@@ -47,6 +45,10 @@ import net.minecraftforge.fml.common.registry.EntityRegistry
 const val MOD_ID = "betterportals"
 internal lateinit var NETHER_PORTAL_CONFIG: PortalConfiguration
 internal lateinit var END_PORTAL_CONFIG: PortalConfiguration
+
+interface BlockWithBPVersion {
+    fun enableBetterVersion(mod: Any)
+}
 
 fun initVanilla(
         mod: Any,
@@ -98,15 +100,10 @@ fun initVanilla(
 
     registerBlocks {
         if (enableNetherPortals) {
-            //#if MC>=11400
-            //$$ val id = "nether_portal"
-            //#else
-            val id = "portal"
-            //#endif
-            register(ResourceLocation("minecraft", id), BlockBetterNetherPortal(mod))
+            (Blocks.PORTAL as BlockWithBPVersion).enableBetterVersion(mod)
         }
         if (enableEndPortals) {
-            register(ResourceLocation("minecraft", "end_portal"), BlockBetterEndPortal())
+            (Blocks.END_PORTAL as BlockWithBPVersion).enableBetterVersion(mod)
         }
     }
 
@@ -120,6 +117,7 @@ fun initVanilla(
             //$$
             //$$ val type = TileEntityType.Builder.create(Supplier { TileEntityBetterEndPortal() }, Blocks.END_PORTAL)
             //$$         .build(dataFixerType)
+            //$$ TileEntityBetterEndPortal.TYPE = type
             //$$ register(ResourceLocation("minecraft", key), type)
             //#else
             TileEntity.register("end_portal", TileEntityBetterEndPortal::class.java)

@@ -1,3 +1,4 @@
+net.minecraft.block.ContainerBlock net.minecraft.block.BlockContainer
 net.minecraft.client.renderer.tileentity.TileEntityRenderer net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer
 net.minecraft.entity.player.PlayerEntity net.minecraft.entity.player.EntityPlayer
 net.minecraftforge.api.distmarker.Dist net.minecraftforge.fml.relauncher.Side

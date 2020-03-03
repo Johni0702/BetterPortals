@@ -26,6 +26,7 @@ open class MixinLoader(val root: File) : IFMLLoadingPlugin {
         Mixins.addConfiguration("mixins.betterportals.view.json")
         Mixins.addConfiguration("mixins.betterportals.transition.json")
         Mixins.addConfiguration("mixins.betterportals.portal.json")
+        Mixins.addConfiguration("mixins.betterportals.vanilla.json")
 
         val codeSource = javaClass.protectionDomain.codeSource
         if (codeSource != null) {
