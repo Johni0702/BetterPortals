@@ -668,6 +668,7 @@ open class PortalAgent<P: Portal>(
         newEntity.derivePosRotFrom(entity, portal)
         //#if MC>=11400
         //$$ if (newEntity is AccEntityLivingBase) {
+        //$$     newEntity.interpTarget = pos
         //$$     newEntity.newPosRotationIncrements = 3 // prevent sudden jumps
         //$$ }
         //#else
