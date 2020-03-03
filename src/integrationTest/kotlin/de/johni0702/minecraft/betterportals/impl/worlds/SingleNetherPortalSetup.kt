@@ -96,9 +96,11 @@ open class SingleNetherPortalSetup : EmptyWorldSetup() {
         moveTo(BlockPos(0, 17, 0).to3dMid())
 
         // Sync portal and remote world with client
-        repeat(10) { tickServer() }
-        updateClient()
-        tickClient()
+        for (i in 0..10) {
+            repeat(10) { tickServer() }
+            updateClient()
+            tickClient()
+        }
 
         mc.world.getBlockState(targetPos).block shouldBe Blocks.PORTAL
         mc.world.portalManager.loadedPortals.count() shouldBeExactly 1
