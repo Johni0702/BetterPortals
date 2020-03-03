@@ -746,6 +746,9 @@ fun World.rayTraceBlocksWithPortals(
     ) ?: return null
     val localHitVec = with(portal) { remoteResult.hitPos.fromRemote().toLocal() }
     //#if MC>=11400
+    //$$ if (remoteResult.type == RayTraceResult.Type.MISS) {
+    //$$     return BlockRayTraceResult.createMiss(end, with(end - start) { Direction.getFacingFromVector(x, y, z) }, end.toBlockPos())
+    //$$ }
     //$$ return when (remoteResult) {
     //$$     is EntityRayTraceResult -> EntityRayTraceResult(remoteResult.entity, localHitVec)
     //$$     is BlockRayTraceResult -> BlockRayTraceResult(
