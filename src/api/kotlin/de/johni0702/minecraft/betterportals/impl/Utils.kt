@@ -66,7 +66,7 @@ import net.minecraftforge.fml.relauncher.Side
 //$$ fun makeBlockSettings(material: Material, color: MaterialColor? = null, configure: FabricBlockSettings.() -> Unit): Block.Settings =
 //$$         FabricBlockSettings.of(material, color ?: material.color).also(configure).build()
 //$$ fun <T: Entity> makeEntityType(@Suppress("UNUSED_PARAMETER") id: Identifier, factory: (EntityType<T>, World) -> T, category: EntityCategory, configure: FabricEntityTypeBuilder<T>.() -> Unit): EntityType<T> =
-//$$         FabricEntityTypeBuilder.create<T>(category, factory).apply(configure).build()
+//$$         FabricEntityTypeBuilder.create<T>(category, factory::invoke).apply(configure).build()
 //$$ fun <T: Entity> EntityTypeRegistry.registerEntityType(id: Identifier, factory: (EntityType<T>, World) -> T, category: EntityCategory, configure: FabricEntityTypeBuilder<T>.() -> Unit): EntityType<T> =
 //$$         makeEntityType(id, factory, category, configure).also { Registry.register(this, id, it) }
 //$$ typealias BlockRegistry = Registry<Block>
