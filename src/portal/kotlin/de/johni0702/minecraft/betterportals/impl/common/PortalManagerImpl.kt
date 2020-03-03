@@ -140,7 +140,43 @@ internal class PortalManagerImpl(override val world: World) : PortalManager {
         }
 
         //#if MC>=11400
-        //$$ // FIXME while the event still exists, it cannot possibly be hooked up properly because it's still using AABBs
+        //$$ class CollisionContextHandle internal constructor(internal val entity: Entity?)
+        //$$ fun enterCollisionContext(entity: Entity): CollisionContextHandle {
+        //$$     val collisionBoxesEntity = this.collisionBoxesEntity
+        //$$     this.collisionBoxesEntity = entity
+        //$$     return CollisionContextHandle(collisionBoxesEntity)
+        //$$ }
+        //$$
+        //$$ fun leaveCollisionContext(contextHandle: CollisionContextHandle) {
+        //$$     this.collisionBoxesEntity = contextHandle.entity
+        //$$ }
+        //$$
+        //$$ private inline fun <T> withCollisionsFor(entity: Entity, block: () -> T): T {
+        //$$     val context = enterCollisionContext(entity)
+        //$$     try {
+        //$$         return block()
+        //$$     } finally {
+        //$$         leaveCollisionContext(context)
+        //$$     }
+        //$$ }
+        //$$
+        //$$ fun needsCollisionsModified(world: World, box: AxisAlignedBB): Boolean = world.portalManager.loadedPortals.any { agent ->
+        //$$     val portal = agent.portal
+        //$$     portal.localBoundingBox.intersects(box) && portal.localDetailedBounds.any { it.intersects(box) }
+        //$$ }
+        //$$
+        //$$ fun modifyCollisionsWithBlocks(
+        //$$         maybeEntity: Entity?,
+        //$$         box: AxisAlignedBB,
+        //$$         vanillaStream: Stream<VoxelShape>
+        //$$ ): Stream<VoxelShape> {
+        //$$     val entity = maybeEntity ?: collisionBoxesEntity ?: return vanillaStream
+        //$$     return modifyAABBs(entity, box, box, vanillaStream) { world, box ->
+        //$$         withCollisionsFor(entity) {
+        //$$             world.getCollisionShapes(null, box)
+        //$$         }
+        //$$     }
+        //$$ }
         //#else
         @SubscribeEvent(priority = EventPriority.LOW)
         fun onGetCollisionBoxes(event: GetCollisionBoxesEvent) {

@@ -7,6 +7,9 @@
     //$$ "MixinPortalBlock",
     //#endif
     //#if MC>=11400
+    //$$ "Mixin_CaptureCollisionEntity",
+    //$$ "Mixin_ModifyCollisionsWithBlocks",
+    //$$ "Mixin_ModifyFastCollisionsWithBlocks",
     //$$ "AccessorChunkManager",
     //$$ "AccessorEntityTracker",
     //$$ "MixinRayTraceContext",
