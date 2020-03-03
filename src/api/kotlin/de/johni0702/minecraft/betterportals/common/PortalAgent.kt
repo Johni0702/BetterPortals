@@ -279,16 +279,19 @@ open class PortalAgent<P: Portal>(
         //#endif
 
         // and instead add collision boxes from the remote world
-        if (!hiddenAABB.intersects(queryAABB)) { // unless we're not even interested in those
-            //#if MC>=11400
-            //$$ return filteredStream
-            //#else
-            return
-            //#endif
-        }
         val remoteAABB = with(portal) {
             // Reduce the AABB which we're looking for in the first place to the hidden section
-            val aabb = hiddenAABB.intersect(queryAABB)
+            // (though we need to check more than just the hiddenAABB thanks to blocks exceeding their AABB, *cough* fences)
+            val largerHiddenAABB = hiddenAABB.expand(0.0, 0.5, 0.0)
+            if (!largerHiddenAABB.intersects(queryAABB)) {
+                // not interested in remote AABBs
+                //#if MC>=11400
+                //$$ return filteredStream
+                //#else
+                return
+                //#endif
+            }
+            val aabb = largerHiddenAABB.intersect(queryAABB)
             // and transform it to remote space in order to lookup collision boxes over there
             aabb.min.fromLocal().toRemote().toAxisAlignedBB(aabb.max.fromLocal().toRemote())
         }
