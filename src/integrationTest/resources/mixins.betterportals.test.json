@@ -5,6 +5,7 @@
   "server": [],
   "client": [
     //#if MC>=11400
+    //$$ "Mixin_DirectServerWorkerExecutor",
     //$$ "Mixin_ServerChunkManager_IHasMainThread",
     //#endif
     "MixinMinecraft",
