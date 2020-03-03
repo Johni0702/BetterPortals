@@ -300,7 +300,7 @@ open class PortalAgent<P: Portal>(
         // finally transform any collision boxes back to local space and add them to the result
         //#if MC>=11400
         //$$ // FIXME something something performance something
-        //$$ return remoteCollisions.map { shape ->
+        //$$ return filteredStream + remoteCollisions.map { shape ->
         //$$     shape.toBoundingBoxList().map { aabb ->
         //$$         VoxelShapes.create(with(portal) { aabb.min.fromRemote().toLocal().toAxisAlignedBB(aabb.max.fromRemote().toLocal()) })
         //$$     }.reduce(VoxelShapes::or)
