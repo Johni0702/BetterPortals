@@ -101,7 +101,7 @@ fun initVanilla(
     }
 
     registerBlocks {
-        //#if MC>=11400
+        //#if MC<11400
         if (enableNetherPortals && Loader.isModLoaded("mekanism")) {
             // If we aren't doing it, Mekanism will (and break our stuff cause it overwrites important methods)
             register(object : net.minecraft.block.BlockPortal() {
