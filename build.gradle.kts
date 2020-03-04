@@ -304,9 +304,11 @@ dependencies {
         "apiCompile"(mixinDep, withoutOldMixinDeps)
         "viewCompile"(mixinDep, withoutOldMixinDeps)
         "portalCompile"(mixinDep, withoutOldMixinDeps)
+        "vanillaCompile"(mixinDep, withoutOldMixinDeps)
         "apiAnnotationProcessor"(mixinDep)
         "viewAnnotationProcessor"(mixinDep)
         "portalAnnotationProcessor"(mixinDep)
+        "vanillaAnnotationProcessor"(mixinDep)
         "transitionAnnotationProcessor"(mixinDep)
         "mixin"(mixinDep) { isTransitive = false }
     }
