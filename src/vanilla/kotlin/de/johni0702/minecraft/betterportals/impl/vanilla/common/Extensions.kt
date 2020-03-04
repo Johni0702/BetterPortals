@@ -39,6 +39,7 @@ import net.minecraft.util.ResourceLocation
 //$$ import java.util.function.Supplier
 //#else
 import net.minecraft.tileentity.TileEntity
+import net.minecraftforge.fml.common.Loader
 import net.minecraftforge.fml.common.registry.EntityRegistry
 //#endif
 
@@ -53,6 +54,7 @@ interface BlockWithBPVersion {
 fun initVanilla(
         mod: Any,
         clientPreInit: (() -> Unit) -> Unit,
+        postInit: (() -> Unit) -> Unit,
         registerBlocks: (BlockRegistry.() -> Unit) -> Unit,
         registerTileEntities: (TileEntityTypeRegistry.() -> Unit) -> Unit,
         registerEntities: (EntityTypeRegistry.() -> Unit) -> Unit,
@@ -99,6 +101,23 @@ fun initVanilla(
     }
 
     registerBlocks {
+        //#if MC>=11400
+        if (enableNetherPortals && Loader.isModLoaded("mekanism")) {
+            // If we aren't doing it, Mekanism will (and break our stuff cause it overwrites important methods)
+            register(object : net.minecraft.block.BlockPortal() {
+                init {
+                    registryName = ResourceLocation("minecraft", "portal")
+                    setHardness(-1.0F)
+                    soundType = net.minecraft.block.SoundType.GLASS
+                    setLightLevel(0.75F)
+                    unlocalizedName = "portal"
+                }
+            })
+        }
+        //#endif
+    }
+
+    postInit {
         if (enableNetherPortals) {
             (Blocks.PORTAL as BlockWithBPVersion).enableBetterVersion(mod)
         }

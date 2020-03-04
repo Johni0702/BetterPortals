@@ -126,6 +126,7 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
         initVanilla(
                 mod = this,
                 clientPreInit = { clientPreInitCallbacks.add(it) },
+                postInit = { commonPostInitCallbacks.add(it) },
                 registerBlocks = { registerBlockCallbacks.add(it) },
                 registerTileEntities = { registerTileEntitiesCallbacks.add(it) },
                 registerEntities = { registerEntitiesCallbacks.add(it) },
