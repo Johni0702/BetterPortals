@@ -193,11 +193,13 @@ internal class BetterPortalsMod: ViewAPI by ViewAPIImpl, BetterPortalsAPI by Bet
     //$$     with(Registry.BLOCK_ENTITY) { registerTileEntitiesCallbacks.forEach { it() }}
     //$$     with(Registry.ENTITY_TYPE) { registerEntitiesCallbacks.forEach { it() }}
     //$$     commonInitCallbacks.forEach { it() }
+    //$$     commonPostInitCallbacks.forEach { it() }
     //$$ }
     //$$
     //$$ fun clientRegister() {
     //$$     clientPreInitCallbacks.forEach { it() }
     //$$     clientInitCallbacks.forEach { it() }
+    //$$     clientPostInitCallbacks.forEach { it() }
     //$$ }
     //#else
     @SubscribeEvent(priority = EventPriority.LOW)
