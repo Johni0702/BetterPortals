@@ -1,3 +1,6 @@
+//#if MC>=11400
+//$$ // fixed \o/
+//#else
 package de.johni0702.minecraft.view.impl.mixin;
 
 import net.minecraft.client.Minecraft;
@@ -21,3 +24,4 @@ public abstract class MixinRenderChunk {
         return viewEntity instanceof EntityPlayerSP ? (EntityPlayerSP) viewEntity : mc.player;
     }
 }
+//#endif

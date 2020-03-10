@@ -38,6 +38,7 @@
     //#else
     "MixinChunkRenderWorker",
     "MixinChunkCompileTaskGenerator",
+    "MixinRenderChunk",
     "MixinWorldClient",
     //#endif
     "Mixin_BlockBasedFogColor",
@@ -55,7 +56,6 @@
     "MixinMinecraft",
     "MixinNetHandlerLoginClient",
     "MixinNetHandlerPlayerClient",
-    "MixinRenderChunk",
     "MixinRenderChunk_OF",
     "MixinRenderGlobal",
     "MixinRenderGlobal_VC",

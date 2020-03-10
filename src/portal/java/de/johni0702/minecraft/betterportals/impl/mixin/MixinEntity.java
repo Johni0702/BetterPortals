@@ -10,6 +10,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Entity.class)
 public abstract class MixinEntity {
+    //#if MC>=11400
+    //$$ // FIXME to reproduce, have the player be pushed to one side by a piston below a lying portal while in the other
+    //$$ //  dimension with their head.
+    //#else
     @Inject(
             method = "pushOutOfBlocks",
             at = @At(
@@ -32,6 +36,7 @@ public abstract class MixinEntity {
     private void afterCollidesWithAnyBlock(double x, double y, double z, CallbackInfoReturnable<Boolean> ci) {
         PortalManagerImpl.EventHandler.INSTANCE.setCollisionBoxesEntity(null);
     }
+    //#endif
 
     @Inject(method = "isInLava", at = @At("HEAD"), cancellable = true)
     private void isInLava(CallbackInfoReturnable<Boolean> ci) {
