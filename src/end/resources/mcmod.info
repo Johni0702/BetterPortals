@@ -1,0 +1,19 @@
+[
+  {
+    "modid": "betterportals-end",
+    "parent": "betterportals",
+    "name": "Better Portals - End",
+    "description": "Better Portals for the vanilla end.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["johni0702"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "requiredMods": ["forgelin","betterportals", "betterportals-portal"],
+    "dependencies": ["forgelin","betterportals", "betterportals-portal"],
+    "useDependencyInformation": true
+  }
+]

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "betterportals-end",
+  "version": "${version}",
+
+  "name": "BetterPortals - End",
+  "description": "Better Portals for the vanilla end.",
+  "authors": [
+    "johni0702"
+  ],
+  "contact": {
+    "sources": "https://github.com/Johni0702/BetterPortals"
+  },
+
+  "license": "GPL-3.0-or-later",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "de.johni0702.minecraft.betterportals.impl.end.BPEndMod"
+      }
+    ],
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "de.johni0702.minecraft.betterportals.impl.end.BPEndMod"
+      }
+    ]
+  },
+  "mixins": [
+    "mixins.betterportals.end.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.4.0",
+    "fabric": "*",
+    "fabric-language-kotlin": ">=1.3.50",
+    "betterportals": "${version}",
+    "betterportals-portal": "${version}"
+  },
+
+  "custom": {
+    "modmenu:parent": "betterportals"
+  }
+}

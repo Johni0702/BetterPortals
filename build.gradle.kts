@@ -50,7 +50,8 @@ implementations {
     "view" {}
     "transition" {}
     "portal" {}
-    "vanilla" {}
+    "nether" {}
+    "end" {}
     "twilightforest" {
         if (mc11202) add("the-twilight-forest:twilightforest-1.12.2:3.9.984:universal")
     }
@@ -134,7 +135,8 @@ val mixinRefMaps = mapOf(
         "view" to File(project.buildDir, "tmp/mixins/mixins.betterportals.view.refmap.json"),
         "transition" to File(project.buildDir, "tmp/mixins/mixins.betterportals.transition.refmap.json"),
         "portal" to File(project.buildDir, "tmp/mixins/mixins.betterportals.portal.refmap.json"),
-        "vanilla" to File(project.buildDir, "tmp/mixins/mixins.betterportals.vanilla.refmap.json"),
+        "nether" to File(project.buildDir, "tmp/mixins/mixins.betterportals.nether.refmap.json"),
+        "end" to File(project.buildDir, "tmp/mixins/mixins.betterportals.end.refmap.json"),
         "integrationTest" to File(project.buildDir, "tmp/mixins/mixins.betterportals.test.refmap.json")
 )
 if (loom) {

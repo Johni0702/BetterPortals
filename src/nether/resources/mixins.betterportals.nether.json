@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "de.johni0702.minecraft.betterportals.impl.nether.mixin",
+  "plugin": "de.johni0702.minecraft.betterportals.impl.BetterPortalsMixinConfigPlugin",
+  "mixins": [
+    "MixinNetherPortalBlock"
+  ],
+  "server": [],
+  "client": [
+  ],
+  "compatibilityLevel": "JAVA_8",
+  "minVersion": "0.6.11",
+  "refmap": "mixins.betterportals.nether.refmap.json"
+}
