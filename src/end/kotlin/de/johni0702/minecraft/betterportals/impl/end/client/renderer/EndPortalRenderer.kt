@@ -16,13 +16,15 @@ import org.lwjgl.opengl.GL14
 class EndPortalRenderer(
         textureOpacity: () -> Double = { 0.0 }
 ) : OneWayFramedPortalRenderer(textureOpacity) {
-    private val tileEntityRenderer = TileEntityEndPortalRenderer().also {
-        // FIXME seems like the perprocessor should be able to handle this? (it does handle the argument, just not the method)
-        //#if FABRIC>=1
-        //$$ it.setRenderManager(BlockEntityRenderDispatcher.INSTANCE)
-        //#else
-        it.setRendererDispatcher(TileEntityRendererDispatcher.instance)
-        //#endif
+    private val tileEntityRenderer by lazy {
+        TileEntityEndPortalRenderer().also {
+            // FIXME seems like the perprocessor should be able to handle this? (it does handle the argument, just not the method)
+            //#if FABRIC>=1
+            //$$ it.setRenderManager(BlockEntityRenderDispatcher.INSTANCE)
+            //#else
+            it.setRendererDispatcher(TileEntityRendererDispatcher.instance)
+            //#endif
+        }
     }
     private var firstPass = false
     private var opacity = 0.0
