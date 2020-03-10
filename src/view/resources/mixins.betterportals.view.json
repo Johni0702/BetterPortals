@@ -32,6 +32,7 @@
     //$$ "Mixin_ActiveRenderInfo_SplitUpdateFromApply",
     //$$ "Mixin_FmlNoGrab",
     //$$ "Mixin_ParticleManager_SharedAtlas",
+    //$$ "Mixin_RenderBlockOutlineEvent",
     //$$ "MixinClientChunkProvider",
     //$$ "MixinThreadTaskExecutor",
     //#else

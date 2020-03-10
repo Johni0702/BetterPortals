@@ -637,8 +637,8 @@ internal class ViewRenderPlan(
 //$$ { companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<FOVSetupEvent>() } }
 //$$
 //$$ // TODO actually invoke it from somewhere
-//$$ object RenderBlockHighlightEvent : Event()
-//$$ { @Suppress("unused") @JvmField val EVENT = fabricEvent<RenderBlockHighlightEvent>() }
+//$$ class RenderBlockHighlightEvent : Event()
+//$$ { companion object { @Suppress("unused") @JvmField val EVENT = fabricEvent<RenderBlockHighlightEvent>() } }
 //#else
 typealias CameraSetupEvent = EntityViewRenderEvent.CameraSetup
 typealias FOVSetupEvent = EntityViewRenderEvent.FOVModifier
