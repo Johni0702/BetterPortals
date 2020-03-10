@@ -29,7 +29,7 @@ public abstract class MixinNetHandlerPlayerClient implements INetHandlerPlayClie
 
     // FIXME why does the preprocessor not handle these?
     //#if FABRIC>=1
-    //$$ @Inject(method = "onPlayerPositionLook", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;setPositionAndRotation(DDDFF)V"))
+    //$$ @Inject(method = "onPlayerPositionLook", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;setPositionAnglesAndUpdate(DDDFF)V"))
     //#else
     @Inject(method = "handlePlayerPosLook", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/EntityPlayer;setPositionAndRotation(DDDFF)V"))
     //#endif
