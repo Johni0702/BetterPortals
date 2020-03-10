@@ -209,7 +209,12 @@ internal class ServerWorldManager(
         // TODO set enteredNetherPosition (see EntityPlayerMP#changeDimension)
 
         val chunkMapHandler = if (haveCubicChunks) PlayerCubeMapHandler else PlayerChunkMapHandler
-        val swapHandlers = listOf(chunkMapHandler, EntityTrackerHandler)
+        val swapHandlers = listOf(
+                //#if MC>=11400
+                //$$ TicketHandler,
+                //#endif
+                chunkMapHandler,
+                EntityTrackerHandler)
 
         // Important: Unregister the camera before the player because the camera depends on the player
         val newRegistrations = swapHandlers.map { it.swap(camera) }
@@ -309,6 +314,24 @@ internal object EntityTrackerHandler : SwapHandler {
         }
     }
 }
+
+//#if MC>=11400
+//$$ internal object TicketHandler : SwapHandler {
+//$$     override fun swap(prevPlayer: ServerPlayerEntity): (newPlayer: ServerPlayerEntity) -> Unit {
+//$$         val world = prevPlayer.serverWorld
+//$$         val worldManager = prevPlayer.worldsManagerImpl.worldManagers[world]!!
+//$$         val ticketManager = ((world.chunkProvider as AccessorServerChunkProvider).ticketManager) as ServerWorldManager.ITicketManager
+//$$         for (selector in worldManager.trackedSelectors) {
+//$$             ticketManager.removeCuboidView(prevPlayer, selector)
+//$$         }
+//$$         return { newPlayer ->
+//$$             for (selector in worldManager.trackedSelectors) {
+//$$                 ticketManager.addCuboidView(newPlayer, selector)
+//$$             }
+//$$         }
+//$$     }
+//$$ }
+//#endif
 
 internal object PlayerChunkMapHandler : SwapHandler {
     //#if MC>=11400
