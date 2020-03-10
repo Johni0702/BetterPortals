@@ -29,9 +29,9 @@ public abstract class MixinNetHandlerPlayerClient implements INetHandlerPlayClie
 
     // FIXME why does the preprocessor not handle these?
     //#if FABRIC>=1
-    //$$ @Inject(method = "onPlayerPositionLook", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/PlayerEntity;setPositionAnglesAndUpdate(DDDFF)V"))
+    //$$ @Inject(method = "onPlayerPositionLook", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;player:Lnet/minecraft/client/network/ClientPlayerEntity;", ordinal = 0))
     //#else
-    @Inject(method = "handlePlayerPosLook", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/player/EntityPlayer;setPositionAndRotation(DDDFF)V"))
+    @Inject(method = "handlePlayerPosLook", at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;player:Lnet/minecraft/client/entity/EntityPlayerSP;", ordinal = 0))
     //#endif
     private void rewindLocalViewChanges(SPacketPlayerPosLook packet, CallbackInfo ci) {
         // If this method gets called while this view is the server's main view (i.e. the client went through a portal
