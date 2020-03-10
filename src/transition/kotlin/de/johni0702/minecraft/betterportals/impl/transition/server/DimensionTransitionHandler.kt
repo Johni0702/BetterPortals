@@ -5,8 +5,6 @@ import de.johni0702.minecraft.betterportals.common.dimensionId
 import de.johni0702.minecraft.betterportals.common.theMovementFactor
 import de.johni0702.minecraft.betterportals.common.tickPos
 import de.johni0702.minecraft.betterportals.common.to3d
-import de.johni0702.minecraft.betterportals.common.toDimensionId
-import de.johni0702.minecraft.betterportals.impl.transition.common.LOGGER
 import de.johni0702.minecraft.betterportals.impl.transition.net.TransferToDimension
 import de.johni0702.minecraft.betterportals.impl.transition.net.sendTo
 import de.johni0702.minecraft.view.common.WorldsManager
@@ -14,8 +12,18 @@ import de.johni0702.minecraft.view.server.View
 import de.johni0702.minecraft.view.server.worldsManager
 import net.minecraft.entity.player.EntityPlayerMP
 
+//#if FABRIC>=1
+//$$ import net.fabricmc.fabric.impl.dimension.FabricDimensionInternals
+//$$ import net.fabricmc.loader.api.FabricLoader
+//#endif
+
 //#if MC>=11400
+//$$ import net.minecraft.util.math.BlockPos
+//$$ import net.minecraft.util.math.Vec3d
+//$$ import net.minecraft.world.dimension.DimensionType
 //#else
+import de.johni0702.minecraft.betterportals.common.toDimensionId
+import de.johni0702.minecraft.betterportals.impl.transition.common.LOGGER
 import net.minecraftforge.common.util.ITeleporter
 //#endif
 
@@ -30,9 +38,11 @@ internal object DimensionTransitionHandler {
 
     fun transferPlayerToDimension(
             player: EntityPlayerMP,
-            dimension: DimensionId
-            //#if MC<11400
-            , teleporter: ITeleporter
+            dimension: DimensionId,
+            //#if MC>=11400
+            //$$ teleportTarget: Triple<Vec3d, Float, Float>?
+            //#else
+            teleporter: ITeleporter
             //#endif
     ): Boolean {
         if (!enabled) {
@@ -63,6 +73,15 @@ internal object DimensionTransitionHandler {
 
         // Transfer player to new world (calling code expects the player to have been transferred when the method returns)
         worldsManager.changeDimension(newWorld) {
+            //#if MC>=11400
+            //$$ if (teleportTarget != null) {
+            //$$     val (pos, yaw, pitch) = teleportTarget
+            //$$     with(pos) {
+            //$$         setPositionAndRotation(x, y, z, yaw, pitch)
+            //$$     }
+            //$$     return@changeDimension
+            //$$ }
+            //#endif
             // Let the teleporter position the view entity
             // Based on PlayerList.transferEntityToWorld
             val newDim = newWorld.dimensionId
@@ -74,7 +93,39 @@ internal object DimensionTransitionHandler {
             var posX = (posX * moveFactor).coerceIn(newWorld.worldBorder.minX() + 16.0, newWorld.worldBorder.maxX() - 16).toInt()
             var posZ = (posZ * moveFactor).coerceIn(newWorld.worldBorder.minZ() + 16.0, newWorld.worldBorder.maxZ() - 16).toInt()
             //#if MC>=11400
+            //#if FABRIC>=1
+            //$$ if (newDim == DimensionType.THE_END) {
+            //$$     var spawn = BlockPos(posX, y.toInt(), posZ)
+            //$$     var spawnYaw = yaw
+            //$$     if (oldDim == DimensionType.OVERWORLD) {
+            //$$         spawn = newWorld.forcedSpawnPoint!!
+            //$$         spawnYaw = 90f
+            //$$     }
+            //$$     with(spawn.to3d()) {
+            //$$         setPositionAndAngles(x, y, z, spawnYaw, 0f)
+            //$$     }
+            //$$     velocity = Vec3d.ZERO
+            //$$ } else {
+            //$$     val target = (if (FabricLoader.getInstance().isModLoaded("fabric-dimensions-v1")) ({
+            //$$         FabricDimensionInternals.prepareDimensionalTeleportation(this)
+            //$$         FabricDimensionInternals.tryFindPlacement(newWorld, null, 0.0, 0.0)
+            //$$     }) else ({
+            //$$         null
+            //$$     }))()
+            //$$     if (target != null) {
+            //$$         this.velocity = target.velocity
+            //$$         this.yaw = yaw + target.yaw
+            //$$         with(target.pos) {
+            //$$             setPositionAnglesAndUpdate(x, y, z, this@changeDimension.yaw, this@changeDimension.pitch)
+            //$$         }
+            //$$     } else if (!newWorld.portalForcer.usePortal(this, yaw)) {
+            //$$         newWorld.portalForcer.createPortal(this)
+            //$$         newWorld.portalForcer.usePortal(this, yaw)
+            //$$     }
+            //$$ }
+            //#else
             //$$ TODO("1.14")
+            //#endif
             //#else
             if (newDim == 1.toDimensionId() && teleporter.isVanilla) {
                 val spawn = (if (oldDim == 1.toDimensionId()) newWorld.spawnPoint else newWorld.spawnCoordinate)!!

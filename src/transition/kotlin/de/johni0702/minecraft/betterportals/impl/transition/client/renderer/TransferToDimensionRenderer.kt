@@ -14,6 +14,8 @@ import java.time.Duration
 //#if FABRIC>=1
 //$$ import de.johni0702.minecraft.view.common.BPCallback
 //$$ import net.fabricmc.fabric.api.event.client.ClientTickCallback
+//$$ import java.util.concurrent.CopyOnWriteArrayList
+//$$
 //#else
 import net.minecraftforge.client.event.RenderWorldLastEvent
 import net.minecraftforge.common.MinecraftForge
@@ -107,7 +109,7 @@ internal class TransferToDimensionRenderer(
 
     //#if FABRIC>=1
     //$$ private object CallbackDispatcher {
-    //$$     val handlers = mutableListOf<EventHandler>()
+    //$$     val handlers: MutableList<EventHandler> = CopyOnWriteArrayList()
     //$$
     //$$     init {
     //$$         ClientTickCallback.EVENT.register(ClientTickCallback {
@@ -116,7 +118,9 @@ internal class TransferToDimensionRenderer(
     //$$         PopulateTreeEvent.EVENT.register(BPCallback {  event ->
     //$$             handlers.forEach { it.populateTree(event) }
     //$$         })
-    //$$         // TODO render
+    //$$         RenderPassEvent.End.EVENT.register(BPCallback { event ->
+    //$$             handlers.forEach { it.render(event.partialTicks) }
+    //$$         })
     //$$     }
     //$$ }
     //$$ private inner class EventHandler {

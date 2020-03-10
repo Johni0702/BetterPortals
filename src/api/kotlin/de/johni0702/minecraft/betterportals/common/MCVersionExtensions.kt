@@ -202,7 +202,7 @@ fun WorldServer.updateTrackingState(entity: Entity) =
 
 //#if FABRIC>=1
 //$$ val World.theActualHeight: Int get() = if (dimension is TheNetherDimension) 128 else 256
-//$$ val World.theMovementFactor: Double get() = if (dimension is TheNetherDimension) 8.0 else 0.0
+//$$ val World.theMovementFactor: Double get() = if (dimension is TheNetherDimension) 8.0 else 1.0
 //#else
 val World.theActualHeight: Int get() = provider.actualHeight
 val World.theMovementFactor: Double get() = provider.movementFactor
