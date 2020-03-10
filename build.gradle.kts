@@ -289,15 +289,10 @@ dependencies {
             exclude(group = "com.google.code.gson") // 2.2.4
         }
         "runtime"(mixinDep, withoutOldMixinDeps)
-        "apiCompile"(mixinDep, withoutOldMixinDeps)
-        "viewCompile"(mixinDep, withoutOldMixinDeps)
-        "portalCompile"(mixinDep, withoutOldMixinDeps)
-        "vanillaCompile"(mixinDep, withoutOldMixinDeps)
-        "apiAnnotationProcessor"(mixinDep)
-        "viewAnnotationProcessor"(mixinDep)
-        "portalAnnotationProcessor"(mixinDep)
-        "vanillaAnnotationProcessor"(mixinDep)
-        "transitionAnnotationProcessor"(mixinDep)
+        mixinRefMaps.keys.forEach { sourceSet ->
+            "${sourceSet}Compile"(mixinDep, withoutOldMixinDeps)
+            "${sourceSet}AnnotationProcessor"(mixinDep)
+        }
         "mixin"(mixinDep) { isTransitive = false }
     }
 
