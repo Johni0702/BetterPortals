@@ -6,11 +6,6 @@ import net.minecraftforge.common.config.Config;
 //#endif
 
 public class PortalConfig {
-    @Config.RequiresMcRestart
-    @Config.Name("Enable")
-    @Config.Comment("Whether to replace this kind of portal with BetterPortals ones. Needs to be set on the server and the client.")
-    public boolean enabled = true;
-
     @Config.Name("Opacity")
     @Config.Comment("Determines the opacity of the original portal texture.\n" +
             "A value of 0 will not render the original texture at all.\n" +
