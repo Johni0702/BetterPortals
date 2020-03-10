@@ -26,7 +26,8 @@ public abstract class MixinActiveRenderInfo {
     // See also Mixin_BlockBasedFogColor
     //#if MC>=11400
     //#if FABRIC>=1
-    //$$ // FIXME port to fabric
+    //$$ // getBlockAtCamera is a forge thing and isn't actually called from anywhere (injecting just in case a
+    //$$ // third-party mod uses it)
     //#else
     //$$ @Inject(method = "getBlockAtCamera", at = @At("HEAD"), cancellable = true, remap = false)
     //$$ private void ignoreBlockInView(CallbackInfoReturnable<BlockState> ci) {
