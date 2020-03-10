@@ -90,9 +90,15 @@ public abstract class MixinMinecraft implements IHasMainThread
     //$$     return clientThread;
     //$$ }
     //#else
+    //#if MC>=11400
+    //$$ protected Thread getExecutionThread() {
+    //$$     return clientThread;
+    //$$ }
+    //#else
     public boolean isCallingFromMinecraftThread() {
         return Thread.currentThread() == clientThread;
     }
+    //#endif
     //#endif
 
     @Override

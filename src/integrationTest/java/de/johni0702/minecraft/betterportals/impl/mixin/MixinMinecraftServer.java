@@ -127,7 +127,11 @@ public abstract class MixinMinecraftServer implements IHasMainThread {
      * @author johni0702
      */
     @Overwrite
-    public void initiateShutdown() {
+    public void initiateShutdown(
+            //#if MC>=11400
+            //$$ boolean blocking
+            //#endif
+    ) {
         if (!this.serverRunning) {
             return;
         }
