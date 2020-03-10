@@ -1,0 +1,19 @@
+[
+  {
+    "modid": "betterportals-view",
+    "parent": "betterportals",
+    "name": "Better Portals - ViewAPI",
+    "description": "Handles client-server syncing of multiple worlds and multi-pass rendering.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["johni0702"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "requiredMods": ["forgelin","betterportals"],
+    "dependencies": ["forgelin","betterportals"],
+    "useDependencyInformation": true
+  }
+]

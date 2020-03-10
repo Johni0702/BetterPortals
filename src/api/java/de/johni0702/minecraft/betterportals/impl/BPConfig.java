@@ -1,7 +1,5 @@
 package de.johni0702.minecraft.betterportals.impl;
 
-import static de.johni0702.minecraft.betterportals.impl.BetterPortalsModKt.MOD_ID;
-
 //#if FABRIC>=1
 //#else
 import net.minecraftforge.fml.client.event.ConfigChangedEvent;
@@ -15,11 +13,14 @@ import net.minecraftforge.common.config.Config;
 import net.minecraftforge.common.config.ConfigManager;
 //#endif
 
-@Config(modid = MOD_ID)
+@Config(modid = BPConfig.MOD_ID)
 //#if FABRIC<=0
-@Mod.EventBusSubscriber(modid = MOD_ID)
+@Mod.EventBusSubscriber(modid = BPConfig.MOD_ID)
 //#endif
 public class BPConfig {
+    @Config.Ignore
+    public static final String MOD_ID = "betterportals";
+
     @Config.Name("Vanilla Nether Portals")
     @Config.Comment("Configuration for vanilla nether portals.")
     public static PortalConfig netherPortals = new PortalConfig();

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "betterportals-transition",
+  "version": "${version}",
+
+  "name": "BetterPortals - Transition",
+  "description": "Enhanced third-party dimensional transitions.",
+  "authors": [
+    "johni0702"
+  ],
+  "contact": {
+    "sources": "https://github.com/Johni0702/BetterPortals"
+  },
+
+  "license": "GPL-3.0-or-later",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "de.johni0702.minecraft.betterportals.impl.transition.BPTransitionMod"
+      }
+    ],
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "de.johni0702.minecraft.betterportals.impl.transition.BPTransitionMod"
+      }
+    ]
+  },
+  "mixins": [
+    "mixins.betterportals.transition.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.4.0",
+    "fabric": "*",
+    "fabric-language-kotlin": ">=1.3.50",
+    "betterportals": "${version}",
+    "betterportals-view": "${version}"
+  },
+
+  "custom": {
+    "modmenu:parent": "betterportals"
+  }
+}

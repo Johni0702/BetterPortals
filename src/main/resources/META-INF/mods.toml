@@ -1,5 +1,5 @@
-modLoader="javafml"
-loaderVersion="[26,)"
+modLoader="kotlinfml"
+loaderVersion="[1,)"
 issueTrackerURL="https://github.com/johni0702/betterportals"
 
 [[mods]]
@@ -12,9 +12,109 @@ description="Adds see-through portals that can be used without any pesky loading
 [[dependencies]]
 modId="forge"
 mandatory=true
-versionRange="[26,)"
+versionRange="[31,)"
+
+[[mods]]
+modId="betterportals-view"
+version="${version}"
+displayName="Better Portals - ViewAPI"
+authors="johni0702"
+description="Handles client-server syncing of multiple worlds and multi-pass rendering."
 
 [[dependencies]]
-modId="forgelin"
+modId="forge"
 mandatory=true
-versionRange="[1,)"
+versionRange="[31,)"
+
+[[dependencies]]
+modId="betterportals"
+mandatory=true
+versionRange="${version}"
+
+[[mods]]
+modId="betterportals-portal"
+version="${version}"
+displayName="Better Portals - Portal"
+authors="johni0702"
+description="Implementation of the BetterPortals API."
+
+[[dependencies]]
+modId="forge"
+mandatory=true
+versionRange="[31,)"
+
+[[dependencies]]
+modId="betterportals"
+mandatory=true
+versionRange="${version}"
+
+[[dependencies]]
+modId="betterportals-view"
+mandatory=true
+versionRange="${version}"
+
+[[mods]]
+modId="betterportals-transition"
+version="${version}"
+displayName="Better Portals - Transition"
+authors="johni0702"
+description="Enhanced third-party dimensional transitions."
+
+[[dependencies]]
+modId="forge"
+mandatory=true
+versionRange="[31,)"
+
+[[dependencies]]
+modId="betterportals"
+mandatory=true
+versionRange="${version}"
+
+[[dependencies]]
+modId="betterportals-view"
+mandatory=true
+versionRange="${version}"
+
+[[mods]]
+modId="betterportals-nether"
+version="${version}"
+displayName="Better Portals - Nether"
+authors="johni0702"
+description="Better Portals for vanilla nether portals."
+
+[[dependencies]]
+modId="forge"
+mandatory=true
+versionRange="[31,)"
+
+[[dependencies]]
+modId="betterportals"
+mandatory=true
+versionRange="${version}"
+
+[[dependencies]]
+modId="betterportals-portal"
+mandatory=true
+versionRange="${version}"
+
+[[mods]]
+modId="betterportals-end"
+version="${version}"
+displayName="Better Portals - End"
+authors="johni0702"
+description="Better Portals for vanilla end portals."
+
+[[dependencies]]
+modId="forge"
+mandatory=true
+versionRange="[31,)"
+
+[[dependencies]]
+modId="betterportals"
+mandatory=true
+versionRange="${version}"
+
+[[dependencies]]
+modId="betterportals-portal"
+mandatory=true
+versionRange="${version}"

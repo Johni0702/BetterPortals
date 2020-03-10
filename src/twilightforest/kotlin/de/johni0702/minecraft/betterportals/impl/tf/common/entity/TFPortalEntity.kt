@@ -3,13 +3,13 @@ package de.johni0702.minecraft.betterportals.impl.tf.common.entity
 
 import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.entity.OneWayPortalEntity
-import de.johni0702.minecraft.betterportals.impl.tf.common.TF_PORTAL_CONFIG
+import de.johni0702.minecraft.betterportals.impl.tf.BPTwilightForestMod.Companion.PORTAL_CONFIG
 import net.minecraft.block.Block
 import net.minecraft.init.Blocks
 import net.minecraft.world.World
 import twilightforest.block.TFBlocks
 
-class TFPortalEntity(isTailEnd: Boolean, world: World, portal: FinitePortal) : OneWayPortalEntity(isTailEnd, world, portal, TF_PORTAL_CONFIG) {
+class TFPortalEntity(isTailEnd: Boolean, world: World, portal: FinitePortal) : OneWayPortalEntity(isTailEnd, world, portal, PORTAL_CONFIG) {
     @Suppress("unused")
     constructor(world: World) : this(false, world, FinitePortal.DUMMY)
 

@@ -4,7 +4,7 @@ import de.johni0702.minecraft.betterportals.common.DimensionId
 import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.entity.OneWayPortalEntity
 import de.johni0702.minecraft.betterportals.common.toDimensionId
-import de.johni0702.minecraft.betterportals.impl.vanilla.common.END_PORTAL_CONFIG
+import de.johni0702.minecraft.betterportals.impl.vanilla.BPEndMod.Companion.PORTAL_CONFIG
 import net.minecraft.block.Block
 import net.minecraft.block.BlockEndPortal
 import net.minecraft.init.Blocks
@@ -16,7 +16,6 @@ import kotlin.math.abs
 
 //#if MC>=11400
 //$$ import de.johni0702.minecraft.betterportals.common.entityTypeHolder
-//$$ import de.johni0702.minecraft.betterportals.impl.vanilla.common.MOD_ID
 //$$ import net.minecraft.util.ResourceLocation
 //$$ import net.minecraft.entity.EntityType
 //#endif
@@ -33,7 +32,7 @@ abstract class EndPortalEntity(
         //#endif
         isTailEnd, world,
         FinitePortal(EnumFacing.Plane.HORIZONTAL, relativeBlocks, localDimension, localPosition, localRotation),
-        END_PORTAL_CONFIG
+        PORTAL_CONFIG
 )
 
 class EndEntryPortalEntity(
@@ -62,7 +61,7 @@ class EndEntryPortalEntity(
 
     //#if MC>=11400
     //$$ companion object {
-    //$$     val ID = ResourceLocation("$MOD_ID:end_entry_portal")
+    //$$     val ID = ResourceLocation("betterportals:end_entry_portal")
     //$$     val ENTITY_TYPE: EntityType<EndEntryPortalEntity> by entityTypeHolder(ID)
     //$$ }
     //#endif
@@ -108,7 +107,7 @@ class EndExitPortalEntity(
 
     //#if MC>=11400
     //$$ companion object {
-    //$$     val ID = ResourceLocation("$MOD_ID:end_exit_portal")
+    //$$     val ID = ResourceLocation("betterportals:end_exit_portal")
     //$$     val ENTITY_TYPE: EntityType<EndExitPortalEntity> by entityTypeHolder(ID)
     //$$ }
     //#endif

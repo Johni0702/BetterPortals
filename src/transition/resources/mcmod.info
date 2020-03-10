@@ -1,0 +1,19 @@
+[
+  {
+    "modid": "betterportals-transition",
+    "parent": "betterportals",
+    "name": "Better Portals - Transition",
+    "description": "Enhanced third-party dimensional transitions.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["johni0702"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "requiredMods": ["forgelin","betterportals", "betterportals-view"],
+    "dependencies": ["forgelin","betterportals", "betterportals-view"],
+    "useDependencyInformation": true
+  }
+]

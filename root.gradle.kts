@@ -9,7 +9,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.github.MinecraftForge:ForgeGradle:d4e8925") {
+        classpath("com.github.MinecraftForge:ForgeGradle:0204ce3") {
             exclude(group = "trove", module = "trove") // preprocessor/idea requires more recent one
             exclude(group = "org.eclipse.jdt") // loom requires more recent one
         }

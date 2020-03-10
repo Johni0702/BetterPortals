@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "betterportals-vanilla",
+  "version": "${version}",
+
+  "name": "BetterPortals - Vanilla",
+  "description": "Better Portals for vanilla portals.",
+  "authors": [
+    "johni0702"
+  ],
+  "contact": {
+    "sources": "https://github.com/Johni0702/BetterPortals"
+  },
+
+  "license": "GPL-3.0-or-later",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "de.johni0702.minecraft.betterportals.impl.vanilla.BPNetherMod"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "de.johni0702.minecraft.betterportals.impl.vanilla.BPEndMod"
+      }
+    ],
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "de.johni0702.minecraft.betterportals.impl.vanilla.BPNetherMod"
+      },
+      {
+        "adapter": "kotlin",
+        "value": "de.johni0702.minecraft.betterportals.impl.vanilla.BPEndMod"
+      }
+    ]
+  },
+  "mixins": [
+    "mixins.betterportals.vanilla.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.4.0",
+    "fabric": "*",
+    "fabric-language-kotlin": ">=1.3.50",
+    "betterportals": "${version}",
+    "betterportals-portal": "${version}"
+  },
+
+  "custom": {
+    "modmenu:parent": "betterportals"
+  }
+}

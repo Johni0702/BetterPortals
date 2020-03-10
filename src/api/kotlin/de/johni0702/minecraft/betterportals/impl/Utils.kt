@@ -1,6 +1,7 @@
 package de.johni0702.minecraft.betterportals.impl
 
 import de.johni0702.minecraft.betterportals.common.PortalAccessor
+import de.johni0702.minecraft.betterportals.common.PortalConfiguration
 import net.minecraft.block.Block
 import net.minecraft.client.renderer.entity.Render
 import net.minecraft.client.renderer.entity.RenderManager
@@ -142,6 +143,13 @@ fun registerPortalAccessor(factory: (World) -> PortalAccessor) {
     })
 }
 //#endif
+
+fun PortalConfig.toConfiguration() = PortalConfiguration(
+        { opacity },
+        { renderDistMin },
+        { renderDistMax },
+        { renderDistSizeMultiplier }
+)
 
 //#if MC>=11400
 //$$ interface IMessage {

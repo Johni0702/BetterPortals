@@ -1,0 +1,19 @@
+[
+{
+  "modid": "betterportals-portal",
+  "parent": "betterportals",
+  "name": "Better Portals - Portal",
+  "description": "Implementation of the BetterPortals API.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["johni0702"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "requiredMods": ["forgelin","betterportals", "betterportals-view"],
+  "dependencies": ["forgelin","betterportals", "betterportals-view"],
+  "useDependencyInformation": true
+}
+]

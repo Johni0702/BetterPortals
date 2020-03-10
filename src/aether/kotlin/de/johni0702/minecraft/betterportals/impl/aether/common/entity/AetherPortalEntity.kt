@@ -3,7 +3,7 @@ package de.johni0702.minecraft.betterportals.impl.aether.common.entity
 
 import de.johni0702.minecraft.betterportals.common.FinitePortal
 import de.johni0702.minecraft.betterportals.common.entity.AbstractPortalEntity
-import de.johni0702.minecraft.betterportals.impl.aether.common.AETHER_PORTAL_CONFIG
+import de.johni0702.minecraft.betterportals.impl.aether.BPAetherMod.Companion.PORTAL_CONFIG
 import net.minecraft.world.World
 
 class AetherPortalEntity(
@@ -12,7 +12,7 @@ class AetherPortalEntity(
 ) : AbstractPortalEntity(
         world,
         portal,
-        AETHER_PORTAL_CONFIG
+        PORTAL_CONFIG
 ) {
     @Suppress("unused")
     constructor(world: World) : this(world, FinitePortal.DUMMY)

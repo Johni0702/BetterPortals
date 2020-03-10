@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "betterportals-portal",
+  "version": "${version}",
+
+  "name": "BetterPortals - Portal",
+  "description": "Implementation of the BetterPortals API.",
+  "authors": [
+    "johni0702"
+  ],
+  "contact": {
+    "sources": "https://github.com/Johni0702/BetterPortals"
+  },
+
+  "license": "GPL-3.0-or-later",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "de.johni0702.minecraft.betterportals.impl.BPPortalMod"
+      }
+    ],
+    "client": [
+      {
+        "adapter": "kotlin",
+        "value": "de.johni0702.minecraft.betterportals.impl.BPPortalMod"
+      }
+    ]
+  },
+  "mixins": [
+    "mixins.betterportals.portal.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.4.0",
+    "fabric": "*",
+    "fabric-language-kotlin": ">=1.3.50",
+    "betterportals": "${version}",
+    "betterportals-view": "${version}"
+  },
+
+  "custom": {
+    "modmenu:api": true,
+    "modmenu:parent": "betterportals"
+  }
+}

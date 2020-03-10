@@ -1,0 +1,19 @@
+[
+  {
+    "modid": "betterportals-mekanism",
+    "parent": "betterportals",
+    "name": "Better Portals - Mekanism",
+    "description": "Better Portals for the Mekanism Teleporter.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["johni0702"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "requiredMods": ["forgelin","betterportals", "betterportals-portal"],
+    "dependencies": ["forgelin","betterportals", "betterportals-portal"],
+    "useDependencyInformation": true
+  }
+]

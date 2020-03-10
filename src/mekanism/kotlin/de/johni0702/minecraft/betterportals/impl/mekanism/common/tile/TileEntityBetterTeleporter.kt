@@ -7,7 +7,7 @@ import de.johni0702.minecraft.betterportals.common.portalManager
 import de.johni0702.minecraft.betterportals.common.tile.PortalTileEntity
 import de.johni0702.minecraft.betterportals.common.tile.PortalTileEntityAccessor
 import de.johni0702.minecraft.betterportals.common.toRotation
-import de.johni0702.minecraft.betterportals.impl.mekanism.common.CONFIG_MEKANISM_PORTALS
+import de.johni0702.minecraft.betterportals.impl.mekanism.BPMekanismMod.Companion.PORTAL_CONFIG
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.LOGGER
 import de.johni0702.minecraft.betterportals.impl.mekanism.common.compareTo
 import io.netty.buffer.ByteBuf
@@ -48,7 +48,7 @@ class TeleporterPortalAgent(
         tileEntity.world.portalManager,
         PortalTileEntityAccessor.getId(tileEntity),
         portal,
-        CONFIG_MEKANISM_PORTALS
+        PORTAL_CONFIG
 ) {
     override fun modifyAABBs(entity: Entity, queryAABB: AxisAlignedBB, aabbList: MutableList<AxisAlignedBB>, queryRemote: (World, AxisAlignedBB) -> List<AxisAlignedBB>) {
         if (remoteAgent == null) {

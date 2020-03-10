@@ -21,20 +21,10 @@
         "adapter": "kotlin",
         "value": "de.johni0702.minecraft.betterportals.impl.BetterPortalsMod::init"
       }
-    ],
-    "client": [
-      {
-        "adapter": "kotlin",
-        "value": "de.johni0702.minecraft.betterportals.impl.BetterPortalsMod::clientInit"
-      }
     ]
   },
   "mixins": [
-    "mixins.betterportals.json",
-    "mixins.betterportals.view.json",
-    "mixins.betterportals.transition.json",
-    "mixins.betterportals.portal.json",
-    "mixins.betterportals.vanilla.json"
+    "mixins.betterportals.json"
   ],
 
   "depends": {
@@ -46,6 +36,5 @@
   },
 
   "custom": {
-    "modmenu:api": true
   }
 }

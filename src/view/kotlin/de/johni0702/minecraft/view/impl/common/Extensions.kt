@@ -1,10 +1,7 @@
 package de.johni0702.minecraft.view.impl.common
 
 import de.johni0702.minecraft.betterportals.impl.accessors.AccLazyLoadBase
-import de.johni0702.minecraft.view.impl.ClientViewAPIImpl
 import de.johni0702.minecraft.view.impl.client.ViewDemuxingTaskQueue
-import de.johni0702.minecraft.view.impl.client.render.ViewRenderManager
-import de.johni0702.minecraft.view.impl.net.Net
 import net.minecraft.client.Minecraft
 import net.minecraft.entity.player.EntityPlayer
 import net.minecraft.util.LazyLoadBase
@@ -19,21 +16,6 @@ import de.johni0702.minecraft.betterportals.impl.accessors.AccMinecraft
 import de.johni0702.minecraft.view.impl.LOGGER
 import java.util.concurrent.Executors
 //#endif
-
-fun initView(
-        init: (() -> Unit) -> Unit,
-        clientInit: (() -> Unit) -> Unit,
-        debugView: () -> Boolean
-) {
-    init {
-        Net.INSTANCE // initialize via <init>
-    }
-
-    clientInit {
-        ViewRenderManager.INSTANCE.debugView = debugView
-        ClientViewAPIImpl.init()
-    }
-}
 
 internal fun EntityPlayer.swapPosRotWith(e2: EntityPlayer) {
     val e1 = this

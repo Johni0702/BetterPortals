@@ -22,6 +22,7 @@ import net.minecraft.world.GameType
 import net.minecraft.world.WorldServer
 import net.minecraft.world.WorldSettings
 import net.minecraft.world.WorldType
+import org.apache.logging.log4j.LogManager
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 
@@ -61,6 +62,7 @@ val TEST_WORLD_SETTINGS = WorldSettings(0, GameType.CREATIVE, true, false, World
 }
 
 const val folderName = "test"
+val LOGGER = LogManager.getLogger()!!
 val server get() = mc.integratedServer!!
 val serverOverworld: WorldServer get() = server.getWorld(0.toDimensionId()!!)
 val serverNether: WorldServer get() = server.getWorld((-1).toDimensionId()!!)

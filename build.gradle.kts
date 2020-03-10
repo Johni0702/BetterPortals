@@ -1,3 +1,5 @@
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
 import com.replaymod.gradle.preprocess.PreprocessExtension
 import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.task.RemapJarTask
@@ -7,6 +9,7 @@ import net.minecraftforge.gradle.user.patcherUser.forge.ForgeExtension
 import net.minecraftforge.gradle.userdev.DependencyManagementExtension
 import net.minecraftforge.gradle.userdev.UserDevExtension
 import net.minecraftforge.gradle.userdev.tasks.GenerateSRG
+import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 apply(plugin = "org.jetbrains.kotlin.jvm")
@@ -138,8 +141,6 @@ if (loom) {
     afterEvaluate {
         // While loom does try to support mixin, it doesn't do so well for multiple source sets, so we'll do it ourselves
         val loom = the<LoomGradleExtension>()
-        val compileTasks = mutableListOf<TaskProvider<*>>()
-        val mixinMaps = mutableListOf<File>()
         mixinRefMaps.forEach { (name, refMap) ->
             val mixinMap = File(project.buildDir, "tmp/mixins/mixins.$name.tiny")
             val compileTask = tasks.named<JavaCompile>("compile${name.capitalize()}Java") {
@@ -153,41 +154,20 @@ if (loom) {
                 ))
             }
             if (name != "integrationTest") {
-                mixinMaps.add(mixinMap)
-                compileTasks.add(compileTask)
-            }
-        }
-        // The remap task expects a single mixin-generated mapping file, not one per source-set (it doesn't do source sets)
-        val mergedMixinMap = File(project.buildDir, "tmp/mixins/mixins.tiny")
-        val mergeMixinMapsTask = tasks.register("mergeMixinMapsForRemap") {
-            compileTasks.forEach { dependsOn(it) }
-            mixinMaps.forEach { inputs.file(it) }
-            outputs.file(mergedMixinMap)
-            doLast {
-                var result = mutableListOf<String>()
-                for (src in mixinMaps) {
-                    if (result.isEmpty()) {
-                        result.addAll(src.readLines())
-                    } else {
-                        // trim header
-                        result.addAll(src.readLines().drop(1))
+                tasks.named<RemapJarTask>("remap${(if (name == "api") "core" else name).capitalize()}Jar") {
+                    dependsOn(compileTask)
+                    inputs.file(mixinMap)
+
+                    // Unfortunately there doesn't seem to be any better way to configure this
+                    var orgPath: File? = null
+                    doFirst {
+                        orgPath = loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT
+                        loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT = mixinMap
+                    }
+                    doLast {
+                        loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT = orgPath!!
                     }
                 }
-                mergedMixinMap.writeText(result.joinToString("\n"))
-            }
-        }
-        tasks.named<RemapJarTask>("remapJar") {
-            dependsOn(mergeMixinMapsTask)
-            inputs.file(mergedMixinMap)
-
-            // Unfortunately there doesn't seem to be any better way to configure this
-            var orgPath: File? = null
-            doFirst {
-                orgPath = loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT
-                loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT = mergedMixinMap
-            }
-            doLast {
-                loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT = orgPath!!
             }
         }
     }
@@ -195,10 +175,13 @@ if (loom) {
     mixinRefMaps.forEach { (name, refMap) ->
         val mixinSrg = File(project.buildDir, "tmp/mixins/mixins.$name.srg")
         if (name != "integrationTest") {
-            if (fg3) {
-                // TODO
-            } else {
-                tasks.getByName<TaskSingleReobf>("reobfJar").addSecondarySrgFile(mixinSrg)
+            val jarTaskName = "${if (name == "api") "core" else name}Jar"
+            afterEvaluate {
+                if (fg3) {
+                    tasks.getByName<RenameJarInPlace>("reobf${jarTaskName.capitalize()}").extraMapping(mixinSrg)
+                } else {
+                    tasks.getByName<TaskSingleReobf>("reobf${jarTaskName.capitalize()}").addSecondarySrgFile(mixinSrg)
+                }
             }
         }
         tasks.named<JavaCompile>("compile${name.capitalize()}Java") {
@@ -226,6 +209,7 @@ repositories {
 
 configurations {
     register("mixin") // for shading
+    register("kottle") // for embedding
 }
 
 // We want FG to deobf our mod-deps for us.
@@ -283,6 +267,10 @@ dependencies {
 
     if (fabric) {
         "modCompile"("net.fabricmc:fabric-language-kotlin:1.3.50+build.3")
+    } else if (mcVersion >= 11400) {
+        val kottleDep = "kottle:Kottle:1.4.0"
+        "compile"(kottleDep)
+        "kottle"(kottleDep) { isTransitive = false }
     } else {
         "compile"("net.shadowfacts:Forgelin:1.8.3")
     }
@@ -333,57 +321,162 @@ dependencies {
     }
 }
 
-tasks.named<ProcessResources>("processResources") {
-    // this will ensure that this task is redone when the versions change.
-    inputs.property("version", project.version)
-    inputs.property("mcversion", mcVersionStr)
+val implJars = mutableMapOf<String, TaskProvider<Jar>>()
+for (name in implementations.keys + listOf("core")) {
+    val jarTaskName = "${name}Jar"
+    val jarTask = tasks.register<Jar>(jarTaskName) {
+        archiveBaseName.set("betterportals-$name")
+        if (loom) {
+            archiveClassifier.set("dev")
+        }
 
-    // replace stuff in mcmod.info, nothing else
-    from(main.get().resources.srcDirs) {
-        include("mcmod.info")
-        include("mods.toml")
-        include("fabric.mod.json")
+        inputs.property("version", project.version)
+        inputs.property("mcversion", mcVersionStr)
+        val expansions: Action<FileCopyDetails> = Action {
+            expand("version" to project.version, "mcversion" to mcVersionStr)
+        }
+        val exclude: Action<FileCopyDetails> = Action {
+            exclude()
+        }
+        fun CopySpec.configureModMetaFiles() {
+            filesMatching("mcmod.info", if (!fg3 && !fabric) expansions else exclude)
+            filesMatching("META-INF/mods.toml", if (fg3) expansions else exclude)
+            filesMatching("fabric.mod.json", if (fabric) expansions else exclude)
+        }
+        if (name == "core") {
+            if (!fabric && !fg3) {
+                from({ configurations["mixin"].files.map { project.zipTree(it) } }) {
+                    exclude("META-INF/*.SF")
+                    exclude("META-INF/*.RSA")
+                }
+            }
+            from(main.get().output) {
+                exclude("de/johni0702/minecraft/betterportals/MixinLoader.class")
+                configureModMetaFiles()
+            }
+            from(api.output)
+        } else {
+            from(sourceSets[name].output) {
+                configureModMetaFiles()
+            }
+        }
+        exclude("net/optifine") // skeletons
+        exclude("org/vivecraft") // skeletons
 
-        // replace version and mcversion
-        expand("version" to project.version, "mcversion" to mcVersionStr)
+        val mixinRefMap = mixinRefMaps[if (name == "core") "api" else name]
+        if (mixinRefMap != null) {
+            from(mixinRefMap)
+            if (!fabric) {
+                manifest {
+                    attributes(
+                            "TweakClass" to "org.spongepowered.asm.launch.MixinTweaker",
+                            "TweakOrder" to "0",
+                            "ForceLoadAsMod" to "true",
+                            "FMLCorePluginContainsFMLMod" to "true",
+                            "MixinConfigs" to "mixins.betterportals${if (name == "core") "" else ".$name"}.json"
+                    )
+                }
+            }
+        }
     }
-        
-    // copy everything else except the mcmod.info
-    from(main.get().resources.srcDirs) {
-        exclude("mcmod.info")
-        exclude("mods.toml")
-        exclude("fabric.mod.json")
+    implJars[name] = jarTask
+
+    if (loom) {
+        tasks.register<RemapJarTask>("remap${jarTaskName.capitalize()}") {
+            archiveBaseName.set("betterportals-$name")
+            input.set(jarTask.get().archiveFile)
+            addNestedDependencies.set(name == "core")
+        }
+    } else {
+        (extensions["reobf"] as NamedDomainObjectContainer<*>).create(jarTaskName)
+        if (fg3) {
+            // FIXME maybe?
+        } else {
+            val reobfTask = tasks["reobf${jarTaskName.capitalize()}"] as TaskSingleReobf
+            reobfTask.classpath = sourceSets[if (name == "core") "main" else name].compileClasspath
+        }
     }
 }
 
-tasks.named<Jar>("jar") {
-    archiveBaseName.set("betterportals")
-    if (!fabric) {
-        from({ configurations["mixin"].files.map { project.zipTree(it) } }) {
-            exclude("META-INF/*.SF")
-            exclude("META-INF/*.RSA")
+val allJar = tasks.register<Jar>("allJar") {
+    archiveBaseName.set("betterportals-all")
+
+    val jarNames = mutableListOf<String>()
+    for ((name, jarTaskProvider) in implJars) {
+        val jarTask = jarTaskProvider.get()
+        if (loom) {
+            val remapTask = tasks["remap${name.capitalize()}Jar"] as RemapJarTask
+            from(remapTask.archiveFile) {
+                into("META-INF/jars")
+            }
+            jarNames.add(remapTask.archiveFileName.get())
+        } else {
+            dependsOn(tasks["reobf${name.capitalize()}Jar"])
+            // ModLauncher doesn't support bundle-only mods, so we explode the core jar
+            // if (fg3 && name == "core") {
+            // WTF FORGE, WHY IS THERE NO MENTION OF THIS IN THE DOCS: https://github.com/MinecraftForge/MinecraftForge/issues/6239
+            if (fg3) {
+                from({ zipTree(jarTask.archiveFile) })
+            } else {
+                from(jarTask.archiveFile) {
+                    into("META-INF/libraries")
+                }
+                jarNames.add(jarTask.archiveFileName.get())
+            }
         }
     }
-    from(api.output)
-    from(implementations.keys.map { sourceSets[it].output })
-    exclude("de/johni0702/minecraft/betterportals/MixinLoader.class")
-    exclude("net/optifine") // skeletons
-    exclude("org/vivecraft") // skeletons
-    from(mixinRefMaps.filterNot { it.key == "integrationTest" }.values)
-    if (!fabric) {
+
+    /* Once https://github.com/MinecraftForge/MinecraftForge/issues/6239 is fixed
+    if (!fabric && mcVersion >= 11400) {
+        val kottleConfiguration = configurations["kottle"]
+        dependsOn(kottleConfiguration)
+        val kottleFile = kottleConfiguration.singleFile
+        from(kottleFile) {
+            into("META-INF/libraries")
+        }
+        jarNames.add(kottleFile.name)
+    }
+    */
+
+    if (loom) {
+        val tmp = project.buildDir.resolve("tmp").resolve("fabric.mod.json")
+        doFirst {
+            tmp.writeText(JsonObject().apply {
+                addProperty("schemaVersion", 1)
+                addProperty("id", "betterportals-all")
+                addProperty("version", project.version.toString())
+                addProperty("name", "BetterPortals (all modules)")
+                add("jars", JsonArray().apply {
+                    for (jarName in jarNames) {
+                        add(JsonObject().apply {
+                            addProperty("file", "META-INF/jars/$jarName")
+                        })
+                    }
+                })
+                add("depends", JsonObject().apply {
+                    addProperty("betterportals", project.version.toString())
+                })
+                add("custom", JsonObject().apply {
+                    addProperty("modmenu:parent", "betterportals")
+                })
+            }.toString())
+        }
+        from(tmp)
+        inputs.property("version", project.version)
+    } else if (fg3) {
+        // need to merge ContainedDeps into core manifest once https://github.com/MinecraftForge/MinecraftForge/issues/6239 is fixed
+        // and in the mean time, mixin config needs to be set here as well
         manifest {
             attributes(
-                    "TweakClass" to "org.spongepowered.asm.launch.MixinTweaker",
-                    "TweakOrder" to "0",
-                    "ForceLoadAsMod" to "true",
-                    "FMLCorePluginContainsFMLMod" to "true",
-                    "MixinConfigs" to listOf(
-                            "mixins.betterportals.json",
-                            "mixins.betterportals.view.json",
-                            "mixins.betterportals.transition.json",
-                            "mixins.betterportals.portal.json",
-                            "mixins.betterportals.vanilla.json"
-                    ).joinToString(",")
+                    "MixinConfigs" to (mixinRefMaps.keys.filter { it != "integrationTest" }.joinToString(",") {
+                        "mixins.betterportals${if (it == "api") "" else ".$it"}.json"
+                    })
+            )
+        }
+    } else {
+        manifest {
+            attributes(
+                    "ContainedDeps" to jarNames.joinToString(" ")
             )
         }
     }

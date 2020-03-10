@@ -10,6 +10,7 @@ package de.johni0702.minecraft.betterportals.impl
 //$$ import me.zeroeightsix.fiber.tree.ConfigNode
 //$$ import me.zeroeightsix.fiber.tree.ConfigValue
 //$$ import net.fabricmc.loader.api.FabricLoader
+//$$ import org.apache.logging.log4j.LogManager
 //$$ import java.io.FileNotFoundException
 //#else
 //$$ import net.minecraftforge.common.ForgeConfigSpec
@@ -30,10 +31,12 @@ package de.johni0702.minecraft.betterportals.impl
 //$$             val max: Int = Int.MAX_VALUE
 //$$     )
 //$$     annotation class RequiresMcRestart
+//$$     annotation class Ignore
 //$$ }
 //$$
 //$$ class LegacyConfigSpec<T>(cls: Class<T>) {
     //#if FABRIC>=1
+    //$$ private val LOGGER = LogManager.getLogger("betterportals")
     //$$ private val configPath = FabricLoader.getInstance().configDirectory.toPath().resolve("betterportals.json5")
     //$$ private val rootNode = ConfigNode()
     //$$ private val adapter: LegacyConfigAdapter<T>
@@ -69,6 +72,7 @@ package de.johni0702.minecraft.betterportals.impl
     //$$     private val inner = mutableListOf<LegacyConfigAdapter<*>>()
     //$$     init {
     //$$         for (field in cls.declaredFields) { // intentionally not supporting inherited fields because forge didn't either
+    //$$             if (field.getAnnotation<Config.Ignore>() != null) continue
     //$$             val type = field.type
     //$$             val name = field.getAnnotation<Config.Name>()?.value ?: continue
     //$$             val comment = field.getAnnotation<Config.Comment>()?.value

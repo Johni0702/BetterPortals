@@ -1,0 +1,19 @@
+[
+  {
+    "modid": "betterportals-twilightforest",
+    "parent": "betterportals",
+    "name": "Better Portals - Twilight Forest",
+    "description": "Better Portals for the Twilight Forest mod.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": ["johni0702"],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "requiredMods": ["forgelin","betterportals", "betterportals-portal"],
+    "dependencies": ["forgelin","betterportals", "betterportals-portal"],
+    "useDependencyInformation": true
+  }
+]
