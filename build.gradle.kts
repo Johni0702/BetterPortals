@@ -1,5 +1,6 @@
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.replaymod.gradle.preprocess.PreprocessExtension
 import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.task.RemapJarTask
@@ -398,6 +399,7 @@ for (name in implementations.keys + listOf("core")) {
 val allJar = tasks.register<Jar>("allJar") {
     archiveBaseName.set("betterportals-all")
 
+    val archiveFiles = mutableListOf<Provider<RegularFile>>() // For merging the mod.info files on 1.12 forge
     val jarNames = mutableListOf<String>()
     for ((name, jarTaskProvider) in implJars) {
         val jarTask = jarTaskProvider.get()
@@ -415,12 +417,39 @@ val allJar = tasks.register<Jar>("allJar") {
             if (fg3) {
                 from({ zipTree(jarTask.archiveFile) })
             } else {
+                // jar-in-jar on 1.12 forge is broken by design: even though it correctly unpacks inner jars, it never
+                // deletes them, so you'll immediately run into duplicate mods issues once you update a mod (and even worse
+                // it won't overwrite existing files, so for development you'll not get duplicate errors but you silently
+                // get the old version each time. took me some time to notice, thanks!)
+                /*
                 from(jarTask.archiveFile) {
                     into("META-INF/libraries")
                 }
                 jarNames.add(jarTask.archiveFileName.get())
+                */
+                from({ zipTree(jarTask.archiveFile) }) {
+                    exclude("mcmod.info")
+                }
+                archiveFiles.add(jarTask.archiveFile)
             }
         }
+    }
+
+    // Merge mod.info files on 1.12 forge until jar-in-jar works there (so probably forever)
+    if (archiveFiles.isNotEmpty()) {
+        val file = project.buildDir.resolve("tmp").resolve("mcmod.info")
+        archiveFiles.forEach { dependsOn(it) }
+        doFirst {
+            val parser = JsonParser()
+            val modInfos = JsonArray()
+            for (archive in archiveFiles) {
+                for (modInfo in zipTree(archive).filter { it.name == "mcmod.info" }) {
+                    modInfos.addAll(parser.parse(modInfo.readText()).asJsonArray)
+                }
+            }
+            file.writeText(modInfos.toString())
+        }
+        from(file)
     }
 
     /* Once https://github.com/MinecraftForge/MinecraftForge/issues/6239 is fixed
@@ -471,9 +500,22 @@ val allJar = tasks.register<Jar>("allJar") {
             )
         }
     } else {
+        /* If ContainedDeps ever works on 1.12 (doubt it given it's no longer supported):
         manifest {
             attributes(
                     "ContainedDeps" to jarNames.joinToString(" ")
+            )
+        }
+        */ // until then:
+        manifest {
+            attributes(
+                    "TweakClass" to "org.spongepowered.asm.launch.MixinTweaker",
+                    "TweakOrder" to "0",
+                    "ForceLoadAsMod" to "true",
+                    "FMLCorePluginContainsFMLMod" to "true",
+                    "MixinConfigs" to (mixinRefMaps.keys.filter { it != "integrationTest" }.joinToString(",") {
+                        "mixins.betterportals${if (it == "api") "" else ".$it"}.json"
+                    })
             )
         }
     }
