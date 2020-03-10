@@ -92,6 +92,7 @@ internal class ServerWorldManager(
     //$$             ticketManager.addCuboidView(player, selector)
     //$$         }
     //$$     }
+    //$$     trackedSelectors = updatedSelectors
     //$$
     //$$     updateTrackedColumns({ updater(it, true) }, { updater(it, false) })
     //$$ }
