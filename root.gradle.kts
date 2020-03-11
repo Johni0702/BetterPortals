@@ -12,6 +12,7 @@ buildscript {
         classpath("com.github.MinecraftForge:ForgeGradle:0204ce3") {
             exclude(group = "trove", module = "trove") // preprocessor/idea requires more recent one
             exclude(group = "org.eclipse.jdt") // loom requires more recent one
+            exclude(group = "org.eclipse.equinox") // loom requires more recent one
         }
         // classpath("net.minecraftforge.gradle:ForgeGradle:3.+") {
         //     exclude(group = "trove", module = "trove") // preprocessor/idea requires more recent one
@@ -20,6 +21,7 @@ buildscript {
             exclude(group = "net.sf.trove4j", module = "trove4j") // preprocessor/idea requires more recent one
             exclude(group = "trove", module = "trove") // different name same thing
             exclude(group = "org.eclipse.jdt") // loom requires more recent one
+            exclude(group = "org.eclipse.equinox") // loom requires more recent one
         }
     }
 }
