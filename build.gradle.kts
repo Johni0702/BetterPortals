@@ -150,7 +150,7 @@ if (loom) {
                 outputs.file(mixinMap)
                 outputs.file(refMap)
                 options.compilerArgs.addAll(listOf(
-                        "-AinMapFileNamedIntermediary=" + loom.mappingsProvider.MAPPINGS_TINY.canonicalPath,
+                        "-AinMapFileNamedIntermediary=" + loom.mappingsProvider.tinyMappings.canonicalPath,
                         "-AoutMapFileNamedIntermediary=" + mixinMap,
                         "-AoutRefMapFile=" + refMap.canonicalPath,
                         "-AdefaultObfuscationEnv=named:intermediary"
@@ -164,11 +164,11 @@ if (loom) {
                     // Unfortunately there doesn't seem to be any better way to configure this
                     var orgPath: File? = null
                     doFirst {
-                        orgPath = loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT
-                        loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT = mixinMap
+                        orgPath = loom.mappingsProvider.mappingsMixinExport
+                        loom.mappingsProvider.mappingsMixinExport = mixinMap
                     }
                     doLast {
-                        loom.mappingsProvider.MAPPINGS_MIXIN_EXPORT = orgPath!!
+                        loom.mappingsProvider.mappingsMixinExport = orgPath!!
                     }
                 }
             }
