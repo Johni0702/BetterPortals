@@ -77,7 +77,7 @@ class EntityCullingTests : AnnotationSpec() {
 
     @Test
     fun viewFromTop() {
-        moveTo(Vec3d(-3.5, 24.0, 0.5) - mc.player.eyeOffset)
+        moveTo(Vec3d(-3.5, 25.0, 0.5) - mc.player.eyeOffset)
         lookAt(Vec3d(0.5, 20.5, 0.5))
 
         tickClient()
