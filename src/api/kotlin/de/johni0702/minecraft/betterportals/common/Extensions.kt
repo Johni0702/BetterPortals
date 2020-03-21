@@ -20,6 +20,7 @@ import net.minecraft.nbt.NBTTagCompound
 import net.minecraft.network.PacketBuffer
 import net.minecraft.server.management.PlayerList
 import net.minecraft.util.EnumFacing
+import net.minecraft.util.EnumFacing.*;
 import net.minecraft.util.ResourceLocation
 import net.minecraft.util.Rotation
 import net.minecraft.util.math.AxisAlignedBB
@@ -226,6 +227,29 @@ fun Vec3d.rotate(rot: Rotation): Vec3d = when(rot) {
     Rotation.CLOCKWISE_90 -> Vec3d(-z, y, x)
     Rotation.CLOCKWISE_180 -> Vec3d(-x, y, -z)
     Rotation.COUNTERCLOCKWISE_90 -> Vec3d(z, y, -x)
+}
+fun EnumFacing.nextClockwise(axis: EnumFacing.Axis) = when (axis) {
+    EnumFacing.Axis.X -> when (this) {
+        UP -> NORTH
+        NORTH -> DOWN
+        DOWN -> SOUTH
+        SOUTH -> UP
+        else -> this
+    }
+    EnumFacing.Axis.Y -> when (this) {
+        NORTH -> EAST
+        EAST -> SOUTH
+        SOUTH -> WEST
+        WEST -> NORTH
+        else -> this
+    }
+    EnumFacing.Axis.Z -> when (this) {
+        UP -> EAST
+        EAST -> DOWN
+        DOWN -> WEST
+        WEST -> UP
+        else -> this
+    }
 }
 fun EnumFacing.toRotation(): Rotation = if (horizontalIndex == -1) Rotation.NONE else Rotation.values()[horizontalIndex]
 val Rotation.facing: EnumFacing get() = EnumFacing.getHorizontal(ordinal)
@@ -495,23 +519,28 @@ private fun World.makeChunkwiseBlockCacheInternal(forceLoad: Boolean = true): Bl
 @Deprecated("incompatible with CubicChunks")
 fun World.makeChunkwiseBlockCache(forceLoad: Boolean = true): BlockCache = makeChunkwiseBlockCacheInternal(forceLoad)
 
-private val byteBuf = Unpooled.buffer()
-private val packetBuffer = PacketBuffer(byteBuf)
 //#if MC>=11400
 //$$ private fun ChunkSection.clone(): ChunkSection {
-//$$     byteBuf.readerIndex(0)
-//$$     byteBuf.writerIndex(0)
-//$$     write(packetBuffer)
-//$$     return ChunkSection(yLocation).apply { read(packetBuffer) }
+//$$     val tag = CompoundNBT()
+//#if FABRIC>=1
+//$$     container.write(tag, "a", "b")
+//$$     return ChunkSection(yOffset).apply { container.read(tag.getList("a", 10), tag.getLongArray("b")) }
+//#else
+//$$     data.writeChunkPalette(tag, "a", "b")
+//$$     return ChunkSection(yLocation).apply { data.readChunkPalette(tag.getList("a", 10), tag.getLongArray("b")) }
+//#endif
 //$$ }
 //#else
 @Deprecated("implementation detail and gone in 1.14")
 fun BlockStateContainer.copy(): BlockStateContainer = clone()
-private fun BlockStateContainer.clone(): BlockStateContainer {
-    byteBuf.readerIndex(0)
-    byteBuf.writerIndex(0)
-    write(packetBuffer)
-    return BlockStateContainer().apply { read(packetBuffer) }
+private fun BlockStateContainer.clone() = BlockStateContainer().also { to ->
+    for (y in 0 until 16) {
+        for (z in 0 until 16) {
+            for (x in 0 until 16) {
+                to[x, y, z] = this[x, y, z]
+            }
+        }
+    }
 }
 //#endif
 

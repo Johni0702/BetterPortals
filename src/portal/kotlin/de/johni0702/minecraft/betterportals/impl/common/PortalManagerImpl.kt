@@ -15,6 +15,7 @@ import net.minecraft.world.WorldServer
 import org.apache.logging.log4j.Logger
 
 //#if FABRIC>=1
+//$$ import de.johni0702.minecraft.betterportals.impl.physicalClient
 //$$ import net.fabricmc.fabric.api.event.client.ClientTickCallback
 //$$ import net.fabricmc.fabric.api.event.world.WorldTickCallback
 //#else
@@ -119,7 +120,7 @@ internal class PortalManagerImpl(override val world: World) : PortalManager {
         //#endif
 
         //#if FABRIC>=1
-        //$$ init { ClientTickCallback.EVENT.register(ClientTickCallback { onClientTick(it) }) }
+        //$$ init { physicalClient { ClientTickCallback.EVENT.register(ClientTickCallback { onClientTick(it) }) } }
         //$$ private fun onClientTick(mc: MinecraftClient) {
         //#else
         @SubscribeEvent

@@ -494,7 +494,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             // For each portal block look at all eight surrounding blocks in the plane defined by axis
             axis.parallelFaces.forEach { facing ->
                 for (i in listOf(0, 1)) {
-                    val pos = portalBlock.offset(facing).offset(facing.rotateAround(axis), i)
+                    val pos = portalBlock.offset(facing).offset(facing.nextClockwise(axis), i)
                     // And add all non-portal blocks as frame blocks
                     if (pos !in portalBlocks) {
                         frameBlocks.add(pos)

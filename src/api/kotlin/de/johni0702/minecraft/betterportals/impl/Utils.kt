@@ -17,6 +17,7 @@ import net.minecraft.world.World
 //$$ import de.johni0702.minecraft.betterportals.common.orNull
 //$$ import de.johni0702.minecraft.view.common.register
 //$$ import io.netty.buffer.Unpooled
+//$$ import net.fabricmc.api.EnvType
 //$$ import net.fabricmc.fabric.api.block.FabricBlockSettings
 //$$ import net.fabricmc.fabric.api.client.render.BlockEntityRendererRegistry
 //$$ import net.fabricmc.fabric.api.client.render.EntityRendererRegistry
@@ -25,6 +26,7 @@ import net.minecraft.world.World
 //$$ import net.fabricmc.fabric.api.network.PacketContext
 //$$ import net.fabricmc.fabric.api.network.PacketRegistry
 //$$ import net.fabricmc.fabric.api.network.ServerSidePacketRegistry
+//$$ import net.fabricmc.loader.api.FabricLoader
 //$$ import net.minecraft.util.PacketByteBuf
 //$$ import net.minecraft.util.registry.Registry
 //#else
@@ -61,6 +63,14 @@ import net.minecraft.client.Minecraft
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper
 import net.minecraftforge.fml.relauncher.Side
+//#endif
+
+//#if FABRIC>=1
+//$$ inline fun physicalClient(block: () -> Unit) {
+//$$     if (FabricLoader.getInstance().environmentType == EnvType.CLIENT) {
+//$$         block()
+//$$     }
+//$$ }
 //#endif
 
 //#if FABRIC>=1
@@ -176,6 +186,9 @@ fun PortalConfig.toConfiguration() = PortalConfiguration(
 //$$         ids[type] = fullId
 //$$         encoders[type] = { message ->
 //$$             direction.senderRegistry.toPacket(fullId, PacketByteBuf(Unpooled.buffer().also { message.toBytes(it) }))
+//$$         }
+//$$         if (direction == NetworkDirection.TO_CLIENT && FabricLoader.getInstance().environmentType == EnvType.SERVER) {
+//$$             return
 //$$         }
 //$$         direction.receiverRegistry.register(fullId) { context, buf ->
 //$$             val message = handler.new()
