@@ -29,7 +29,7 @@ public class BetterPortalsMixinConfigPlugin implements IMixinConfigPlugin {
 
     private Logger logger = LogManager.getLogger("mixin/betterportals");
     private boolean hasKotlin = hasClass("kotlin.Pair");
-    private boolean hasOF = hasClass("optifine.OptiFineForgeTweaker");
+    private boolean hasOF = hasClass("optifine.OptiFineForgeTweaker") || hasClass("me.modmuss50.optifabric.mod.Optifabric");
     private boolean hasCC = hasClass("io.github.opencubicchunks.cubicchunks.core.asm.coremod.CubicChunksCoreMod");
     private boolean hasSponge = hasClass("org.spongepowered.common.SpongePlatform");
     private boolean hasVC = hasClass("org.vivecraft.asm.VivecraftASMTransformer");

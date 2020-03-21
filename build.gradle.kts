@@ -238,9 +238,15 @@ dependencies {
     if (loom) {
         "minecraft"("com.mojang:minecraft:1.14.4")
         "mappings"("net.fabricmc:yarn:1.14.4+build.14")
-        "modCompile"("net.fabricmc:fabric-loader:0.6.3+build.168")
-        "modCompile"("net.fabricmc.fabric-api:fabric-api:0.4.1+build.245-1.14")
-        "modCompile"("net.fabricmc.fabric-api:fabric-networking-v0:0.1.5+dfdb52d6b5")
+        "modCompile"("net.fabricmc:fabric-loader:0.7.8+build.189")
+        "modCompile"("net.fabricmc.fabric-api:fabric-api:0.4.3+build.247-1.14")
+        "modCompile"("net.fabricmc.fabric-api:fabric-networking-v0:0.1.9+d249f7b6d1")
+
+        // Uncomment if you'd like to test with Optifabric. Not enabled by default as OF requires
+        // you to manually install it into the mods folder for Optifabric to use it.
+        // Note that you may have to delete the broken javax package from the remapped OF jar.
+        // "modCompile"("com.github.modmuss50:OptiFabric:0.7.1")
+        // "compile"("org.zeroturnaround:zt-zip:1.14")
     }
     if (fg3) {
         "minecraft"("net.minecraftforge:forge:1.14.4-28.1.70")

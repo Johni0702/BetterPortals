@@ -91,7 +91,13 @@ public abstract class MixinViewFrustum_OF implements OFViewFrustum {
 
     private static boolean queryVboRegionsEnabled() {
         try {
-            Class<?> config = Class.forName("Config");
+            Class<?> config = Class.forName(
+                    //#if MC>=11400
+                    //$$ "net.optifine.Config"
+                    //#else
+                    "Config"
+                    //#endif
+            );
             boolean isVbo = (Boolean) config.getDeclaredMethod("isVbo").invoke(null);
             boolean isRenderRegions = (Boolean) config.getDeclaredMethod("isRenderRegions").invoke(null);
             return isVbo && isRenderRegions;
