@@ -8,6 +8,7 @@
 //$$ import de.johni0702.minecraft.betterportals.impl.sync
 //$$ import io.netty.buffer.ByteBuf
 //$$ import net.minecraft.client.MinecraftClient
+//$$ import net.minecraft.client.network.packet.EntityS2CPacket
 //$$ import net.minecraft.client.network.packet.EntitySpawnS2CPacket
 //$$ import net.minecraft.util.PacketByteBuf
 //$$
@@ -36,6 +37,8 @@
 //$$                     entity.yaw = (yaw * 360) / 256.0F;
 //$$                     entity.entityId = id;
 //$$                     entity.uuid = uuid;
+//$$                     val pos = EntityS2CPacket.decodePacketCoordinates(entity.trackedX, entity.trackedY, entity.trackedZ)
+//$$                     entity.setPositionAndAngles(pos.x, pos.y, pos.z, entity.yaw, entity.pitch)
 //$$                     world.addEntity(id, entity);
 //$$                 }
 //$$             }

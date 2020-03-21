@@ -14,6 +14,7 @@ import java.time.Duration
 //#if FABRIC>=1
 //$$ import net.fabricmc.loader.launch.common.FabricLauncherBase
 //$$ import net.fabricmc.loader.util.UrlUtil
+//$$ import net.minecraft.entity.EntityDimensions
 //#else
 import net.minecraftforge.fml.client.registry.RenderingRegistry
 //#endif
@@ -82,6 +83,8 @@ fun runTests(): Boolean {
     //#if MC>=11400
     //#if FABRIC>=1
     //$$ Registry.ENTITY_TYPE.registerEntityType<TestEntity>(TestEntity.ID, { _, world -> TestEntity(world) }, EntityCategory.MISC) {
+    //$$     trackable(100, 1)
+    //$$     size(EntityDimensions.fixed(1f, 3f))
     //$$ }
     //#else
     //$$ // FIXME
