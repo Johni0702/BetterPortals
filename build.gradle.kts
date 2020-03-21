@@ -94,6 +94,7 @@ val main by sourceSets.existing {
 val integrationTest by sourceSets.registering {
     compileClasspath += main.get().compileClasspath
     compileClasspath += main.get().output
+    runtimeClasspath += main.get().runtimeClasspath
 }
 
 if (loom) {
