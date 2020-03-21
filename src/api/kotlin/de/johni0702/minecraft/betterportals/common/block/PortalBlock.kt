@@ -144,10 +144,17 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
             }
 
             localPortal.link(remotePortal)
-        }, localWorld.theServer.executor::execute).exceptionally {
-            localPortal.setDead()
-            val report = CrashReport.makeCrashReport(it, "Finding remote portal")
-            throw ReportedException(report)
+        }, localWorld.theServer.executor::execute).whenComplete { _, throwable ->
+            if (throwable != null) {
+                throwable.printStackTrace()
+                localWorld.theServer.executor.execute {
+                    try {
+                        localPortal.setDead()
+                    } finally {
+                        throw ReportedException(CrashReport.makeCrashReport(throwable, "Finding remote portal"))
+                    }
+                }
+            }
         }
         return true
     }
