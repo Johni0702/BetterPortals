@@ -27,12 +27,14 @@
   ],
   "server": [],
   "client": [
+    //#if FABRIC>=1
+    //$$ "Mixin_RenderBlockOutlineEvent",
+    //#endif
     //#if MC>=11400
     //$$ "Mixin_ActiveRenderInfo_From_Camera",
     //$$ "Mixin_ActiveRenderInfo_SplitUpdateFromApply",
     //$$ "Mixin_FmlNoGrab",
     //$$ "Mixin_ParticleManager_SharedAtlas",
-    //$$ "Mixin_RenderBlockOutlineEvent",
     //$$ "MixinClientChunkProvider",
     //$$ "MixinThreadTaskExecutor",
     //#else
