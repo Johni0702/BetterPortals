@@ -9,7 +9,7 @@ import net.minecraft.world.World
 //$$ import de.johni0702.minecraft.betterportals.impl.net.FabricSpawnEntity
 //$$ import de.johni0702.minecraft.betterportals.impl.net.Net
 //$$ import net.minecraft.network.Packet
-//$$ import net.minecraft.client.network.packet.EntitySpawnS2CPacket
+//$$ import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket
 //#else
 import net.minecraftforge.registries.ObjectHolderRegistry
 //#endif

@@ -369,7 +369,11 @@ internal class ClientWorldsManagerImpl : ClientWorldsManager {
         mc.theProfiler.endStartSection("level")
 
         if (mc.world.lastLightningBolt > 0) {
+            //#if FABRIC>=1
+            //$$ mc.world.setLightningTicksLeft(mc.world.ticksSinceLightning - 1)
+            //#else
             mc.world.lastLightningBolt = mc.world.lastLightningBolt - 1
+            //#endif
         }
 
         //#if MC>=11400

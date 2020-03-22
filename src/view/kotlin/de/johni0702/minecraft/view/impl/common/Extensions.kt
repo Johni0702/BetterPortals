@@ -86,7 +86,7 @@ internal fun clientSyncIgnoringView(task: () -> Unit) {
     //#if MC>=11400
     //$$ // FIXME preprocessor should remap this one (it's merely missing yarn-mappings)
     //#if FABRIC>=1
-    //$$ mc.method_18858(ViewDemuxingTaskQueue.ViewWrappedFutureTask({ null }, Runnable { task() }))
+    //$$ mc.send(ViewDemuxingTaskQueue.ViewWrappedFutureTask({ null }, Runnable { task() }))
     //#else
     //$$ mc.enqueue(ViewDemuxingTaskQueue.ViewWrappedFutureTask({ null }, Runnable { task() }))
     //#endif

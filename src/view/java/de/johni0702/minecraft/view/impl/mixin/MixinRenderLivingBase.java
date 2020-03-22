@@ -31,7 +31,7 @@ public abstract class MixinRenderLivingBase<T extends EntityLivingBase> {
     private T entity;
 
     //#if FABRIC>=1
-    //$$ @Inject(method = "method_4055", at = @At("HEAD"))
+    //$$ @Inject(method = "hasLabel", at = @At("HEAD"))
     //#else
     @Inject(method = "canRenderName(Lnet/minecraft/entity/EntityLivingBase;)Z", at = @At("HEAD"))
     //#endif
@@ -40,7 +40,7 @@ public abstract class MixinRenderLivingBase<T extends EntityLivingBase> {
     }
 
     //#if FABRIC>=1
-    //$$ @Redirect(method = "method_4055", at = @At(
+    //$$ @Redirect(method = "hasLabel", at = @At(
     //#else
     @Redirect(method = "canRenderName(Lnet/minecraft/entity/EntityLivingBase;)Z", at = @At(
     //#endif

@@ -102,7 +102,7 @@ internal object DimensionTransitionHandler {
             //$$         spawnYaw = 90f
             //$$     }
             //$$     with(spawn.to3d()) {
-            //$$         setPositionAndAngles(x, y, z, spawnYaw, 0f)
+            //$$         refreshPositionAndAngles(x, y, z, spawnYaw, 0f)
             //$$     }
             //$$     velocity = Vec3d.ZERO
             //$$ } else {
@@ -116,7 +116,7 @@ internal object DimensionTransitionHandler {
             //$$         this.velocity = target.velocity
             //$$         this.yaw = yaw + target.yaw
             //$$         with(target.pos) {
-            //$$             setPositionAnglesAndUpdate(x, y, z, this@changeDimension.yaw, this@changeDimension.pitch)
+            //$$             updatePositionAndAngles(x, y, z, this@changeDimension.yaw, this@changeDimension.pitch)
             //$$         }
             //$$     } else if (!newWorld.portalForcer.usePortal(this, yaw)) {
             //$$         newWorld.portalForcer.createPortal(this)

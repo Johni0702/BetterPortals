@@ -45,13 +45,6 @@ internal class ViewNetworkManager : NetworkManager(EnumPacketDirection.CLIENTBOU
                             //#endif
     ) = Unit
 
-    // FIXME why does yarn not map method_10770 back to channelRead0? or rather, why is channelRead0 mapped to
-    //       an intermediate name in the first place?
-    //#if FABRIC>=1
-    //$$ override fun channelRead0(ctx: ChannelHandlerContext, msg: Packet<*>) {
-    //$$     method_10770(ctx, msg)
-    //$$ }
-    //#endif
     override fun channelRead0(ctx: ChannelHandlerContext, packet: Packet<*>) {
         when (packet) {
             is SPacketChat -> return

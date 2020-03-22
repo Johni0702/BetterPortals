@@ -160,7 +160,7 @@ fun updateClient(skipSync: Boolean = false) {
     //#if MC>=11400
     //$$ // TODO preprocessor should handle this
     //#if FABRIC>=1
-    //$$ mc.waitFor {
+    //$$ mc.runTasks {
     //$$     mc.method_21684() == 0
     //$$ }
     //#else
@@ -235,7 +235,7 @@ fun render(partialTicks: Float = mc.renderPartialTicks) {
 //$$     val future = CompletableFuture<ITextComponent>()
 //$$     // TODO https://github.com/ReplayMod/remap/issues/10
     //#if FABRIC>=1
-    //$$ ScreenshotUtils.method_1662(mc.runDirectory, name, mc.framebuffer.viewWidth, mc.framebuffer.viewHeight, (mc as AccMinecraft).framebuffer) {
+    //$$ ScreenshotUtils.method_1662(mc.runDirectory, name, mc.framebuffer.viewportWidth, mc.framebuffer.viewportHeight, (mc as AccMinecraft).framebuffer) {
     //#else
     //$$ ScreenShotHelper.saveScreenshot(mc.gameDir, name, mc.framebuffer.framebufferWidth, mc.framebuffer.framebufferHeight, (mc as AccMinecraft).framebuffer) {
     //#endif
@@ -276,14 +276,14 @@ fun tickServer() {
     }
     //#if MC>=11400
     //#if FABRIC>=1
-    //$$ server.waitFor {
+    //$$ server.runTasks {
     //$$     do {
     //$$         var allDone = server.method_21684() == 0
-    //$$         if (server.executeQueuedTask()) {
+    //$$         if (server.runTask()) {
     //$$             allDone = false
     //$$         }
     //$$         for (world in server.worlds) {
-    //$$             if (world.method_14178().executeQueuedTasks()) {
+    //$$             if (world.chunkManager.executeQueuedTasks()) {
     //$$                 allDone = false
     //$$             }
     //$$         }

@@ -20,7 +20,7 @@ import net.minecraftforge.fml.relauncher.SideOnly
 //$$ import net.minecraft.entity.EntityType
 //#if FABRIC>=1
 //$$ import de.johni0702.minecraft.betterportals.impl.theImpl
-//$$ import net.minecraft.client.network.packet.EntitySpawnS2CPacket
+//$$ import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket
 //#else
 //$$ import net.minecraftforge.fml.network.NetworkHooks
 //#endif
@@ -161,7 +161,7 @@ abstract class AbstractPortalEntity(
         val list = mutableListOf<AbstractPortalEntity>()
         // FIXME preprocessor doesn't currently remap this one for yet-to-be-determined reason
         //#if FABRIC>=1
-        //$$ chunk.appendEntities(javaClass, Box(portal.remotePosition), list) {
+        //$$ chunk.getEntities(javaClass, Box(portal.remotePosition), list) {
         //#else
         chunk.getEntitiesOfTypeWithinAABB(javaClass, AxisAlignedBB(portal.remotePosition), list) {
         //#endif

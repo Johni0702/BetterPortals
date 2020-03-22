@@ -42,7 +42,7 @@ public class MixinServerWorldEventHandler {
      */
     // FIXME preprocessor should handle this
     //#if FABRIC>=1
-    //$$ @Inject(method = "setBlockBreakingProgress", at = @At("HEAD"))
+    //$$ @Inject(method = "setBlockBreakingInfo", at = @At("HEAD"))
     //#else
     @Inject(method = "sendBlockBreakProgress", at = @At("HEAD"))
     //#endif

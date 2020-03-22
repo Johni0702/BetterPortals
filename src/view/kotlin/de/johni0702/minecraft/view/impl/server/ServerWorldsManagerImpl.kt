@@ -224,13 +224,13 @@ internal class ServerWorldsManagerImpl(
                 .addLast("prepender", NettyVarint21FrameEncoder())
                 .addLast("encoder", NettyPacketEncoder(EnumPacketDirection.CLIENTBOUND))
                 .addLast("exception_handler", NettyExceptionHandler(connection))
-                .addLast("packet_handler", camera.connection.networkManager)
+                .addLast("packet_handler", camera.connection.netManager)
                 .fireChannelActive()
-        camera.connection.networkManager.setConnectionState(EnumConnectionState.PLAY)
+        camera.connection.netManager.setConnectionState(EnumConnectionState.PLAY)
 
         //#if MC>=11400
         //$$ val marker = AttributeKey.valueOf<String>("fml:netversion")!!
-        //$$ channel.attr(marker).set((connection.networkManager as AccNetworkManager).nettyChannel.attr(marker).get())
+        //$$ channel.attr(marker).set((connection.netManager as AccNetworkManager).nettyChannel.attr(marker).get())
         //#else
         val networkDispatcher = NetworkDispatcher.allocAndSet(camera.connection.networkManager, server.playerList)
         channel.pipeline().addBefore("packet_handler", "fml:packet_handler", networkDispatcher)

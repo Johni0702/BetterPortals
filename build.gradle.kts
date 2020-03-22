@@ -237,7 +237,7 @@ fun DependencyHandler.deobf(dep: String, configure: Dependency.() -> Unit = {}):
 dependencies {
     if (loom) {
         "minecraft"("com.mojang:minecraft:1.14.4")
-        "mappings"("net.fabricmc:yarn:1.14.4+build.14")
+        "mappings"("net.fabricmc:yarn:1.14.4+build.16:v2")
         "modCompile"("net.fabricmc:fabric-loader:0.7.8+build.189")
         "modCompile"("net.fabricmc.fabric-api:fabric-api:0.4.3+build.247-1.14")
         "modCompile"("net.fabricmc.fabric-api:fabric-networking-v0:0.1.9+d249f7b6d1")

@@ -8,8 +8,8 @@
 //$$ import de.johni0702.minecraft.betterportals.impl.sync
 //$$ import io.netty.buffer.ByteBuf
 //$$ import net.minecraft.client.MinecraftClient
-//$$ import net.minecraft.client.network.packet.EntityS2CPacket
-//$$ import net.minecraft.client.network.packet.EntitySpawnS2CPacket
+//$$ import net.minecraft.network.packet.s2c.play.EntityS2CPacket
+//$$ import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket
 //$$ import net.minecraft.util.PacketByteBuf
 //$$
 //$$ internal class FabricSpawnEntity(private var inner: EntitySpawnS2CPacket = EntitySpawnS2CPacket()) : IMessage {
@@ -38,7 +38,7 @@
 //$$                     entity.entityId = id;
 //$$                     entity.uuid = uuid;
 //$$                     val pos = EntityS2CPacket.decodePacketCoordinates(entity.trackedX, entity.trackedY, entity.trackedZ)
-//$$                     entity.setPositionAndAngles(pos.x, pos.y, pos.z, entity.yaw, entity.pitch)
+//$$                     entity.refreshPositionAndAngles(pos.x, pos.y, pos.z, entity.yaw, entity.pitch)
 //$$                     world.addEntity(id, entity);
 //$$                 }
 //$$             }
