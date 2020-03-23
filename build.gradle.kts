@@ -41,36 +41,59 @@ configure<PreprocessExtension> {
     vars.put("FABRIC", if (fabric) 1 else 0)
 }
 
-class Implementations : HashMap<String, MutableList<String>>() {
-    operator fun String.invoke(run: MutableList<String>.() -> Unit) = run(getOrPut(this, ::mutableListOf))
-    operator fun invoke(run: Implementations.() -> Unit) = run()
-}
-val implementations = Implementations()
+data class Module(
+        val name: String
+) {
+    var active: Boolean = true
+    val deps = mutableListOf<String>()
 
-implementations {
+    val sourceSetName = name
+    val sourceSet
+        get() = sourceSets.getByName(sourceSetName)
+
+    fun onlyWhen(condition: Boolean) {
+        active = condition
+    }
+
+    fun dep(depStr: String) = deps.add(depStr)
+}
+
+class Modules : ArrayList<Module>() {
+    operator fun String.invoke(run: Module.() -> Unit) = run(Module(this).also(::add))
+    operator fun invoke(run: Modules.() -> Unit) = run()
+}
+val modules = Modules()
+
+modules {
     "view" {}
     "transition" {}
     "portal" {}
     "nether" {}
     "end" {}
     "twilightforest" {
-        if (mc11202) add("the-twilight-forest:twilightforest-1.12.2:3.9.984:universal")
+        onlyWhen(mc11202)
+        dep("the-twilight-forest:twilightforest-1.12.2:3.9.984:universal")
     }
     "mekanism" {
-        if (mc11202) add("mekanism:Mekanism:1.12.2:9.8.1.383")
-        if (mc11202) add("redstone-flux:RedstoneFlux-1.12:2.1.0.6:universal")
-        if (mc11202) add("industrial-craft:Industrialcraft-2-2.8.111:ex112:api")
+        onlyWhen(mc11202)
+        dep("mekanism:Mekanism:1.12.2:9.8.1.383")
+        dep("redstone-flux:RedstoneFlux-1.12:2.1.0.6:universal")
+        dep("industrial-craft:Industrialcraft-2-2.8.111:ex112:api")
     }
     "aether" {
-        if (mc11202) add("the-aether:aether_legacy:1.12.2:v1.4.4")
+        onlyWhen(mc11202)
+        dep("the-aether:aether_legacy:1.12.2:v1.4.4")
     }
     "abyssalcraft" {
-        if (mc11202) add("abyssalcraft:AbyssalCraft:1.12.2:1.9.11")
+        onlyWhen(mc11202)
+        dep("abyssalcraft:AbyssalCraft:1.12.2:1.9.11")
     }
     "travelhuts" {
-        if (mc11202) add("travel-huts:travelhut:3.0.2")
+        onlyWhen(mc11202)
+        dep("travel-huts:travelhut:3.0.2")
     }
 }
+val activeModules = modules.filter { it.active }
 
 val sourceSets = the<SourceSetContainer>()
 if (fg3 || loom) {
@@ -78,8 +101,8 @@ if (fg3 || loom) {
     configurations[api.compileConfigurationName].extendsFrom(configurations["compile"])
 }
 val api by sourceSets.getting // created by ForgeGradle
-for (name in implementations.keys) {
-    sourceSets.register(name) {
+for (module in modules) {
+    sourceSets.register(module.sourceSetName) {
         compileClasspath += api.compileClasspath
         compileClasspath += api.output
     }
@@ -87,8 +110,8 @@ for (name in implementations.keys) {
 val main by sourceSets.existing {
     compileClasspath += api.compileClasspath
     compileClasspath += api.output
-    for (name in implementations.keys) {
-        compileClasspath += sourceSets[name].output
+    for (module in activeModules) {
+        compileClasspath += sourceSets[module.sourceSetName].output
     }
 }
 val integrationTest by sourceSets.registering {
@@ -112,8 +135,8 @@ if (loom) {
                 register("betterportals") {
                     source(sourceSets["main"])
                     source(sourceSets["api"])
-                    for (name in implementations.keys) {
-                        source(sourceSets.getByName(name))
+                    for (module in activeModules) {
+                        source(module.sourceSet)
                     }
                 }
             }
@@ -308,9 +331,9 @@ dependencies {
 
     "apiCompile"(deobf("opencubicchunks:CubicChunks-1.12.2-0.0.970.0:SNAPSHOT:all"))
 
-    for ((name, dependencies) in implementations) {
-        for (dependency in dependencies) {
-            "${name}Compile"(deobf(dependency))
+    for (module in activeModules) {
+        for (dependency in module.deps) {
+            "${module.name}Compile"(deobf(dependency))
         }
     }
 
@@ -327,7 +350,7 @@ dependencies {
 }
 
 val implJars = mutableMapOf<String, TaskProvider<Jar>>()
-for (name in implementations.keys + listOf("core")) {
+for (name in activeModules.map { it.name } + listOf("core")) {
     val jarTaskName = "${name}Jar"
     val jarTask = tasks.register<Jar>(jarTaskName) {
         archiveBaseName.set("betterportals-$name")
