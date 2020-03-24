@@ -2,6 +2,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.replaymod.gradle.preprocess.PreprocessExtension
+import com.replaymod.gradle.preprocess.PreprocessTask
 import net.fabricmc.loom.LoomGradleExtension
 import net.fabricmc.loom.task.RemapJarTask
 import net.minecraftforge.gradle.tasks.GenSrgs
@@ -105,6 +106,16 @@ for (module in modules) {
     sourceSets.register(module.sourceSetName) {
         compileClasspath += api.compileClasspath
         compileClasspath += api.output
+    }
+    if (!module.active) {
+        afterEvaluate {
+            fun disableRemap(task: PreprocessTask) {
+                task.classpath = null
+                task.setDependsOn(task.dependsOn.filter { it !is AbstractCompile })
+            }
+            (tasks.findByName("preprocess${module.name.capitalize()}Java") as PreprocessTask?)?.let(::disableRemap)
+            (tasks.findByName("preprocess${module.name.capitalize()}Kotlin") as PreprocessTask?)?.let(::disableRemap)
+        }
     }
 }
 val main by sourceSets.existing {
