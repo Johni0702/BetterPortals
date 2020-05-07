@@ -245,7 +245,7 @@ fun determineVersion(): String {
         "$latestVersion-$diff-g${currentCommit.substring(0, 7)}"
     }
     return if (command("git", "status", "--porcelain").any { it.isNotEmpty() }) {
-        "$version*"
+        "$version#"
     } else {
         version
     }

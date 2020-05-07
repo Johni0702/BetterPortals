@@ -165,7 +165,7 @@ interface PortalBlock<EntityType> where EntityType: Entity, EntityType: Linkable
                         .coerceIn(-29999872, 29999872)
         )
 
-        val searchDist = 64
+        val searchDist = 128
         val remotePos0 = remotePosition.add(0, -remotePosition.y, 0)
         val remoteChunkPos = ChunkPos(remotePos0)
 
